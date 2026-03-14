@@ -18,6 +18,8 @@
 
 ## What is Frankie?
 
+![Alt text](images/The Frankie Programming Language.png)
+
 Frankie is a **procedural, expressive, terminal-native programming language** named after Frankenstein — because it's lovingly stitched together from the best parts of four legendary languages:
 
 | Donor Language | What Frankie Borrows |
