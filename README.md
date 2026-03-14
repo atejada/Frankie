@@ -42,27 +42,39 @@ Frankie is **not object-oriented**. It's proudly procedural — functions, data,
 
 ## Installation
 
-Clone or download this repository, then run programs using the `frankiec.py` compiler:
+Frankie installs into its own `bin/` folder — the whole directory stays self-contained.
 
 ```bash
-# Run a Frankie program
-python3 frankiec.py run examples/hello.fk
+# 1. Unzip and enter the folder
+cd frankie
 
-# Compile to Python source (for inspection)
-python3 frankiec.py build myprogram.fk
+# 2. Run the installer
+python3 install.py
 
-# Check syntax only
-python3 frankiec.py check myprogram.fk
-
-# Show version
-python3 frankiec.py version
+# 3. Add frankie/bin to your PATH (once, in ~/.bashrc or ~/.zshrc)
+export PATH="/path/to/frankie/bin:$PATH"
 ```
 
-### Optional: Install as a shell command
+To uninstall:
+```bash
+python3 install.py --uninstall
+```
+
+### Using without installing
 
 ```bash
-alias frankiec="python3 /path/to/frankie/frankiec.py"
-frankiec run hello.fk
+python3 frankiec.py run examples/hello.fk
+# or
+./bin/frankiec run examples/hello.fk   # after install
+```
+
+### Commands
+
+```bash
+frankiec run   <file.fk>    # Run a Frankie program
+frankiec build <file.fk>    # Compile to Python source (for inspection)
+frankiec check <file.fk>    # Syntax check only — no execution
+frankiec version            # Show version info
 ```
 
 ---

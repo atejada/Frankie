@@ -1,0 +1,18 @@
+#!/usr/bin/env python3
+"""
+frankiec — The Frankie Language Interpreter & Compiler
+Usage:
+    frankiec run   <file.fk>       Run a Frankie program
+    frankiec build <file.fk>       Compile to Python source
+    frankiec check <file.fk>       Syntax check only
+    frankiec version               Show version info
+"""
+import sys
+import os
+
+# Ensure the frankie directory is on the path regardless of where frankiec lives
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# Delegate to the compiler entry point
+from frankiec import main
+main()
