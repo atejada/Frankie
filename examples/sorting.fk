@@ -1,0 +1,61 @@
+# sorting.fk — Sorting algorithms in Frankie
+
+def bubble_sort(arr)
+  n = length(arr)
+  i = 0
+  while i < n - 1
+    j = 0
+    while j < n - i - 1
+      if arr[j] > arr[j + 1]
+        temp = arr[j]
+        arr[j] = arr[j + 1]
+        arr[j + 1] = temp
+      end
+      j = j + 1
+    end
+    i = i + 1
+  end
+  return arr
+end
+
+def selection_sort(arr)
+  n = length(arr)
+  i = 0
+  while i < n
+    min_idx = i
+    j = i + 1
+    while j < n
+      if arr[j] < arr[min_idx]
+        min_idx = j
+      end
+      j = j + 1
+    end
+    temp = arr[i]
+    arr[i] = arr[min_idx]
+    arr[min_idx] = temp
+    i = i + 1
+  end
+  return arr
+end
+
+puts "=== Frankie Sorting Algorithms ==="
+puts ""
+
+data1 = [64, 34, 25, 12, 22, 11, 90]
+data2 = [29, 10, 14, 37, 13, 0, 99, 55]
+
+puts "Original (1): #{data1}"
+sorted1 = bubble_sort(data1)
+puts "Bubble Sort : #{sorted1}"
+
+puts ""
+
+puts "Original (2): #{data2}"
+sorted2 = selection_sort(data2)
+puts "Select Sort : #{sorted2}"
+
+puts ""
+puts "=== Using built-in sort ==="
+v = [5, 3, 8, 1, 9, 2, 7, 4, 6]
+puts "Unsorted: #{v}"
+puts "Sorted  : #{v.sort}"

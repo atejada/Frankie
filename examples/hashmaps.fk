@@ -1,0 +1,114 @@
+# hashmaps.fk — Full hashmap demonstration in Frankie
+
+puts "╔══════════════════════════════════╗"
+puts "║     Frankie Hashmap Demo         ║"
+puts "╚══════════════════════════════════╝"
+puts ""
+
+# ─── 1. Creating a Hash ───────────────────────────────────────────────────────
+puts "── 1. Creating a Hash ──"
+person = {name: "Alice", age: 30, city: "Lima"}
+puts person
+puts ""
+
+# ─── 2. Reading Values ────────────────────────────────────────────────────────
+puts "── 2. Reading Values ──"
+puts "Name : #{person[:name]}"
+puts "Age  : #{person[:age]}"
+puts "City : #{person[:city]}"
+puts ""
+
+# ─── 3. Adding & Updating Keys ───────────────────────────────────────────────
+puts "── 3. Adding & Updating ──"
+person[:job] = "Engineer"
+person[:age] = 31
+puts "After update: #{person}"
+puts ""
+
+# ─── 4. Keys & Values ────────────────────────────────────────────────────────
+puts "── 4. Keys & Values ──"
+puts "Keys   : #{person.keys}"
+puts "Values : #{person.values}"
+puts "Size   : #{person.size}"
+puts ""
+
+# ─── 5. has_key? ─────────────────────────────────────────────────────────────
+puts "── 5. Checking Keys ──"
+puts "Has :name?   #{person.has_key?(:name)}"
+puts "Has :email?  #{person.has_key?(:email)}"
+puts ""
+
+# ─── 6. delete ───────────────────────────────────────────────────────────────
+puts "── 6. Deleting a Key ──"
+person.delete(:city)
+puts "After deleting :city: #{person}"
+puts ""
+
+# ─── 7. fetch with default ───────────────────────────────────────────────────
+puts "── 7. Fetch with Default ──"
+job    = person.fetch(:job, "Unknown")
+salary = person.fetch(:salary, 0)
+puts "Job    : #{job}"
+puts "Salary : #{salary}"
+puts ""
+
+# ─── 8. Iterating with each ──────────────────────────────────────────────────
+puts "── 8. Iterating (each) ──"
+person.each do |key, val|
+  puts "  #{key} => #{val}"
+end
+puts ""
+
+# ─── 9. merge ────────────────────────────────────────────────────────────────
+puts "── 9. Merging Hashes ──"
+extra = {email: "alice@example.com", country: "Peru"}
+full  = person.merge(extra)
+puts "Merged: #{full}"
+puts ""
+
+# ─── 10. Nested Hashes ───────────────────────────────────────────────────────
+puts "── 10. Nested Hashes ──"
+company = {
+  name: "Frankieworks",
+  address: {street: "Av. Larco", city: "Miraflores"},
+  employees: 42
+}
+puts "Company : #{company[:name]}"
+puts "Street  : #{company[:address][:street]}"
+puts "City    : #{company[:address][:city]}"
+puts ""
+
+# ─── 11. Hash of Vectors ─────────────────────────────────────────────────────
+puts "── 11. Hash of Vectors ──"
+scores = {
+  alice: [90, 85, 92],
+  bob:   [78, 80, 88],
+  carol: [95, 99, 97]
+}
+
+scores.each do |student, s|
+  avg = mean(s)
+  puts "  #{student}: avg = #{avg}"
+end
+puts ""
+
+# ─── 12. Building a Hash dynamically ─────────────────────────────────────────
+puts "── 12. Building Dynamically ──"
+word_count = {}
+words = ["frankie", "is", "fun", "frankie", "is", "fast", "frankie"]
+
+for word in words
+  if word_count.has_key?(word)
+    word_count[word] = word_count[word] + 1
+  else
+    word_count[word] = 1
+  end
+end
+
+puts "Word counts:"
+word_count.each do |word, count|
+  puts "  #{word}: #{count}"
+end
+puts ""
+
+puts "Done! Frankie hashmaps are alive 🧟"

@@ -1,0 +1,58 @@
+# test_regex.fk — Regex operations in Frankie
+# All regex functions use (string, pattern) order — natural to read as "does X match Y?"
+
+puts "── matches(string, pattern) ──"
+puts matches("hello world", "world")
+puts matches("hello world", "xyz")
+puts matches("frank123", "[0-9]+")
+
+puts ""
+puts "── match(string, pattern) ──"
+m = match("abc 42 def", "[0-9]+")
+if m != nil
+  puts "Found a number"
+end
+
+puts ""
+puts "── match_all(string, pattern) ──"
+nums = match_all("prices: 10, 20, 300, 4000", "[0-9]+")
+puts "Numbers found: #{nums}"
+puts "Count: #{length(nums)}"
+
+puts ""
+puts "── sub(string, pattern, replacement) ──"
+puts sub("Hello World World", "World", "Frankie")
+
+puts ""
+puts "── gsub(string, pattern, replacement) ──"
+puts gsub("Hello World World", "World", "Frankie")
+
+puts ""
+puts "── =~ operator (string =~ pattern) ──"
+pos = "hello frankie" =~ "frankie"
+puts "Match position: #{pos}"
+
+no_match = "hello world" =~ "xyz"
+puts "No match: #{no_match}"
+
+puts ""
+puts "── Case-insensitive regex() ──"
+r = regex("[a-z]+", "i")
+puts matches("HELLO", r)
+puts match_all("Hello WORLD foo", r)
+
+puts ""
+puts "── Email validation ──"
+def valid_email(addr)
+  return matches(addr, "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}")
+end
+
+puts valid_email("alice@example.com")
+puts valid_email("not-an-email")
+puts valid_email("blag@frankielang.fk")
+
+puts ""
+puts "── Extract all words ──"
+words = match_all("the quick brown fox", "[a-z]+")
+puts "Words: #{words}"
+puts "Count: #{length(words)}"

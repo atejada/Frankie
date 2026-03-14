@@ -1,0 +1,51 @@
+# stats.fk — Statistical analysis, R-style, in Frankie
+
+puts "=== Frankie Statistics Demo ==="
+puts ""
+
+# Create a data vector
+data = [23, 45, 12, 67, 34, 89, 15, 56, 78, 42]
+
+puts "Data: #{data}"
+puts "Length : #{length(data)}"
+puts "Sum    : #{sum(data)}"
+puts "Mean   : #{mean(data)}"
+puts "Min    : #{min(data)}"
+puts "Max    : #{max(data)}"
+puts "Std Dev: #{stdev(data)}"
+puts "Median : #{median(data)}"
+
+puts ""
+puts "=== Vector Operations ==="
+
+# Vectorized math
+v = [1, 2, 3, 4, 5]
+doubled = v * 2
+shifted = v + [10, 10, 10, 10, 10]
+
+puts "Original : #{v}"
+puts "Doubled  : #{doubled}"
+puts "Shifted  : #{shifted}"
+
+puts ""
+puts "=== Pipe Operator (R-style) ==="
+
+result = data |> sum
+puts "Sum via pipe: #{result}"
+
+result2 = data |> mean
+puts "Mean via pipe: #{result2}"
+
+puts ""
+puts "=== Sequence (like R's seq) ==="
+
+s = seq(0, 1, 0.25)
+puts "seq(0, 1, 0.25) = #{s}"
+
+puts ""
+puts "=== Map & Transform ==="
+
+squares = [1, 2, 3, 4, 5].map do |x|
+  x ** 2
+end
+puts "Squares: #{squares}"

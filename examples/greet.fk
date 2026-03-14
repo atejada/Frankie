@@ -1,0 +1,35 @@
+# greet.fk — Interactive terminal app in Frankie
+
+puts "================================"
+puts "   Welcome to Frankie Greeter!  "
+puts "================================"
+puts ""
+
+name = input("What is your name? ")
+age = input_int("How old are you? ")
+
+puts ""
+puts "Hello, #{name}! You are #{age} years old."
+
+if age < 18
+  puts "You're quite young! Frankie was designed with future minds like yours in mind."
+elsif age < 30
+  puts "You're in your prime coding years — Frankie will serve you well!"
+elsif age < 60
+  puts "Experience and wisdom — the best combination for programming!"
+else
+  puts "A seasoned mind! Welcome to the Frankie family."
+end
+
+puts ""
+
+birth_year = 2025 - age
+puts "You were born around #{birth_year}."
+
+years_to_100 = 100 - age
+unless years_to_100 <= 0
+  puts "You have #{years_to_100} years until you hit 100!"
+end
+
+puts ""
+puts "Thanks for trying Frankie, #{name}! 🧟"

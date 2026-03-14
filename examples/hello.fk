@@ -1,0 +1,5 @@
+# hello.fk — The classic first program in Frankie
+
+name = "World"
+puts "Hello, #{name}!"
+puts "Welcome to Frankie — stitched together from the finest languages."

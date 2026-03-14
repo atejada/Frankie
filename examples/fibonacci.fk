@@ -1,0 +1,28 @@
+# fibonacci.fk — Fibonacci sequence in Frankie
+
+def fibonacci(n)
+  if n <= 1
+    return n
+  end
+  return fibonacci(n - 1) + fibonacci(n - 2)
+end
+
+def fibonacci_sequence(limit)
+  result = []
+  i = 0
+  while i <= limit
+    result.push(fibonacci(i))
+    i = i + 1
+  end
+  return result
+end
+
+puts "=== Fibonacci Sequence ==="
+seq = fibonacci_sequence(10)
+puts "First 11 terms: #{seq}"
+
+puts ""
+puts "Individual values:"
+for i in 0..10
+  puts "  fib(#{i}) = #{fibonacci(i)}"
+end

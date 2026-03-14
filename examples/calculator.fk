@@ -1,0 +1,92 @@
+# calculator.fk — A terminal calculator in Frankie
+
+def show_menu()
+  puts ""
+  puts "┌─────────────────────────┐"
+  puts "│   Frankie Calculator    │"
+  puts "├─────────────────────────┤"
+  puts "│  1. Add                 │"
+  puts "│  2. Subtract            │"
+  puts "│  3. Multiply            │"
+  puts "│  4. Divide              │"
+  puts "│  5. Power               │"
+  puts "│  6. Square Root         │"
+  puts "│  7. Statistics of list  │"
+  puts "│  0. Quit                │"
+  puts "└─────────────────────────┘"
+end
+
+def get_two_numbers()
+  a = input_float("  Enter first number: ")
+  b = input_float("  Enter second number: ")
+  return [a, b]
+end
+
+running = true
+
+while running
+  show_menu()
+  choice = input_int("Choose an option: ")
+
+  if choice == 1
+    nums = get_two_numbers()
+    result = nums[0] + nums[1]
+    puts "  Result: #{nums[0]} + #{nums[1]} = #{result}"
+
+  elsif choice == 2
+    nums = get_two_numbers()
+    result = nums[0] - nums[1]
+    puts "  Result: #{nums[0]} - #{nums[1]} = #{result}"
+
+  elsif choice == 3
+    nums = get_two_numbers()
+    result = nums[0] * nums[1]
+    puts "  Result: #{nums[0]} × #{nums[1]} = #{result}"
+
+  elsif choice == 4
+    nums = get_two_numbers()
+    if nums[1] == 0
+      puts "  Error: Cannot divide by zero!"
+    else
+      result = nums[0] / nums[1]
+      puts "  Result: #{nums[0]} ÷ #{nums[1]} = #{result}"
+    end
+
+  elsif choice == 5
+    nums = get_two_numbers()
+    result = nums[0] ** nums[1]
+    puts "  Result: #{nums[0]} ^ #{nums[1]} = #{result}"
+
+  elsif choice == 6
+    n = input_float("  Enter number: ")
+    if n < 0
+      puts "  Error: Cannot take square root of negative number!"
+    else
+      result = sqrt(n)
+      puts "  Result: √#{n} = #{result}"
+    end
+
+  elsif choice == 7
+    puts "  Enter numbers separated by spaces:"
+    raw = input("")
+    parts = raw.split(" ")
+    nums = parts.map do |s|
+      to_float(s)
+    end
+    puts "  Data   : #{nums}"
+    puts "  Sum    : #{sum(nums)}"
+    puts "  Mean   : #{mean(nums)}"
+    puts "  Min    : #{min(nums)}"
+    puts "  Max    : #{max(nums)}"
+    puts "  Median : #{median(nums)}"
+    puts "  StdDev : #{stdev(nums)}"
+
+  elsif choice == 0
+    puts ""
+    puts "Goodbye! Thanks for using Frankie Calculator."
+    running = false
+
+  else
+    puts "  Invalid option. Please try again."
+  end
+end

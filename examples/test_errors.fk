@@ -1,0 +1,48 @@
+# test_errors.fk — begin/rescue/ensure + raise
+
+puts "── Basic rescue ──"
+begin
+  x = 10 / 0
+rescue e
+  puts "Caught: #{e}"
+end
+
+puts ""
+puts "── Rescue with ensure ──"
+begin
+  raise "something went wrong"
+rescue e
+  puts "Error was: #{e}"
+ensure
+  puts "This always runs"
+end
+
+puts ""
+puts "── Nested rescue ──"
+def safe_divide(a, b)
+  begin
+    return a / b
+  rescue e
+    puts "Division error: #{e}"
+    return nil
+  end
+end
+
+puts safe_divide(10, 2)
+puts safe_divide(10, 0)
+
+puts ""
+puts "── Raise with message ──"
+def must_be_positive(n)
+  if n <= 0
+    raise "Expected positive number, got #{n}"
+  end
+  return n * 2
+end
+
+begin
+  puts must_be_positive(5)
+  puts must_be_positive(-3)
+rescue e
+  puts "Validation failed: #{e}"
+end

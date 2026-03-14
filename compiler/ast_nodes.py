@@ -1,0 +1,259 @@
+"""
+Frankie AST Node Definitions
+Each node represents a syntactic construct in the Frankie language.
+"""
+
+from dataclasses import dataclass, field
+from typing import List, Optional, Any
+
+
+# ─── Base ────────────────────────────────────────────────────────────────────
+
+class Node:
+    pass
+
+
+# ─── Literals ────────────────────────────────────────────────────────────────
+
+@dataclass
+class IntLiteral(Node):
+    value: int
+
+@dataclass
+class FloatLiteral(Node):
+    value: float
+
+@dataclass
+class StringLiteral(Node):
+    """parts: list of ('literal', str) | ('interp', str_expr)"""
+    parts: list
+
+@dataclass
+class BoolLiteral(Node):
+    value: bool
+
+@dataclass
+class NilLiteral(Node):
+    pass
+
+@dataclass
+class VectorLiteral(Node):
+    elements: List[Node]
+
+@dataclass
+class HashLiteral(Node):
+    pairs: List[tuple]  # list of (key_node, value_node)
+
+@dataclass
+class RangeLiteral(Node):
+    start: Node
+    end: Node
+    inclusive: bool  # True = .., False = ...
+
+
+# ─── Variables ───────────────────────────────────────────────────────────────
+
+@dataclass
+class Identifier(Node):
+    name: str
+
+@dataclass
+class Assign(Node):
+    name: str
+    value: Node
+
+@dataclass
+class IndexAccess(Node):
+    target: Node
+    index: Node
+
+@dataclass
+class IndexAssign(Node):
+    target: Node
+    index: Node
+    value: Node
+
+
+# ─── Operations ──────────────────────────────────────────────────────────────
+
+@dataclass
+class BinOp(Node):
+    op: str
+    left: Node
+    right: Node
+
+@dataclass
+class UnaryOp(Node):
+    op: str
+    operand: Node
+
+@dataclass
+class PipeOp(Node):
+    left: Node
+    right: Node  # function name or call
+
+
+# ─── Control Flow ────────────────────────────────────────────────────────────
+
+@dataclass
+class IfStmt(Node):
+    condition: Node
+    then_body: List[Node]
+    elsif_clauses: List[tuple]  # list of (condition, body)
+    else_body: Optional[List[Node]]
+
+@dataclass
+class UnlessStmt(Node):
+    condition: Node
+    then_body: List[Node]
+    else_body: Optional[List[Node]]
+
+@dataclass
+class WhileStmt(Node):
+    condition: Node
+    body: List[Node]
+
+@dataclass
+class UntilStmt(Node):
+    condition: Node
+    body: List[Node]
+
+@dataclass
+class DoWhileStmt(Node):
+    body: List[Node]
+    condition: Node
+
+@dataclass
+class ForInStmt(Node):
+    var: str
+    iterable: Node
+    body: List[Node]
+
+@dataclass
+class PostfixIf(Node):
+    stmt: Node
+    condition: Node
+    negated: bool  # True = unless
+
+
+# ─── Functions ───────────────────────────────────────────────────────────────
+
+@dataclass
+class FuncDef(Node):
+    name: str
+    params: List[str]
+    body: List[Node]
+
+@dataclass
+class FuncCall(Node):
+    name: str
+    args: List[Node]
+
+@dataclass
+class ReturnStmt(Node):
+    value: Optional[Node]
+
+
+# ─── Method Calls ────────────────────────────────────────────────────────────
+
+@dataclass
+class MethodCall(Node):
+    receiver: Node
+    method: str
+    args: List[Node]
+    block: Optional['Block'] = None
+
+@dataclass
+class Block(Node):
+    params: List[str]
+    body: List[Node]
+
+
+# ─── Iterator Sugar ──────────────────────────────────────────────────────────
+
+@dataclass
+class TimesLoop(Node):
+    count: Node
+    body: List[Node]
+    var: Optional[str] = None  # optional |i| param
+
+@dataclass
+class EachLoop(Node):
+    iterable: Node
+    var: str
+    body: List[Node]
+
+@dataclass
+class EachWithIndexLoop(Node):
+    iterable: Node
+    val_var: str
+    idx_var: str
+    body: List[Node]
+
+@dataclass
+class MapExpr(Node):
+    iterable: Node
+    var: str
+    body: List[Node]
+
+
+# ─── I/O ─────────────────────────────────────────────────────────────────────
+
+@dataclass
+class PrintStmt(Node):
+    value: Node
+    newline: bool  # puts=True, print=False
+
+@dataclass
+class DebugPrint(Node):
+    value: Node
+
+@dataclass
+class InputExpr(Node):
+    prompt: Optional[Node]
+    cast: str  # 'str', 'int', 'float'
+
+
+# ─── Program ─────────────────────────────────────────────────────────────────
+
+@dataclass
+class Program(Node):
+    body: List[Node]
+
+# ─── Error Handling ──────────────────────────────────────────────────────────
+
+@dataclass
+class BeginRescue(Node):
+    body: List[Node]
+    rescue_var: Optional[str]       # variable to bind the error to
+    rescue_body: List[Node]
+    ensure_body: Optional[List[Node]]
+
+@dataclass
+class RaiseStmt(Node):
+    message: Optional[Node]
+
+# ─── Multi-file ───────────────────────────────────────────────────────────────
+
+@dataclass
+class RequireStmt(Node):
+    path: Node
+
+# ─── Regex ───────────────────────────────────────────────────────────────────
+
+@dataclass
+class RegexLiteral(Node):
+    pattern: str
+    flags: str
+
+@dataclass
+class MatchOp(Node):
+    left: Node
+    right: Node
+
+# ─── Named Arguments ─────────────────────────────────────────────────────────
+
+@dataclass
+class NamedArg(Node):
+    name: str
+    value: Node
