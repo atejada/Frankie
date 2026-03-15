@@ -98,6 +98,8 @@ class TT(Enum):
     RAISE        = auto()  # raise
     REQUIRE      = auto()  # require
     MATCH_OP     = auto()  # =~
+    CASE         = auto()  # case
+    WHEN         = auto()  # when
 
 
 KEYWORDS = {
@@ -134,6 +136,8 @@ KEYWORDS = {
     'ensure':           TT.ENSURE,
     'raise':            TT.RAISE,
     'require':          TT.REQUIRE,
+    'case':             TT.CASE,
+    'when':             TT.WHEN,
 }
 
 

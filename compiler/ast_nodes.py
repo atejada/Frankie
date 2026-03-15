@@ -257,3 +257,18 @@ class MatchOp(Node):
 class NamedArg(Node):
     name: str
     value: Node
+
+# ─── Case / When ─────────────────────────────────────────────────────────────
+
+@dataclass
+class CaseStmt(Node):
+    subject: Optional[Node]           # case x  (or None for bare case)
+    when_clauses: List[tuple]         # list of (values_list, body)
+    else_body: Optional[List[Node]]
+
+# ─── Destructuring Assignment ────────────────────────────────────────────────
+
+@dataclass
+class DestructAssign(Node):
+    names: List[str]
+    value: Node

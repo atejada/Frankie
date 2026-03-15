@@ -445,3 +445,215 @@ def argv():
 def env(key, default=None):
     """Get environment variable."""
     return _os.environ.get(key, default)
+
+
+# ─── v1.1 Iterator Helpers ────────────────────────────────────────────────────
+
+def _fk_select(iterable, fn):
+    """Return a new list of elements for which fn returns true."""
+    return [x for x in iterable if fn(x)]
+
+def _fk_reject(iterable, fn):
+    """Return a new list of elements for which fn returns false."""
+    return [x for x in iterable if not fn(x)]
+
+def _fk_reduce(iterable, fn, initial=None):
+    """Fold a list into a single value."""
+    lst = list(iterable)
+    if not lst:
+        return initial
+    if initial is None:
+        acc = lst[0]
+        rest = lst[1:]
+    else:
+        acc = initial
+        rest = lst
+    for item in rest:
+        acc = fn(acc, item)
+    return acc
+
+def _fk_each_with_object(iterable, obj, fn):
+    """Iterate passing each element and a shared accumulator object."""
+    for item in iterable:
+        fn(item, obj)
+    return obj
+
+def _fk_any(iterable, fn=None):
+    """Return true if any element satisfies fn (or is truthy if no fn)."""
+    if fn is None:
+        return any(iterable)
+    return any(fn(x) for x in iterable)
+
+def _fk_all(iterable, fn=None):
+    """Return true if all elements satisfy fn (or are truthy if no fn)."""
+    if fn is None:
+        return all(iterable)
+    return all(fn(x) for x in iterable)
+
+def _fk_none(iterable, fn=None):
+    """Return true if no elements satisfy fn."""
+    if fn is None:
+        return not any(iterable)
+    return not any(fn(x) for x in iterable)
+
+def _fk_count_if(iterable, fn):
+    """Count elements satisfying fn."""
+    return sum(1 for x in iterable if fn(x))
+
+def _fk_flat_map(iterable, fn):
+    """Map then flatten one level."""
+    result = []
+    for x in iterable:
+        val = fn(x)
+        if isinstance(val, list):
+            result.extend(val)
+        else:
+            result.append(val)
+    return result
+
+def _fk_zip_vecs(*vecs):
+    """Zip multiple vectors into a vector of vectors."""
+    return [list(t) for t in zip(*vecs)]
+
+def _fk_take(iterable, n):
+    """Take first n elements."""
+    return list(iterable)[:n]
+
+def _fk_drop(iterable, n):
+    """Drop first n elements."""
+    return list(iterable)[n:]
+
+def _fk_flatten(iterable):
+    """Flatten one level of nesting."""
+    result = []
+    for item in iterable:
+        if isinstance(item, list):
+            result.extend(item)
+        else:
+            result.append(item)
+    return result
+
+def _fk_compact(iterable):
+    """Remove nil (None) values."""
+    return [x for x in iterable if x is not None]
+
+def _fk_tally(iterable):
+    """Count occurrences of each element — returns a hash."""
+    result = {}
+    for x in iterable:
+        key = _fk_to_str(x)
+        result[key] = result.get(key, 0) + 1
+    return result
+
+def _fk_chunk(iterable, n):
+    """Split into chunks of size n."""
+    lst = list(iterable)
+    return [lst[i:i+n] for i in range(0, len(lst), n)]
+
+
+# ─── Destructuring Helper ─────────────────────────────────────────────────────
+
+def _fk_unpack(value, count):
+    """Unpack a vector/tuple into exactly count values, padding with nil."""
+    if isinstance(value, (list, tuple)):
+        lst = list(value)
+    else:
+        lst = [value]
+    # Pad with None if too short
+    while len(lst) < count:
+        lst.append(None)
+    return lst[:count]
+
+
+# ─── v1.1 String Helpers ──────────────────────────────────────────────────────
+
+def _fk_chars(s):
+    """Return a vector of individual characters."""
+    return list(s)
+
+def _fk_bytes(s):
+    """Return a vector of byte values."""
+    return list(s.encode('utf-8'))
+
+def _fk_str_count(s, sub):
+    """Count occurrences of sub in s."""
+    return s.count(sub)
+
+def _fk_center(s, width, pad=" "):
+    """Center string in a field of width, padded with pad."""
+    return s.center(int(width), pad)
+
+def _fk_ljust(s, width, pad=" "):
+    """Left-justify string in a field of width."""
+    return s.ljust(int(width), pad)
+
+def _fk_rjust(s, width, pad=" "):
+    """Right-justify string in a field of width."""
+    return s.rjust(int(width), pad)
+
+def _fk_squeeze(s, char=None):
+    """Remove consecutive duplicate characters."""
+    if not s:
+        return s
+    result = [s[0]]
+    for c in s[1:]:
+        if char is None:
+            if c != result[-1]:
+                result.append(c)
+        else:
+            if c != char or result[-1] != char:
+                result.append(c)
+    return ''.join(result)
+
+def _fk_tr(s, from_chars, to_chars):
+    """Translate characters (like Ruby's tr).
+    If to_chars is shorter, its last char is used for the remainder."""
+    if len(to_chars) == 0:
+        return s
+    # Pad to_chars to match from_chars length
+    if len(to_chars) < len(from_chars):
+        to_chars = to_chars + to_chars[-1] * (len(from_chars) - len(to_chars))
+    table = str.maketrans(from_chars, to_chars[:len(from_chars)])
+    return s.translate(table)
+
+def _fk_str_delete(s, chars):
+    """Delete all occurrences of chars from s."""
+    return s.translate(str.maketrans('', '', chars))
+
+def _fk_each_char(s, fn):
+    """Call fn for each character."""
+    for c in s:
+        fn(c)
+
+def _fk_each_line(s, fn):
+    """Call fn for each line."""
+    for line in s.splitlines():
+        fn(line)
+
+def _fk_lines(s):
+    """Split string into lines."""
+    return s.splitlines()
+
+def _fk_chomp(s):
+    """Remove trailing newline."""
+    return s.rstrip('\n').rstrip('\r')
+
+def _fk_chop(s):
+    """Remove last character."""
+    return s[:-1] if s else s
+
+def _fk_ord(s):
+    """Return ASCII code of first character."""
+    return ord(s[0]) if s else 0
+
+def _fk_chr(n):
+    """Return character for ASCII code."""
+    return chr(int(n))
+
+def _fk_hex(s):
+    """Parse hex string to integer."""
+    return int(s, 16)
+
+def _fk_oct(s):
+    """Parse octal string to integer."""
+    return int(s, 8)

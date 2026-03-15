@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
-frankiec — The Frankie Language Compiler
+frankiec — The Frankie Language Compiler & Interpreter v1.1
 Usage:
-    frankiec run  <file.fk>           Run a Frankie program
-    frankiec build <file.fk>          Compile to Python source
-    frankiec check <file.fk>          Syntax check only
-    frankiec version                  Show version
+    frankiec run   <file.fk>       Run a Frankie program
+    frankiec build <file.fk>       Compile to Python source
+    frankiec check <file.fk>       Syntax check only
+    frankiec repl                  Start the interactive REPL
+    frankiec version               Show version info
 """
 
 import sys
@@ -20,7 +21,7 @@ from compiler.lexer import Lexer, LexError
 from compiler.parser import Parser, ParseError
 from compiler.codegen import CodeGen, CodeGenError
 
-FRANKIE_VERSION = "1.0.0"
+FRANKIE_VERSION = "1.1.0"
 FRANKIE_BANNER = r"""
   _____                 _    _        
  |  ___| __ __ _ _ __ | | _(_) ___   
@@ -131,14 +132,18 @@ def check_file(fk_file: str):
 
 def main():
     if len(sys.argv) < 2:
-        print(FRANKIE_BANNER.format(version=FRANKIE_VERSION))
-        print(__doc__)
-        sys.exit(0)
+        from repl import run_repl
+        run_repl()
+        return
 
     cmd = sys.argv[1]
 
     if cmd == 'version':
         print(f"Frankie v{FRANKIE_VERSION}")
+
+    elif cmd == 'repl':
+        from repl import run_repl
+        run_repl()
 
     elif cmd == 'run':
         if len(sys.argv) < 3:

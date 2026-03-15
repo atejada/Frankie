@@ -104,6 +104,8 @@ class Parser:
             return self.parse_raise()
         if t.type == TT.REQUIRE:
             return self.parse_require()
+        if t.type == TT.CASE:
+            return self.parse_case()
         if t.type == TT.EOF:
             return None
 
@@ -281,6 +283,45 @@ class Parser:
         path = self.parse_expr()
         return RequireStmt(path=path)
 
+    def parse_case(self) -> CaseStmt:
+        self.expect(TT.CASE)
+        # Optional subject: case x
+        subject = None
+        if not self.check(TT.NEWLINE) and not self.check(TT.EOF):
+            subject = self.parse_expr()
+        self.skip_newlines()
+
+        when_clauses = []
+        else_body = None
+
+        while self.check(TT.WHEN):
+            self.advance()
+            # One or more values: when 1, 2, 3
+            values = [self.parse_expr()]
+            while self.match(TT.COMMA):
+                values.append(self.parse_expr())
+            self.skip_newlines()
+            body = self.parse_when_body()
+            when_clauses.append((values, body))
+
+        if self.match(TT.ELSE):
+            self.skip_newlines()
+            else_body = self.parse_when_body()
+
+        self.expect(TT.END, "Expected 'end' to close 'case'")
+        return CaseStmt(subject=subject, when_clauses=when_clauses, else_body=else_body)
+
+    def parse_when_body(self) -> List[Node]:
+        """Parse body that stops at when/else/end."""
+        self.skip_newlines()
+        body = []
+        while not self.check(TT.WHEN, TT.ELSE, TT.END, TT.EOF):
+            stmt = self.parse_statement()
+            if stmt is not None:
+                body.append(stmt)
+            self.skip_newlines()
+        return body
+
     def parse_for_in(self) -> ForInStmt:
         self.expect(TT.FOR)
         var = self.expect(TT.IDENT, "Expected loop variable").value
@@ -323,7 +364,28 @@ class Parser:
         return left
 
     def parse_assign(self) -> Node:
-        # Look ahead: IDENT = expr  OR  IDENT[expr] = expr
+        # Destructuring: a, b, c = expr
+        # Only applies when: IDENT COMMA ... ASSIGN  (pure identifiers, then =)
+        # We must NOT consume tokens if this turns out not to be destructuring
+        if self.check(TT.IDENT) and self.peek(1).type == TT.COMMA:
+            # Scan ahead to confirm all commas lead to idents and end with =
+            save_pos = self.pos
+            names = [self.advance().value]  # first ident
+            is_destruct = False
+            while self.check(TT.COMMA):
+                self.advance()
+                if self.check(TT.IDENT):
+                    names.append(self.advance().value)
+                else:
+                    break
+            if self.check(TT.ASSIGN) and len(names) > 1:
+                self.advance()  # consume =
+                value = self.parse_expr()
+                return DestructAssign(names=names, value=value)
+            # Not destructuring — backtrack
+            self.pos = save_pos
+
+        # Single assign: IDENT = expr
         if self.check(TT.IDENT) and self.peek(1).type == TT.ASSIGN:
             name = self.advance().value
             self.advance()  # consume =

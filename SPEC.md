@@ -1,4 +1,4 @@
-# Frankie Language Specification v1.0
+# Frankie Language Specification v1.1
 
 Frankie is a procedural, expressive programming language named after Frankenstein —
 stitched together from the best parts of Ruby, Python, R, and Fortran.
@@ -539,4 +539,4 @@ primary     ::= INTEGER | FLOAT | STRING | BOOL | NIL
 
 ---
 
-*Frankie v1.0 — "It's alive!" 🧟⚡*
+*Frankie v1.1 — "It's alive!" 🧟⚡*
