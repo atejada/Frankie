@@ -1,0 +1,173 @@
+# whats_new_v13.fk — Frankie v1.3 Feature Showcase
+
+puts "╔══════════════════════════════════════════╗"
+puts "║     What's New in Frankie v1.3           ║"
+puts "╚══════════════════════════════════════════╝"
+puts ""
+
+# ── 1. Default Parameter Values ──────────────────────────────────
+puts "── 1. Default Parameters ──"
+
+def greet(name, msg="Hello", punct="!")
+  puts "#{msg}, #{name}#{punct}"
+end
+
+greet("Alice")
+greet("Bob", "Hi")
+greet("Carol", "Hey", ".")
+
+def power(base, exp=2)
+  return base ** exp
+end
+
+puts power(4)
+puts power(2, 10)
+puts ""
+
+# ── 2. JSON ───────────────────────────────────────────────────────
+puts "── 2. JSON ──"
+
+data = {
+  language: "Frankie",
+  version: "1.3",
+  features: ["JSON", "CSV", "DateTime", "HTTP"]
+}
+
+s = json_dump(data)
+puts s
+
+parsed = json_parse(s)
+puts "Language: #{parsed["language"]}"
+puts "Features: #{parsed["features"]}"
+
+json_write("/tmp/fk_v13.json", data, true)
+loaded = json_read("/tmp/fk_v13.json")
+puts "Loaded version: #{loaded["version"]}"
+file_delete("/tmp/fk_v13.json")
+puts ""
+
+# ── 3. CSV ────────────────────────────────────────────────────────
+puts "── 3. CSV ──"
+
+employees = [
+  {name: "Alice", dept: "Engineering", salary: 95000},
+  {name: "Bob",   dept: "Marketing",   salary: 72000},
+  {name: "Carol", dept: "Finance",     salary: 105000}
+]
+
+csv_text = csv_dump(employees)
+print csv_text
+
+reparsed = csv_parse(csv_text)
+puts "Highest earner: #{reparsed.select do |r|
+  r["salary"] == "105000"
+end.map do |r|
+  r["name"]
+end}"
+
+csv_write("/tmp/fk_v13.csv", employees)
+reloaded = csv_read("/tmp/fk_v13.csv")
+puts "CSV rows: #{reloaded.length}"
+file_delete("/tmp/fk_v13.csv")
+puts ""
+
+# ── 4. DateTime ───────────────────────────────────────────────────
+puts "── 4. DateTime ──"
+
+t = now()
+puts "Now: #{t}"
+puts "Year: #{t.year}"
+puts "Weekday: #{t.weekday_name}"
+
+birthday = date_from(1984, 6, 15)
+puts "Birthday: #{birthday.format("%d %B %Y")}"
+
+today_date = date_parse("2025-03-16")
+xmas = date_parse("2025-12-25")
+puts "Days to Xmas: #{today_date.diff_days(xmas)}"
+puts "Xmas weekday: #{xmas.weekday_name}"
+
+next_month = today_date.add_days(30)
+puts "In 30 days: #{next_month.format("%Y-%m-%d")}"
+puts "Before Xmas? #{today_date.is_before(xmas)}"
+puts ""
+
+# ── 5. HTTP (with graceful offline handling) ──────────────────────
+puts "── 5. HTTP ──"
+
+begin
+  resp = http_get("https://api.github.com/users/octocat")
+  if resp.ok
+    user = resp.json()
+    puts "GitHub user: #{user["login"]}"
+    puts "Public repos: #{user["public_repos"]}"
+  else
+    puts "HTTP #{resp.status}"
+  end
+rescue e
+  puts "Offline (expected in sandbox)"
+end
+
+puts ""
+puts "── URL encoding ──"
+params = {q: "Frankie language", page: 1, per_page: 10}
+encoded = url_encode(params)
+puts encoded
+decoded = url_decode(encoded)
+puts "Query: #{decoded["q"]}"
+puts ""
+
+# ── 6. Better Errors (try triggering one) ─────────────────────────
+puts "── 6. Error Handling ──"
+begin
+  bad = {}
+  val = bad["missing_key"]
+  puts "Missing key returns: #{val}"
+rescue e
+  puts "Caught: #{e}"
+end
+
+begin
+  raise "custom error from Frankie!"
+rescue e
+  puts "Rescued: #{e}"
+end
+puts ""
+
+# ── 7. frankiec new (project scaffolding) ─────────────────────────
+puts "── 7. Project Scaffolding ──"
+puts "Run: frankiec new myapp"
+puts "Creates: main.fk, test.fk, lib/, data/, README.md"
+puts ""
+
+# ── 8. Combining it all ───────────────────────────────────────────
+puts "── 8. All Together: JSON → Stats → CSV ──"
+
+json_data = json_parse("""[
+  {"name": "Alice", "score": 92},
+  {"name": "Bob",   "score": 78},
+  {"name": "Carol", "score": 88},
+  {"name": "Dave",  "score": 95},
+  {"name": "Eve",   "score": 71}
+]""")
+
+scores = json_data.map do |r|
+  to_float(r["score"])
+end
+
+puts "Mean:   #{mean(scores)}"
+puts "Std:    #{stdev(scores)}"
+puts "Top:    #{max(scores)}"
+
+passing = json_data.select do |r|
+  to_int(r["score"]) >= 80
+end
+
+puts "Passing (≥80): #{passing.map do |r| r["name"] end}"
+
+csv_write("/tmp/fk_results.csv", passing)
+puts "Saved #{passing.length} passing records to CSV"
+file_delete("/tmp/fk_results.csv")
+puts ""
+
+puts "Frankie v1.3 — It's alive and data-savvy! 🧟⚡"

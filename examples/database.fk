@@ -1,0 +1,167 @@
+# database.fk — SQLite database access in Frankie
+# Uses only built-in sqlite3 — zero external dependencies
+
+puts "╔══════════════════════════════════════════╗"
+puts "║     Frankie Database Demo (SQLite)       ║"
+puts "╚══════════════════════════════════════════╝"
+puts ""
+
+# ── 1. Open an in-memory database ────────────────────────────────
+db = db_open(":memory:")
+puts "── 1. Opened in-memory database ──"
+puts db
+puts ""
+
+# ── 2. Create tables ─────────────────────────────────────────────
+puts "── 2. Create Tables ──"
+db.exec("CREATE TABLE departments (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE)")
+
+db.exec("CREATE TABLE employees (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, age INTEGER NOT NULL, department TEXT NOT NULL, salary REAL NOT NULL)")
+
+puts "Tables created: #{db.tables}"
+puts ""
+
+# ── 3. Insert rows ───────────────────────────────────────────────
+puts "── 3. Insert Rows ──"
+
+# Low-level exec with params (? placeholders — safe from SQL injection)
+db.exec("INSERT INTO departments (name) VALUES (?)", ["Engineering"])
+db.exec("INSERT INTO departments (name) VALUES (?)", ["Marketing"])
+db.exec("INSERT INTO departments (name) VALUES (?)", ["Finance"])
+
+# Convenience insert with hash
+db.insert("employees", {name: "Alice",   age: 32, department: "Engineering", salary: 95000})
+db.insert("employees", {name: "Bob",     age: 28, department: "Engineering", salary: 87000})
+db.insert("employees", {name: "Carol",   age: 35, department: "Marketing",   salary: 72000})
+db.insert("employees", {name: "Dave",    age: 41, department: "Finance",     salary: 105000})
+db.insert("employees", {name: "Eve",     age: 29, department: "Engineering", salary: 91000})
+db.insert("employees", {name: "Frank",   age: 38, department: "Marketing",   salary: 68000})
+db.insert("employees", {name: "Grace",   age: 45, department: "Finance",     salary: 118000})
+db.insert("employees", {name: "Hector",  age: 27, department: "Engineering", salary: 82000})
+
+puts "Inserted #{db.count("employees")} employees"
+puts "Inserted #{db.count("departments")} departments"
+puts ""
+
+# ── 4. Query all rows ────────────────────────────────────────────
+puts "── 4. All Employees ──"
+all = db.find_all("employees")
+all.each do |row|
+  puts "  [#{row["id"]}] #{row["name"]} | #{row["department"]} | age #{row["age"]} | $#{row["salary"]}"
+end
+puts ""
+
+# ── 5. Filtered queries ──────────────────────────────────────────
+puts "── 5. Engineering Team ──"
+engineers = db.find("employees", {department: "Engineering"})
+engineers.each do |e|
+  puts "  #{e["name"]} (age #{e["age"]}) — $#{e["salary"]}"
+end
+puts ""
+
+# ── 6. Raw SQL queries ───────────────────────────────────────────
+puts "── 6. Employees Over 35 ──"
+seniors = db.query("SELECT name, age, salary FROM employees WHERE age > ? ORDER BY age", [35])
+seniors.each do |row|
+  puts "  #{row["name"]} | age #{row["age"]} | $#{row["salary"]}"
+end
+puts ""
+
+# ── 7. Aggregation ──────────────────────────────────────────────
+puts "── 7. Department Summary ──"
+summary = db.query("SELECT department, COUNT(*) AS headcount, AVG(salary) AS avg_salary, MAX(salary) AS top_salary FROM employees GROUP BY department ORDER BY avg_salary DESC")
+summary.each do |row|
+  avg = to_int(row["avg_salary"])
+  puts "  #{row["department"]}: #{row["headcount"]} people | avg $#{avg} | top $#{row["top_salary"]}"
+end
+puts ""
+
+# ── 8. find_one ──────────────────────────────────────────────────
+puts "── 8. Find One ──"
+alice = db.find_one("employees", {name: "Alice"})
+puts "Found: #{alice["name"]} in #{alice["department"]}"
+missing = db.find_one("employees", {name: "Nobody"})
+puts "Missing: #{missing}"
+puts ""
+
+# ── 9. Update ────────────────────────────────────────────────────
+puts "── 9. Update ──"
+updated = db.update("employees", {salary: 100000}, {name: "Bob"})
+puts "Updated #{updated} row(s)"
+bob = db.find_one("employees", {name: "Bob"})
+puts "Bob's new salary: $#{bob["salary"]}"
+puts ""
+
+# ── 10. Transaction ──────────────────────────────────────────────
+puts "── 10. Transaction ──"
+db.transaction do
+  db.insert("employees", {name: "Ivan",  age: 31, department: "Finance",     salary: 97000})
+  db.insert("employees", {name: "Julia", age: 26, department: "Engineering", salary: 79000})
+end
+puts "After transaction: #{db.count("employees")} employees"
+puts ""
+
+# ── 11. Transaction rollback on error ────────────────────────────
+puts "── 11. Transaction Rollback ──"
+count_before = db.count("employees")
+begin
+  db.transaction do
+    db.insert("employees", {name: "Karl", age: 33, department: "Marketing", salary: 71000})
+    raise "simulated error mid-transaction"
+    db.insert("employees", {name: "Lena", age: 29, department: "Marketing", salary: 66000})
+  end
+rescue e
+  puts "Rolled back: #{e}"
+end
+puts "Count unchanged: #{db.count("employees") == count_before}"
+puts ""
+
+# ── 12. Delete ───────────────────────────────────────────────────
+puts "── 12. Delete ──"
+deleted = db.delete("employees", {name: "Hector"})
+puts "Deleted #{deleted} row(s)"
+puts "Remaining: #{db.count("employees")} employees"
+puts ""
+
+# ── 13. Schema introspection ─────────────────────────────────────
+puts "── 13. Schema Introspection ──"
+puts "Tables: #{db.tables}"
+cols = db.columns("employees")
+puts "employees columns:"
+cols.each do |col|
+  puts "  #{col["name"]} (#{col["type"]})"
+end
+puts ""
+
+# ── 14. Frankie-style stats on query results ─────────────────────
+puts "── 14. Stats on Query Results ──"
+salaries = db.query("SELECT salary FROM employees")
+salary_list = salaries.map do |row|
+  row["salary"]
+end
+puts "Salaries   : #{salary_list}"
+puts "Mean salary: $#{to_int(mean(salary_list))}"
+puts "Max salary : $#{max(salary_list)}"
+puts "Min salary : $#{min(salary_list)}"
+puts "Std dev    : $#{to_int(stdev(salary_list))}"
+puts ""
+
+# ── 15. Persistent file database ─────────────────────────────────
+puts "── 15. File Database ──"
+db2 = db_open("/tmp/frankie_demo.db")
+db2.exec("CREATE TABLE IF NOT EXISTS notes (id INTEGER PRIMARY KEY, content TEXT)")
+db2.insert("notes", {content: "Frankie has SQLite support!"})
+db2.insert("notes", {content: "Zero external dependencies."})
+notes = db2.find_all("notes")
+notes.each do |n|
+  puts "  Note #{n["id"]}: #{n["content"]}"
+end
+db2.close
+file_delete("/tmp/frankie_demo.db")
+puts "File DB created, used, and cleaned up."
+puts ""
+
+# ── Done ─────────────────────────────────────────────────────────
+db.close
+puts "Database connection closed."
+puts "Frankie + SQLite — alive and querying! 🧟🗄️"

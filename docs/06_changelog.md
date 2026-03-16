@@ -1,5 +1,105 @@
 # Changelog
 
+## v1.3.0 (2025)
+
+### New Features
+
+**Language**
+- Default parameter values: `def greet(name, msg="Hello", punct="!")`
+- Keyword-named parameters (e.g. `times`, `each`) now usable as variable/param names
+- Triple-quoted multi-line strings: `"""..."""` and `'''...'''` with interpolation
+
+**JSON** (built-in `json` module — zero deps)
+- `json_parse(str)` — parse JSON string → Frankie value
+- `json_dump(obj, pretty)` — serialize to JSON string
+- `json_read(path)` — read and parse JSON file
+- `json_write(path, obj, pretty)` — serialize and write JSON file
+
+**CSV** (built-in `csv` module — zero deps)
+- `csv_parse(text, headers)` — parse CSV text → vector of hashes
+- `csv_dump(data, headers)` — serialize vector of hashes → CSV string
+- `csv_read(path, headers)` — read and parse CSV file
+- `csv_write(path, data, headers)` — write CSV file
+
+**DateTime** (built-in `datetime` module — zero deps)
+- `now()` — current date and time
+- `today()` — today's date at midnight
+- `date_from(year, month, day, hour, minute, second)` — construct a date
+- `date_parse(str, fmt)` — parse a date string (default fmt: `%Y-%m-%d`)
+- `.year`, `.month`, `.day`, `.hour`, `.minute`, `.second` — accessors
+- `.format(fmt)` — format with `strftime` directives
+- `.add_days(n)`, `.add_hours(n)`, `.add_minutes(n)` — arithmetic
+- `.diff_days(other)`, `.diff_seconds(other)` — differences
+- `.weekday()`, `.weekday_name()` — day of week
+- `.is_before(other)`, `.is_after(other)` — comparison
+- `.timestamp()` — Unix timestamp
+
+**HTTP** (built-in `urllib` — zero deps)
+- `http_get(url, headers)` — GET request
+- `http_post(url, data, headers)` — POST request (auto JSON-encodes dicts)
+- `http_put(url, data, headers)` — PUT request
+- `http_delete(url, headers)` — DELETE request
+- Response: `.status`, `.body`, `.headers`, `.json()`, `.ok()`
+- `url_encode(hash)` — encode params as query string
+- `url_decode(str)` — decode query string → hash
+
+**Tooling**
+- `frankiec new <project>` — scaffold a new project with `main.fk`, `test.fk`, `lib/`, `data/`, `README.md`, `.gitignore`
+- Better error messages — compile and runtime errors now show a boxed display with source context and line pointer (──▶)
+- Syntax highlighting for **VS Code** (`.tmLanguage.json` + `package.json` + `language-configuration.json`)
+- Syntax highlighting for **Vim/Neovim** (`frankie.vim`)
+- Syntax highlighting for **Sublime Text / TextMate** (`frankie.tmLanguage.json`)
+- All editor files in `editors/`
+
+### Bug Fixes
+- Fixed `print` output disappearing when running from a different working directory
+- `times`, `each`, `map` keywords can now be used as parameter and variable names
+- Template placeholders in `frankiec new` use `.replace()` to avoid `str.format()` key conflicts
+
+---
+
+## v1.2.0 (2025)
+
+### New Features
+
+**Database Access (SQLite)**
+- `db_open(path)` — open or create a SQLite database; `":memory:"` for in-memory
+- `db.exec(sql, params)` — run DDL/DML with `?` placeholders; returns row count
+- `db.query(sql, params)` — SELECT → vector of hashes keyed by column name
+- `db.query_one(sql, params)` — SELECT → first row as hash or nil
+- `db.insert(table, hash)` — insert a hash of column→value; returns new row id
+- `db.insert_many(table, rows)` — bulk insert a vector of hashes
+- `db.find_all(table)` — all rows as vector of hashes
+- `db.find(table, where)` — filtered rows (where is a hash, conditions ANDed)
+- `db.find_one(table, where)` — first matching row or nil
+- `db.update(table, data, where)` — update matching rows; returns count
+- `db.delete(table, where)` — delete matching rows; returns count
+- `db.count(table)` / `db.count(table, where)` — row counts
+- `db.last_id` — rowid of last INSERT
+- `db.tables` — list of table names in the database
+- `db.columns(table)` — column info as vector of hashes
+- `db.transaction do...end` — atomic block; rolls back on any error
+- `db.begin` / `db.commit` / `db.rollback` — explicit transaction control
+- `db.close` — close the connection
+- Zero external dependencies — uses Python's built-in `sqlite3`
+
+**Multi-line Strings**
+- Triple-quoted strings `"""..."""` and `'''...'''` spanning multiple lines
+- String interpolation `#{}` works inside triple-double-quoted strings
+- Perfect for embedding multi-line SQL, templates, or long text
+
+### Bug Fixes
+- `isinstance(obj, FrankieDB)` cross-namespace failure — fixed with duck typing
+  (`hasattr` checks instead) so DB objects work correctly inside `exec()` globals
+- `db.delete(table, where)` was intercepted by string/hash delete handler — now
+  correctly dispatches based on argument count (2 args = DB call)
+- `.count("sub")` on a DB object was routing to `_fk_str_count` — fixed via
+  `_fk_count_dispatch` with duck typing
+- Transaction `BEGIN`/`COMMIT`/`ROLLBACK` now uses explicit `isolation_level=None`
+  with an `_in_tx` flag for correct per-operation autocommit and block rollback
+
+---
+
 ## v1.1.0 (2025)
 
 ### New Features

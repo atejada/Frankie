@@ -7,7 +7,7 @@
  |  _|| | | (_| | | | |   <| |  __/
  |_|  |_|  \__,_|_| |_|_|\_\_|\___|
 
- The Frankie Language v1.1
+ The Frankie Language v1.2
  Stitched together from Ruby • Python • R • Fortran
 ```
 
@@ -98,6 +98,22 @@ end
 
 ## Commands
 
+```ruby
+# SQLite — zero dependencies
+db = db_open(":memory:")
+db.exec("CREATE TABLE notes (id INTEGER PRIMARY KEY, text TEXT)")
+db.insert("notes", {text: "Frankie has SQLite!"})
+db.insert("notes", {text: "Zero dependencies."})
+db.find_all("notes").each do |row|
+  puts "#{row["id"]}: #{row["text"]}"
+end
+db.close
+```
+
+---
+
+## Commands
+
 ```bash
 frankiec                    # launch the REPL
 frankiec run   <file.fk>    # run a program
@@ -120,7 +136,9 @@ Full documentation lives in the `docs/` folder:
 | `docs/03_collections.md` | Vectors, hashes, all iterators |
 | `docs/04_stdlib.md` | Math, stats, strings, regex, file I/O, system |
 | `docs/05_examples.md` | All example programs explained |
-| `docs/06_changelog.md` | v1.0 and v1.1 release notes |
+| `docs/06_changelog.md` | v1.0, v1.1 and v1.2 release notes |
+| `docs/07_database.md` | SQLite database access — full API reference |
+| `docs/08_v13_features.md` | JSON, CSV, DateTime, HTTP, project scaffolding |
 
 The formal language grammar lives in `SPEC.md`.
 

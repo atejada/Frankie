@@ -1,0 +1,125 @@
+{
+  "name": "Frankie",
+  "scopeName": "source.frankie",
+  "fileTypes": ["fk"],
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#heredoc" },
+    { "include": "#keywords" },
+    { "include": "#builtins" },
+    { "include": "#constants" },
+    { "include": "#numbers" },
+    { "include": "#operators" },
+    { "include": "#method_calls" },
+    { "include": "#identifiers" }
+  ],
+  "repository": {
+    "comments": {
+      "name": "comment.line.number-sign.frankie",
+      "match": "#.*$"
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.frankie",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "meta.embedded.frankie",
+              "begin": "#\\{",
+              "end": "\\}",
+              "patterns": [{ "include": "$self" }]
+            },
+            {
+              "name": "constant.character.escape.frankie",
+              "match": "\\\\."
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.single.frankie",
+          "begin": "'",
+          "end": "'",
+          "patterns": [
+            { "name": "constant.character.escape.frankie", "match": "\\\\." }
+          ]
+        }
+      ]
+    },
+    "heredoc": {
+      "name": "string.quoted.other.frankie",
+      "begin": "\"\"\"",
+      "end": "\"\"\"",
+      "patterns": [
+        {
+          "name": "meta.embedded.frankie",
+          "begin": "#\\{",
+          "end": "\\}",
+          "patterns": [{ "include": "$self" }]
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.frankie",
+          "match": "\\b(if|elsif|else|unless|end|while|until|for|in|do|case|when|begin|rescue|ensure|return|next|break)\\b"
+        },
+        {
+          "name": "keyword.declaration.frankie",
+          "match": "\\b(def|require|raise)\\b"
+        },
+        {
+          "name": "keyword.operator.logical.frankie",
+          "match": "\\b(and|or|not)\\b"
+        }
+      ]
+    },
+    "builtins": {
+      "patterns": [
+        {
+          "name": "support.function.frankie",
+          "match": "\\b(puts|print|p|input|input_int|input_float|to_int|to_float|to_str|length|sum|mean|median|stdev|variance|min|max|abs|sqrt|floor|ceil|clamp|seq|linspace|rep|vec|paste|sprintf|matches|match|match_all|sub|gsub|regex|file_read|file_write|file_append|file_lines|file_exists|file_delete|json_parse|json_dump|json_read|json_write|csv_parse|csv_dump|csv_read|csv_write|now|today|date_from|date_parse|http_get|http_post|http_put|http_delete|url_encode|url_decode|db_open|exit|argv|env|is_integer|is_float|is_string|is_vector|is_nil|is_bool)\\b"
+        }
+      ]
+    },
+    "constants": {
+      "patterns": [
+        {
+          "name": "constant.language.frankie",
+          "match": "\\b(true|false|nil)\\b"
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.float.frankie",
+          "match": "\\b\\d+\\.\\d+\\b"
+        },
+        {
+          "name": "constant.numeric.integer.frankie",
+          "match": "\\b\\d+\\b"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.frankie",
+          "match": "(\\|>|\\.\\.\\.?|\\*\\*|//|[+\\-*/%]|==|!=|<=|>=|<|>|=~|=)"
+        }
+      ]
+    },
+    "method_calls": {
+      "name": "entity.name.function.frankie",
+      "match": "\\.(\\w+[?!]?)(?=\\s*(\\(|do|$))"
+    },
+    "identifiers": {
+      "name": "variable.other.frankie",
+      "match": "\\b[a-z_][a-zA-Z0-9_]*[?!]?\\b"
+    }
+  }
+}

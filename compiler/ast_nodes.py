@@ -141,7 +141,8 @@ class PostfixIf(Node):
 @dataclass
 class FuncDef(Node):
     name: str
-    params: List[str]
+    params: List[str]          # parameter names
+    defaults: List            # parallel list: None or default Node per param
     body: List[Node]
 
 @dataclass

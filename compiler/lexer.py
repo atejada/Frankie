@@ -253,6 +253,52 @@ class Lexer:
         parts.append(('literal', ''.join(current)))
         return parts
 
+    def read_multiline_string(self, quote_char: str) -> list:
+        """Read a triple-quoted string (\"\"\"...\"\"\" or '''...''').
+        Supports #{} interpolation in double-quoted variants.
+        Newlines are preserved as-is."""
+        parts = []
+        current = []
+        start_line = self.line
+
+        while self.pos < len(self.source):
+            ch = self.peek()
+            if ch is None:
+                raise LexError("Unterminated triple-quoted string", start_line, 1)
+            # Check for closing triple quote
+            if ch == quote_char and self.peek(1) == quote_char and self.peek(2) == quote_char:
+                self.advance(); self.advance(); self.advance()
+                break
+            if ch == '\\':
+                self.advance()
+                esc = self.advance()
+                escape_map = {'n': '\n', 't': '\t', 'r': '\r', '\\': '\\',
+                              '"': '"', "'": "'"}
+                current.append(escape_map.get(esc, '\\' + esc))
+            elif ch == '#' and quote_char == '"' and self.peek(1) == '{':
+                self.advance()  # skip #
+                self.advance()  # skip {
+                parts.append(('literal', ''.join(current)))
+                current = []
+                depth = 1
+                expr_chars = []
+                while self.pos < len(self.source) and depth > 0:
+                    c = self.peek()
+                    if c == '{':
+                        depth += 1
+                    elif c == '}':
+                        depth -= 1
+                        if depth == 0:
+                            self.advance()
+                            break
+                    expr_chars.append(self.advance())
+                parts.append(('interp', ''.join(expr_chars)))
+            else:
+                current.append(self.advance())
+
+        parts.append(('literal', ''.join(current)))
+        return parts
+
     def read_number(self):
         start = self.pos
         is_float = False
@@ -298,11 +344,15 @@ class Lexer:
                 self.tokens.append(Token(ttype, value, line, col))
                 continue
 
-            # Strings
+            # Strings — single/double quoted, with triple-quote multiline support
             if ch in ('"', "'"):
                 self.advance()
-                parts = self.read_string(ch)
-                # Store as structured token for interpolation
+                # Check for triple quote  """ or '''
+                if self.peek() == ch and self.peek(1) == ch:
+                    self.advance(); self.advance()  # consume 2nd and 3rd quote
+                    parts = self.read_multiline_string(ch)
+                else:
+                    parts = self.read_string(ch)
                 self.tokens.append(Token(TT.STRING, parts, line, col))
                 continue
 

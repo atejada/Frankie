@@ -34,6 +34,12 @@ def _fk_to_str(x):
     if isinstance(x, dict):
         pairs = ", ".join(f"{k}: {_fk_to_str(v)}" for k, v in x.items())
         return "{" + pairs + "}"
+    # FrankieDate duck-type check
+    if hasattr(x, 'year') and hasattr(x, 'format'):
+        return x.to_s()
+    # FrankieHTTPResponse duck-type check
+    if hasattr(x, 'status') and hasattr(x, 'body') and hasattr(x, 'ok'):
+        return repr(x)
     return str(x)
 
 
@@ -657,3 +663,466 @@ def _fk_hex(s):
 def _fk_oct(s):
     """Parse octal string to integer."""
     return int(s, 8)
+
+
+# ─── Database (SQLite — zero external dependencies) ───────────────────────────
+import sqlite3 as _sqlite3
+
+class FrankieDB:
+    """
+    Frankie database connection wrapping sqlite3.
+    All query results are returned as vectors of hashes (column name → value).
+    """
+
+    def __init__(self, path):
+        self._path = path
+        # isolation_level=None = autocommit mode; we manage BEGIN/COMMIT explicitly
+        self._conn = _sqlite3.connect(path, isolation_level=None)
+        self._conn.row_factory = _sqlite3.Row
+        self._conn.execute("PRAGMA foreign_keys=ON")
+        self._in_tx = False  # track whether we're inside a user transaction
+
+    # ── Low-level ──────────────────────────────────────────────────────────
+
+    def exec(self, sql, params=None):
+        """Execute a statement (INSERT/UPDATE/DELETE/CREATE). Returns row count."""
+        if not self._in_tx:
+            self._conn.execute("BEGIN")
+        cur = self._conn.execute(sql, params or [])
+        if not self._in_tx:
+            self._conn.execute("COMMIT")
+        return cur.rowcount
+
+    def query(self, sql, params=None):
+        """Run a SELECT and return a vector of hashes."""
+        cur = self._conn.execute(sql, params or [])
+        return [dict(row) for row in cur.fetchall()]
+
+    def query_one(self, sql, params=None):
+        """Run a SELECT and return the first row as a hash, or nil."""
+        cur = self._conn.execute(sql, params or [])
+        row = cur.fetchone()
+        return dict(row) if row else None
+
+    def last_id(self):
+        """Return the rowid of the last INSERT."""
+        return self._conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+
+    # ── Convenience helpers ────────────────────────────────────────────────
+
+    def insert(self, table, data):
+        """Insert a hash of column→value into table. Returns new row id."""
+        cols   = ", ".join(str(k) for k in data.keys())
+        marks  = ", ".join("?" for _ in data)
+        vals   = list(data.values())
+        if not self._in_tx:
+            self._conn.execute("BEGIN")
+        self._conn.execute(f"INSERT INTO {table} ({cols}) VALUES ({marks})", vals)
+        if not self._in_tx:
+            self._conn.execute("COMMIT")
+        return self.last_id()
+
+    def insert_many(self, table, rows):
+        """Insert a vector of hashes. Returns number of rows inserted."""
+        if not rows:
+            return 0
+        cols  = ", ".join(str(k) for k in rows[0].keys())
+        marks = ", ".join("?" for _ in rows[0])
+        vals  = [list(r.values()) for r in rows]
+        if not self._in_tx:
+            self._conn.execute("BEGIN")
+        self._conn.executemany(f"INSERT INTO {table} ({cols}) VALUES ({marks})", vals)
+        if not self._in_tx:
+            self._conn.execute("COMMIT")
+        return len(rows)
+
+    def find_all(self, table):
+        """Return all rows from a table as a vector of hashes."""
+        return self.query(f"SELECT * FROM {table}")
+
+    def find(self, table, where):
+        """Return rows matching a hash of conditions. All conditions ANDed."""
+        clause = " AND ".join(f"{k} = ?" for k in where.keys())
+        vals   = list(where.values())
+        return self.query(f"SELECT * FROM {table} WHERE {clause}", vals)
+
+    def find_one(self, table, where):
+        """Return first row matching conditions, or nil."""
+        clause = " AND ".join(f"{k} = ?" for k in where.keys())
+        vals   = list(where.values())
+        return self.query_one(f"SELECT * FROM {table} WHERE {clause}", vals)
+
+    def update(self, table, data, where):
+        """Update rows matching where-hash with data-hash. Returns row count."""
+        set_clause   = ", ".join(f"{k} = ?" for k in data.keys())
+        where_clause = " AND ".join(f"{k} = ?" for k in where.keys())
+        vals = list(data.values()) + list(where.values())
+        if not self._in_tx:
+            self._conn.execute("BEGIN")
+        cur  = self._conn.execute(
+            f"UPDATE {table} SET {set_clause} WHERE {where_clause}", vals)
+        if not self._in_tx:
+            self._conn.execute("COMMIT")
+        return cur.rowcount
+
+    def delete(self, table, where):
+        """Delete rows matching where-hash. Returns row count."""
+        clause = " AND ".join(f"{k} = ?" for k in where.keys())
+        vals   = list(where.values())
+        cur    = self._conn.execute(f"DELETE FROM {table} WHERE {clause}", vals)
+        self._conn.commit()
+        return cur.rowcount
+
+    def count(self, table, where=None):
+        """Count rows, optionally filtered."""
+        if where:
+            clause = " AND ".join(f"{k} = ?" for k in where.keys())
+            vals   = list(where.values())
+            row    = self.query_one(f"SELECT COUNT(*) as n FROM {table} WHERE {clause}", vals)
+        else:
+            row = self.query_one(f"SELECT COUNT(*) as n FROM {table}")
+        return row["n"] if row else 0
+
+    def tables(self):
+        """Return a vector of table names in this database."""
+        rows = self.query("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+        return [r["name"] for r in rows]
+
+    def columns(self, table):
+        """Return a vector of column info hashes for a table."""
+        rows = self.query(f"PRAGMA table_info({table})")
+        return rows
+
+    # ── Transactions ──────────────────────────────────────────────────────
+
+    def begin(self):
+        """Begin an explicit transaction block."""
+        self._conn.execute("BEGIN")
+        self._in_tx = True
+
+    def commit(self):
+        """Commit the explicit transaction."""
+        self._conn.execute("COMMIT")
+        self._in_tx = False
+
+    def rollback(self):
+        """Roll back the explicit transaction."""
+        self._conn.execute("ROLLBACK")
+        self._in_tx = False
+
+    # ── Lifecycle ─────────────────────────────────────────────────────────
+
+    def close(self):
+        """Commit any pending work and close the connection."""
+        try:
+            if self._in_tx:
+                self._conn.execute("COMMIT")
+        except Exception:
+            pass
+        self._conn.close()
+
+    def __repr__(self):
+        return f"DB({self._path!r})"
+
+
+
+def _fk_count_dispatch(obj, arg=None):
+    """Runtime dispatch for .count() — handles DB, str, list.
+    Uses duck typing (hasattr) to avoid isinstance cross-namespace issues."""
+    if hasattr(obj, 'tables') and hasattr(obj, 'query'):
+        # It's a FrankieDB — use its count method
+        if arg is not None:
+            return obj.count(arg)
+        return 0
+    if isinstance(obj, str) and arg is not None:
+        return _fk_str_count(obj, arg)     # "hello".count("l")
+    return len(obj)                        # vector/string length
+
+def db_open(path=":memory:"):
+    """Open or create a SQLite database. Use ':memory:' for an in-memory DB."""
+    return FrankieDB(path)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# v1.3 STANDARD LIBRARY ADDITIONS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─── JSON ─────────────────────────────────────────────────────────────────────
+import json as _json
+
+def json_parse(s):
+    """Parse a JSON string → Frankie value (hash/vector/string/number/bool/nil)."""
+    try:
+        return _json.loads(s)
+    except _json.JSONDecodeError as e:
+        raise RuntimeError(f"[Frankie] JSON parse error: {e}")
+
+def json_dump(obj, pretty=False):
+    """Serialize a Frankie value → JSON string."""
+    indent = 2 if pretty else None
+    return _json.dumps(obj, indent=indent, default=str)
+
+def json_read(path):
+    """Read and parse a JSON file."""
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            return _json.load(f)
+    except FileNotFoundError:
+        raise RuntimeError(f"[Frankie] JSON file not found: {path!r}")
+    except _json.JSONDecodeError as e:
+        raise RuntimeError(f"[Frankie] JSON parse error in {path!r}: {e}")
+
+def json_write(path, obj, pretty=False):
+    """Serialize and write a Frankie value to a JSON file."""
+    indent = 2 if pretty else None
+    with open(path, 'w', encoding='utf-8') as f:
+        _json.dump(obj, f, indent=indent, default=str)
+    return True
+
+
+# ─── CSV ──────────────────────────────────────────────────────────────────────
+import csv as _csv
+import io as _io
+
+def csv_parse(text, headers=True):
+    """Parse CSV text → vector of hashes (with headers) or vector of vectors."""
+    reader = _csv.reader(_io.StringIO(text))
+    rows = list(reader)
+    if not rows:
+        return []
+    if headers:
+        keys = rows[0]
+        return [dict(zip(keys, row)) for row in rows[1:]]
+    return rows
+
+def csv_dump(data, headers=None):
+    """Serialize vector of hashes (or vectors) → CSV string."""
+    buf = _io.StringIO()
+    if not data:
+        return ""
+    if isinstance(data[0], dict):
+        keys = headers or list(data[0].keys())
+        w = _csv.DictWriter(buf, fieldnames=keys)
+        w.writeheader()
+        w.writerows(data)
+    else:
+        w = _csv.writer(buf)
+        if headers:
+            w.writerow(headers)
+        w.writerows(data)
+    return buf.getvalue()
+
+def csv_read(path, headers=True):
+    """Read and parse a CSV file."""
+    try:
+        with open(path, 'r', encoding='utf-8', newline='') as f:
+            return csv_parse(f.read(), headers=headers)
+    except FileNotFoundError:
+        raise RuntimeError(f"[Frankie] CSV file not found: {path!r}")
+
+def csv_write(path, data, headers=None):
+    """Write vector of hashes or vectors to a CSV file."""
+    with open(path, 'w', encoding='utf-8', newline='') as f:
+        f.write(csv_dump(data, headers=headers))
+    return True
+
+
+# ─── DateTime ─────────────────────────────────────────────────────────────────
+import datetime as _dt
+
+class FrankieDate:
+    """Frankie date/time object."""
+
+    def __init__(self, dt):
+        self._dt = dt
+
+    # Accessors
+    @property
+    def year(self):   return self._dt.year
+    @property
+    def month(self):  return self._dt.month
+    @property
+    def day(self):    return self._dt.day
+    @property
+    def hour(self):   return self._dt.hour if hasattr(self._dt, 'hour') else 0
+    @property
+    def minute(self): return self._dt.minute if hasattr(self._dt, 'minute') else 0
+    @property
+    def second(self): return self._dt.second if hasattr(self._dt, 'second') else 0
+
+    def format(self, fmt="%Y-%m-%d %H:%M:%S"):
+        """Format using strftime directives."""
+        return self._dt.strftime(fmt)
+
+    def to_s(self):
+        return str(self._dt)
+
+    def add_days(self, n):
+        return FrankieDate(self._dt + _dt.timedelta(days=n))
+
+    def add_hours(self, n):
+        return FrankieDate(self._dt + _dt.timedelta(hours=n))
+
+    def add_minutes(self, n):
+        return FrankieDate(self._dt + _dt.timedelta(minutes=n))
+
+    def diff_days(self, other):
+        """Days between this and another FrankieDate."""
+        delta = self._dt - other._dt
+        return abs(delta.days)
+
+    def diff_seconds(self, other):
+        delta = self._dt - other._dt
+        return abs(int(delta.total_seconds()))
+
+    def weekday(self):
+        """0=Monday ... 6=Sunday"""
+        return self._dt.weekday()
+
+    def weekday_name(self):
+        return self._dt.strftime("%A")
+
+    def is_before(self, other):
+        return self._dt < other._dt
+
+    def is_after(self, other):
+        return self._dt > other._dt
+
+    def timestamp(self):
+        """Unix timestamp as float."""
+        return self._dt.timestamp()
+
+    def __repr__(self):
+        return f"Date({self._dt})"
+
+
+def now():
+    """Current date and time."""
+    return FrankieDate(_dt.datetime.now())
+
+def today():
+    """Today's date (midnight)."""
+    return FrankieDate(_dt.datetime.combine(_dt.date.today(), _dt.time()))
+
+def date_parse(s, fmt="%Y-%m-%d"):
+    """Parse a date string."""
+    try:
+        return FrankieDate(_dt.datetime.strptime(s, fmt))
+    except ValueError as e:
+        raise RuntimeError(f"[Frankie] Date parse error: {e}")
+
+def date_from(year, month, day, hour=0, minute=0, second=0):
+    """Create a date from components."""
+    return FrankieDate(_dt.datetime(int(year), int(month), int(day),
+                                    int(hour), int(minute), int(second)))
+
+def _fk_date_to_str(obj):
+    """Hook for _fk_to_str to handle FrankieDate."""
+    if hasattr(obj, 'format') and hasattr(obj, 'year'):
+        return obj.to_s()
+    return str(obj)
+
+
+# ─── HTTP ─────────────────────────────────────────────────────────────────────
+import urllib.request as _urllib_req
+import urllib.parse   as _urllib_parse
+import urllib.error   as _urllib_err
+
+class FrankieHTTPResponse:
+    """HTTP response object."""
+    def __init__(self, status, body, headers):
+        self.status  = status
+        self.body    = body
+        self.headers = headers
+
+    def json(self):
+        """Parse body as JSON."""
+        return _json.loads(self.body)
+
+    def ok(self):
+        """True if status is 2xx."""
+        return 200 <= self.status < 300
+
+    def __repr__(self):
+        return f"HTTPResponse({self.status}, {len(self.body)} bytes)"
+
+
+def _build_request(url, method, data=None, headers=None):
+    hdrs = {'User-Agent': 'Frankie/1.3', 'Accept': 'application/json, */*'}
+    if headers:
+        hdrs.update(headers)
+    body = None
+    if data is not None:
+        if isinstance(data, (dict, list)):
+            body = _json.dumps(data).encode('utf-8')
+            hdrs['Content-Type'] = 'application/json'
+        else:
+            body = str(data).encode('utf-8')
+            hdrs.setdefault('Content-Type', 'text/plain')
+    req = _urllib_req.Request(url, data=body, headers=hdrs, method=method)
+    return req
+
+
+def http_get(url, headers=None):
+    """Make an HTTP GET request. Returns FrankieHTTPResponse."""
+    try:
+        req = _build_request(url, 'GET', headers=headers)
+        with _urllib_req.urlopen(req, timeout=30) as resp:
+            return FrankieHTTPResponse(
+                resp.status,
+                resp.read().decode('utf-8', errors='replace'),
+                dict(resp.headers)
+            )
+    except _urllib_err.HTTPError as e:
+        return FrankieHTTPResponse(e.code, e.read().decode('utf-8', errors='replace'), {})
+    except Exception as e:
+        raise RuntimeError(f"[Frankie] HTTP GET error: {e}")
+
+
+def http_post(url, data=None, headers=None):
+    """Make an HTTP POST request."""
+    try:
+        req = _build_request(url, 'POST', data=data, headers=headers)
+        with _urllib_req.urlopen(req, timeout=30) as resp:
+            return FrankieHTTPResponse(
+                resp.status,
+                resp.read().decode('utf-8', errors='replace'),
+                dict(resp.headers)
+            )
+    except _urllib_err.HTTPError as e:
+        return FrankieHTTPResponse(e.code, e.read().decode('utf-8', errors='replace'), {})
+    except Exception as e:
+        raise RuntimeError(f"[Frankie] HTTP POST error: {e}")
+
+
+def http_put(url, data=None, headers=None):
+    """Make an HTTP PUT request."""
+    try:
+        req = _build_request(url, 'PUT', data=data, headers=headers)
+        with _urllib_req.urlopen(req, timeout=30) as resp:
+            return FrankieHTTPResponse(resp.status, resp.read().decode('utf-8', errors='replace'), dict(resp.headers))
+    except _urllib_err.HTTPError as e:
+        return FrankieHTTPResponse(e.code, e.read().decode('utf-8', errors='replace'), {})
+    except Exception as e:
+        raise RuntimeError(f"[Frankie] HTTP PUT error: {e}")
+
+
+def http_delete(url, headers=None):
+    """Make an HTTP DELETE request."""
+    try:
+        req = _build_request(url, 'DELETE', headers=headers)
+        with _urllib_req.urlopen(req, timeout=30) as resp:
+            return FrankieHTTPResponse(resp.status, resp.read().decode('utf-8', errors='replace'), dict(resp.headers))
+    except _urllib_err.HTTPError as e:
+        return FrankieHTTPResponse(e.code, e.read().decode('utf-8', errors='replace'), {})
+    except Exception as e:
+        raise RuntimeError(f"[Frankie] HTTP DELETE error: {e}")
+
+
+def url_encode(params):
+    """Encode a hash as URL query string."""
+    return _urllib_parse.urlencode(params)
+
+def url_decode(s):
+    """Decode a URL query string → hash."""
+    return dict(_urllib_parse.parse_qsl(s))

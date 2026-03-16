@@ -1,0 +1,198 @@
+{
+  "name": "Frankie",
+  "scopeName": "source.frankie",
+  "fileTypes": ["fk"],
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings_double" },
+    { "include": "#strings_single" },
+    { "include": "#strings_triple_double" },
+    { "include": "#strings_triple_single" },
+    { "include": "#keywords_control" },
+    { "include": "#keywords_special" },
+    { "include": "#keywords_operator" },
+    { "include": "#keywords_declaration" },
+    { "include": "#builtins_stdlib" },
+    { "include": "#builtins_math" },
+    { "include": "#builtins_db" },
+    { "include": "#builtins_http" },
+    { "include": "#constants" },
+    { "include": "#numbers" },
+    { "include": "#symbols" },
+    { "include": "#operators" },
+    { "include": "#method_call" },
+    { "include": "#function_call" },
+    { "include": "#identifiers" }
+  ],
+  "repository": {
+
+    "comments": {
+      "name": "comment.line.number-sign.frankie",
+      "match": "#.*$"
+    },
+
+    "strings_triple_double": {
+      "name": "string.quoted.triple.double.frankie",
+      "begin": "\"\"\"",
+      "end": "\"\"\"",
+      "patterns": [
+        { "include": "#string_interpolation" },
+        { "include": "#string_escape" }
+      ]
+    },
+
+    "strings_triple_single": {
+      "name": "string.quoted.triple.single.frankie",
+      "begin": "'''",
+      "end": "'''"
+    },
+
+    "strings_double": {
+      "name": "string.quoted.double.frankie",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        { "include": "#string_interpolation" },
+        { "include": "#string_escape" }
+      ]
+    },
+
+    "strings_single": {
+      "name": "string.quoted.single.frankie",
+      "begin": "'",
+      "end": "'"
+    },
+
+    "string_interpolation": {
+      "name": "meta.interpolation.frankie",
+      "begin": "#\\{",
+      "end": "\\}",
+      "beginCaptures": { "0": { "name": "punctuation.section.interpolation.begin.frankie" } },
+      "endCaptures":   { "0": { "name": "punctuation.section.interpolation.end.frankie" } },
+      "patterns": [{ "include": "$self" }]
+    },
+
+    "string_escape": {
+      "name": "constant.character.escape.frankie",
+      "match": "\\\\[ntrb\\\\\"']"
+    },
+
+    "keywords_control": {
+      "name": "keyword.control.frankie",
+      "match": "\\b(if|elsif|else|unless|end|while|until|for|in|do|begin|rescue|ensure|case|when|return|next|break|raise|require)\\b"
+    },
+
+    "keywords_special": {
+      "name": "keyword.other.frankie",
+      "match": "\\b(puts|print|p)\\b"
+    },
+
+    "keywords_operator": {
+      "name": "keyword.operator.logical.frankie",
+      "match": "\\b(and|or|not)\\b"
+    },
+
+    "keywords_declaration": {
+      "name": "keyword.other.def.frankie",
+      "match": "\\bdef\\b"
+    },
+
+    "builtins_stdlib": {
+      "name": "support.function.builtin.frankie",
+      "match": "\\b(sum|mean|median|stdev|variance|min|max|abs|sqrt|floor|ceil|clamp|seq|linspace|rep|length|vec|to_int|to_float|to_str|is_integer|is_float|is_string|is_vector|is_nil|is_bool|input|input_int|input_float|paste|sprintf|matches|match|match_all|sub|gsub|regex|file_read|file_write|file_append|file_lines|file_exists|file_delete|json_parse|json_dump|json_read|json_write|csv_parse|csv_dump|csv_read|csv_write|now|today|date_from|date_parse|url_encode|url_decode|exit|argv|env)\\b"
+    },
+
+    "builtins_math": {
+      "name": "support.function.math.frankie",
+      "match": "\\b(sin|cos|tan|log|exp|pow|round)\\b"
+    },
+
+    "builtins_db": {
+      "name": "support.function.db.frankie",
+      "match": "\\bdb_open\\b"
+    },
+
+    "builtins_http": {
+      "name": "support.function.http.frankie",
+      "match": "\\b(http_get|http_post|http_put|http_delete)\\b"
+    },
+
+    "constants": {
+      "patterns": [
+        {
+          "name": "constant.language.boolean.frankie",
+          "match": "\\b(true|false)\\b"
+        },
+        {
+          "name": "constant.language.nil.frankie",
+          "match": "\\bnil\\b"
+        }
+      ]
+    },
+
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.float.frankie",
+          "match": "\\b[0-9]+\\.[0-9]+\\b"
+        },
+        {
+          "name": "constant.numeric.integer.frankie",
+          "match": "\\b[0-9]+\\b"
+        }
+      ]
+    },
+
+    "symbols": {
+      "name": "constant.other.symbol.frankie",
+      "match": ":[a-zA-Z_][a-zA-Z0-9_]*"
+    },
+
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.pipe.frankie",
+          "match": "\\|>"
+        },
+        {
+          "name": "keyword.operator.range.frankie",
+          "match": "\\.{2,3}"
+        },
+        {
+          "name": "keyword.operator.assignment.frankie",
+          "match": "(?<![=!<>])=(?!=)"
+        },
+        {
+          "name": "keyword.operator.comparison.frankie",
+          "match": "(==|!=|<=|>=|<|>|=~)"
+        },
+        {
+          "name": "keyword.operator.arithmetic.frankie",
+          "match": "(\\*\\*|//|[+\\-*/%])"
+        }
+      ]
+    },
+
+    "method_call": {
+      "name": "meta.method-call.frankie",
+      "match": "\\.([a-zA-Z_][a-zA-Z0-9_]*[?!]?)(?=\\s*[\\(\\s]|$)",
+      "captures": {
+        "1": { "name": "entity.name.function.method.frankie" }
+      }
+    },
+
+    "function_call": {
+      "name": "meta.function-call.frankie",
+      "match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\s*(?=\\()",
+      "captures": {
+        "1": { "name": "entity.name.function.frankie" }
+      }
+    },
+
+    "identifiers": {
+      "name": "variable.other.frankie",
+      "match": "\\b[a-zA-Z_][a-zA-Z0-9_]*[?!]?\\b"
+    }
+
+  }
+}

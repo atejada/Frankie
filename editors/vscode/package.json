@@ -1,0 +1,26 @@
+{
+  "name": "frankie-language",
+  "displayName": "Frankie Language",
+  "description": "Syntax highlighting for the Frankie programming language (.fk files)",
+  "version": "1.3.0",
+  "publisher": "frankie-lang",
+  "engines": { "vscode": "^1.60.0" },
+  "categories": ["Programming Languages"],
+  "contributes": {
+    "languages": [
+      {
+        "id": "frankie",
+        "aliases": ["Frankie", "frankie"],
+        "extensions": [".fk"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "frankie",
+        "scopeName": "source.frankie",
+        "path": "./frankie.tmLanguage.json"
+      }
+    ]
+  }
+}

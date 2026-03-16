@@ -153,17 +153,38 @@ class Parser:
         name_tok = self.expect(TT.IDENT, "Expected function name after 'def'")
         name = name_tok.value
         params = []
+        defaults = []
         if self.check(TT.LPAREN):
             self.advance()
             if not self.check(TT.RPAREN):
-                params.append(self.expect(TT.IDENT, "Expected parameter name").value)
+                pname = self._parse_param_name()
+                params.append(pname)
+                if self.match(TT.ASSIGN):
+                    defaults.append(self.parse_expr())
+                else:
+                    defaults.append(None)
                 while self.match(TT.COMMA):
-                    params.append(self.expect(TT.IDENT, "Expected parameter name").value)
+                    pname = self._parse_param_name()
+                    params.append(pname)
+                    if self.match(TT.ASSIGN):
+                        defaults.append(self.parse_expr())
+                    else:
+                        defaults.append(None)
             self.expect(TT.RPAREN)
         self.skip_newlines()
         body = self.parse_body()
         self.expect(TT.END, "Expected 'end' to close 'def'")
-        return FuncDef(name=name, params=params, body=body)
+        return FuncDef(name=name, params=params, defaults=defaults, body=body)
+
+    def _parse_param_name(self) -> str:
+        """Accept any identifier-like token as a parameter name."""
+        t = self.current()
+        if t.type == TT.IDENT or t.type in (
+            TT.TIMES, TT.EACH, TT.EACH_WITH_INDEX, TT.MAP,
+            TT.IN, TT.AND, TT.OR, TT.NOT,
+        ):
+            return self.advance().value
+        raise ParseError("Expected parameter name", t)
 
     # ─── Control Flow ────────────────────────────────────────────────────────
 
@@ -577,6 +598,23 @@ class Parser:
 
         if t.type in (TT.INPUT, TT.INPUT_INT, TT.INPUT_FLOAT):
             return self.parse_input()
+
+        # Allow iterator/method keywords to be used as plain variable names
+        # e.g.  def repeat(times=3)  then  i < times  should work
+        if t.type in (TT.TIMES, TT.EACH, TT.EACH_WITH_INDEX, TT.MAP):
+            name = self.advance().value
+            if self.check(TT.LPAREN):
+                self.advance()
+                args = []
+                if not self.check(TT.RPAREN):
+                    args.append(self.parse_arg())
+                    while self.match(TT.COMMA):
+                        if self.check(TT.RPAREN):
+                            break
+                        args.append(self.parse_arg())
+                self.expect(TT.RPAREN)
+                return FuncCall(name=name, args=args)
+            return Identifier(name=name)
 
         if t.type == TT.IDENT:
             name = self.advance().value

@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-frankiec — The Frankie Language Compiler & Interpreter v1.1
+frankiec — The Frankie Language Compiler & Interpreter v1.3
 Usage:
-    frankiec run   <file.fk>       Run a Frankie program
-    frankiec build <file.fk>       Compile to Python source
-    frankiec check <file.fk>       Syntax check only
+    frankiec new    <project>      Scaffold a new Frankie project
+    frankiec run    <file.fk>      Run a Frankie program
+    frankiec build  <file.fk>      Compile to Python source
+    frankiec check  <file.fk>      Syntax check only
     frankiec repl                  Start the interactive REPL
     frankiec version               Show version info
 """
@@ -21,7 +22,7 @@ from compiler.lexer import Lexer, LexError
 from compiler.parser import Parser, ParseError
 from compiler.codegen import CodeGen, CodeGenError
 
-FRANKIE_VERSION = "1.1.0"
+FRANKIE_VERSION = "1.3.0"
 FRANKIE_BANNER = r"""
   _____                 _    _        
  |  ___| __ __ _ _ __ | | _(_) ___   
@@ -53,10 +54,10 @@ def run_file(fk_file: str):
     try:
         py_source = compile_source(source, fk_file)
     except LexError as e:
-        print(str(e), file=sys.stderr)
+        _print_compile_error(str(e), e.line, source, fk_file)
         sys.exit(1)
     except ParseError as e:
-        print(str(e), file=sys.stderr)
+        _print_compile_error(str(e), e.token.line, source, fk_file)
         sys.exit(1)
     except CodeGenError as e:
         print(f"[Frankie Codegen Error] {e}", file=sys.stderr)
@@ -82,10 +83,73 @@ def run_file(fk_file: str):
     except SystemExit:
         raise
     except Exception as e:
-        # Translate Python runtime errors back to Frankie-friendly messages
-        tb = traceback.extract_tb(sys.exc_info()[2])
-        print(f"\n[Frankie Runtime Error] {type(e).__name__}: {e}", file=sys.stderr)
+        _print_runtime_error(e, fk_file, source)
         sys.exit(1)
+
+
+def _print_compile_error(msg, line_no, source, fk_file):
+    """Print a compile error with source context."""
+    print(f"\n╔══ Frankie Compile Error ══════════════════════════════", file=sys.stderr)
+    print(f"║  {msg}", file=sys.stderr)
+    if source and line_no:
+        lines = source.splitlines()
+        lo = max(0, line_no - 3)
+        hi = min(len(lines), line_no + 2)
+        print(f"║", file=sys.stderr)
+        print(f"║  File: {fk_file}", file=sys.stderr)
+        for i, line in enumerate(lines[lo:hi], lo + 1):
+            marker = "──▶" if i == line_no else "   "
+            print(f"║  {marker} {i:4} │ {line}", file=sys.stderr)
+    print(f"╚═══════════════════════════════════════════════════════\n", file=sys.stderr)
+
+
+def _print_runtime_error(e, fk_file, source):
+    """Print a friendly runtime error with source context."""
+    import traceback as _tb
+
+    # Find line from the traceback — the compiled code uses fk_file as filename
+    tb_frames = _tb.extract_tb(sys.exc_info()[2])
+    fk_line = None
+    for frame in reversed(tb_frames):
+        if os.path.abspath(frame.filename) == os.path.abspath(fk_file):
+            # Compiled code has a 5-line header; subtract to get .fk line
+            # (header: comment, import math, import sys, from stdlib, blank)
+            fk_line = max(1, frame.lineno - 5)
+            break
+
+    friendly = {
+        'ZeroDivisionError': 'Division by zero',
+        'NameError':         'Undefined variable or function: ' + (str(e).split("'")[1] if "'" in str(e) else str(e)),
+        'TypeError':         'Wrong type for operation',
+        'IndexError':        'Index out of bounds',
+        'KeyError':          f"Key not found: {e}",
+        'RecursionError':    'Stack overflow (too much recursion)',
+        'ValueError':        f"Invalid value: {e}",
+        'FileNotFoundError': f"File not found: {e}",
+        'AttributeError':    f"No such method or property: {e}",
+        'RuntimeError':      str(e),
+    }
+    kind = type(e).__name__
+    desc = friendly.get(kind, str(e))
+
+    print(f"\n╔══ Frankie Runtime Error ══════════════════════════════", file=sys.stderr)
+    print(f"║  {desc}", file=sys.stderr)
+    if kind not in ('RuntimeError',) and str(e) not in desc:
+        print(f"║  ({kind}: {e})", file=sys.stderr)
+
+    if fk_line and source:
+        lines = source.splitlines()
+        lo = max(0, fk_line - 3)
+        hi = min(len(lines), fk_line + 2)
+        print(f"║", file=sys.stderr)
+        print(f"║  File: {fk_file}", file=sys.stderr)
+        for i, line in enumerate(lines[lo:hi], lo + 1):
+            marker = "──▶" if i == fk_line else "   "
+            print(f"║  {marker} {i:4} │ {line}", file=sys.stderr)
+    elif source:
+        print(f"║  File: {fk_file}", file=sys.stderr)
+
+    print(f"╚═══════════════════════════════════════════════════════\n", file=sys.stderr)
 
 
 def build_file(fk_file: str, output: str = None):
@@ -140,6 +204,13 @@ def main():
 
     if cmd == 'version':
         print(f"Frankie v{FRANKIE_VERSION}")
+
+    elif cmd == 'new':
+        if len(sys.argv) < 3:
+            print("[Frankie] Usage: frankiec new <project_name>", file=sys.stderr)
+            sys.exit(1)
+        from scaffold import scaffold
+        scaffold(sys.argv[2])
 
     elif cmd == 'repl':
         from repl import run_repl
