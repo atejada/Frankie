@@ -101,7 +101,7 @@ class Parser:
         if t.type == TT.BEGIN_KW:
             return self.parse_begin_rescue()
         if t.type == TT.RAISE:
-            return self.parse_raise()
+            return self._maybe_postfix(self.parse_raise())
         if t.type == TT.REQUIRE:
             return self.parse_require()
         if t.type == TT.CASE:
@@ -557,6 +557,11 @@ class Parser:
                         args.append(self.parse_expr())
                 self.expect(TT.RPAREN)
                 return FuncCall(name=name, args=args)
+            return Identifier(name=name)
+        # puts/print as bare pipe targets — wrap as an identifier so the
+        # PipeOp codegen can treat them like any other callable name.
+        if self.check(TT.PUTS, TT.PRINT):
+            name = self.advance().value
             return Identifier(name=name)
         # Could be a print/puts etc.
         return self.parse_primary()
