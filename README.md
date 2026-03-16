@@ -96,7 +96,7 @@ end
 
 ---
 
-## Commands
+## SQLite Commands
 
 ```ruby
 # SQLite — zero dependencies
