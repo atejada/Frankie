@@ -1,13 +1,13 @@
 # 🧟 Frankie Programming Language
 
 ```
-  _____                 _    _
+  _____                _    _
  |  ___| __ __ _ _ __ | | _(_) ___
  | |_ | '__/ _` | '_ \| |/ / |/ _ \
  |  _|| | | (_| | | | |   <| |  __/
  |_|  |_|  \__,_|_| |_|_|\_\_|\___|
 
- The Frankie Language v1.2
+ The Frankie Language v1.3
  Stitched together from Ruby • Python • R • Fortran
 ```
 
@@ -96,7 +96,7 @@ end
 
 ---
 
-## Commands
+## SQLite Commands
 
 ```ruby
 # SQLite — zero dependencies
@@ -115,6 +115,7 @@ db.close
 ## Commands
 
 ```bash
+frankiec new   <project>    # Scaffold a new Frankie project
 frankiec                    # launch the REPL
 frankiec run   <file.fk>    # run a program
 frankiec build <file.fk>    # compile to Python source
