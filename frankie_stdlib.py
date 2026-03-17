@@ -1126,3 +1126,241 @@ def url_encode(params):
 def url_decode(s):
     """Decode a URL query string → hash."""
     return dict(_urllib_parse.parse_qsl(s))
+
+
+# ─── Web Server ───────────────────────────────────────────────────────────────
+
+import http.server as _http_server
+import re as _re
+import threading as _threading
+
+
+class FrankieRequest:
+    """
+    Represents an incoming HTTP request inside a route handler.
+
+    Properties
+    ----------
+    method   : "GET", "POST", "PUT", "DELETE", ...
+    path     : "/hello/world"
+    params   : path parameters extracted from the route pattern  {id: "42"}
+    query    : query-string parameters as a hash  {page: "2"}
+    headers  : request headers as a hash
+    body     : raw request body as a string
+    json     : parsed JSON body (hash/vector) or nil
+    form     : parsed application/x-www-form-urlencoded body as a hash
+    """
+    def __init__(self, method, path, params, query, headers, body):
+        self.method  = method
+        self.path    = path
+        self.params  = params
+        self.query   = query
+        self.headers = headers
+        self.body    = body
+
+    @property
+    def json(self):
+        try:
+            import json as _j
+            return _j.loads(self.body)
+        except Exception:
+            return None
+
+    @property
+    def form(self):
+        return dict(_urllib_parse.parse_qsl(self.body))
+
+    def __repr__(self):
+        return f"<FrankieRequest {self.method} {self.path}>"
+
+
+class FrankieResponse:
+    """
+    An HTTP response returned from a route handler.
+
+    Use the helper functions below instead of constructing this directly:
+      response(body)                          -> 200 text/plain
+      response(body, 201)                     -> custom status
+      json_response(hash)                     -> 200 application/json
+      html_response(html)                     -> 200 text/html
+      redirect("/other")                      -> 302 redirect
+      halt(404, "Not Found")                  -> error shortcut
+    """
+    def __init__(self, body="", status=200, headers=None, content_type="text/plain; charset=utf-8"):
+        self.body         = str(body) if body is not None else ""
+        self.status       = int(status)
+        self.content_type = content_type
+        self.headers      = headers or {}
+
+    def __repr__(self):
+        return f"<FrankieResponse {self.status}>"
+
+
+def response(body="", status=200, headers=None):
+    """Return a plain-text HTTP response."""
+    return FrankieResponse(body, status, headers or {}, "text/plain; charset=utf-8")
+
+def json_response(data, status=200, headers=None):
+    """Serialize data as JSON and return an application/json response."""
+    import json as _j
+    return FrankieResponse(
+        _j.dumps(data, ensure_ascii=False),
+        status,
+        headers or {},
+        "application/json; charset=utf-8"
+    )
+
+def html_response(body="", status=200, headers=None):
+    """Return a text/html response."""
+    return FrankieResponse(body, status, headers or {}, "text/html; charset=utf-8")
+
+def redirect(location, status=302):
+    """Return a redirect response."""
+    return FrankieResponse("", status, {"Location": location}, "text/plain")
+
+def halt(status=500, body=""):
+    """Return an error response."""
+    return FrankieResponse(body, status, {}, "text/plain; charset=utf-8")
+
+
+class FrankieApp:
+    """
+    A lightweight HTTP application in the style of Sinatra / Camping.
+
+    Routes are registered with .get, .post, .put, .delete, .patch.
+    Path parameters are declared with :name segments, e.g. "/users/:id".
+    The handler block receives a FrankieRequest and must return a
+    FrankieResponse (or a plain string / hash, which is wrapped automatically).
+
+    Example (Frankie source)
+    ------------------------
+        app = web_app()
+
+        app.get("/") do |req|
+          html_response("<h1>Hello from Frankie!</h1>")
+        end
+
+        app.get("/greet/:name") do |req|
+          name = req.params["name"]
+          response("Hello, #{name}!")
+        end
+
+        app.run(3000)
+    """
+
+    def __init__(self):
+        self._routes    = []   # [(method, regex, param_names, handler), ...]
+        self._before    = []   # before-filters
+        self._after     = []   # after-filters
+        self._not_found = None # custom 404 handler
+
+    # ── Route registration ──────────────────────────────────────────────────
+
+    def _register(self, method, pattern, handler):
+        param_names = _re.findall(r':([a-zA-Z_][a-zA-Z0-9_]*)', pattern)
+        regex_str   = _re.sub(r':([a-zA-Z_][a-zA-Z0-9_]*)', r'([^/]+)', pattern)
+        self._routes.append((method.upper(), _re.compile('^' + regex_str + '$'), param_names, handler))
+
+    def get(self, pattern, handler):    self._register('GET',    pattern, handler)
+    def post(self, pattern, handler):   self._register('POST',   pattern, handler)
+    def put(self, pattern, handler):    self._register('PUT',    pattern, handler)
+    def delete(self, pattern, handler): self._register('DELETE', pattern, handler)
+    def patch(self, pattern, handler):  self._register('PATCH',  pattern, handler)
+
+    def before(self, handler):
+        """Register a before-filter (called before every matched route)."""
+        self._before.append(handler)
+
+    def after(self, handler):
+        """Register an after-filter (called after every matched route)."""
+        self._after.append(handler)
+
+    def not_found(self, handler):
+        """Register a custom 404 handler."""
+        self._not_found = handler
+
+    # ── Dispatch ────────────────────────────────────────────────────────────
+
+    def _dispatch(self, method, path, query_string, headers, body):
+        query = dict(_urllib_parse.parse_qsl(query_string))
+
+        for route_method, regex, param_names, handler in self._routes:
+            if route_method != method and not (method == 'HEAD' and route_method == 'GET'):
+                continue
+            m = regex.match(path)
+            if m:
+                params = dict(zip(param_names, m.groups()))
+                req    = FrankieRequest(method, path, params, query, headers, body)
+                for bf in self._before:
+                    bf(req)
+                raw  = handler(req)
+                resp = self._wrap(raw)
+                for af in self._after:
+                    af(req, resp)
+                return resp
+
+        # No route matched -> 404
+        if self._not_found:
+            req = FrankieRequest(method, path, {}, query, headers, body)
+            return self._wrap(self._not_found(req))
+        return FrankieResponse("404 Not Found", 404, {}, "text/plain; charset=utf-8")
+
+    @staticmethod
+    def _wrap(raw):
+        """Coerce handler return value to a FrankieResponse."""
+        if isinstance(raw, FrankieResponse):
+            return raw
+        if isinstance(raw, (dict, list)):
+            import json as _j
+            return FrankieResponse(_j.dumps(raw, ensure_ascii=False), 200, {},
+                                   "application/json; charset=utf-8")
+        return FrankieResponse(str(raw) if raw is not None else "", 200, {},
+                               "text/plain; charset=utf-8")
+
+    # ── Server ──────────────────────────────────────────────────────────────
+
+    def run(self, port=3000, host="0.0.0.0"):
+        """Start the blocking HTTP server. Press Ctrl+C to stop."""
+        app = self
+
+        class _Handler(_http_server.BaseHTTPRequestHandler):
+            def log_message(self, fmt, *args):
+                print(f"  {self.address_string()}  {fmt % args}")
+
+            def _serve(self):
+                import urllib.parse as _up
+                parsed  = _up.urlparse(self.path)
+                length  = int(self.headers.get('Content-Length', 0))
+                body    = self.rfile.read(length).decode('utf-8', errors='replace') if length else ''
+                resp    = app._dispatch(self.command, parsed.path,
+                                        parsed.query, dict(self.headers), body)
+                encoded = resp.body.encode('utf-8')
+                self.send_response(resp.status)
+                self.send_header('Content-Type', resp.content_type)
+                self.send_header('Content-Length', str(len(encoded)))
+                for k, v in resp.headers.items():
+                    self.send_header(k, v)
+                self.end_headers()
+                if self.command != 'HEAD':
+                    self.wfile.write(encoded)
+
+            def do_GET(self):    self._serve()
+            def do_POST(self):   self._serve()
+            def do_PUT(self):    self._serve()
+            def do_DELETE(self): self._serve()
+            def do_PATCH(self):  self._serve()
+            def do_HEAD(self):   self._serve()
+
+        server = _http_server.ThreadingHTTPServer((host, int(port)), _Handler)
+        print(f"🧟 Frankie web server running on http://{host}:{port}")
+        print(f"   Press Ctrl+C to stop.\n")
+        try:
+            server.serve_forever()
+        except KeyboardInterrupt:
+            print("\n   Shutting down.")
+            server.shutdown()
+
+
+def web_app():
+    """Create and return a new Frankie web application."""
+    return FrankieApp()

@@ -1,0 +1,232 @@
+# whats_new_v14.fk — Frankie v1.4 Feature Showcase
+#
+# This file demonstrates the new web server features inline
+# (without starting a live server) and then launches a full
+# demo app you can curl against.
+#
+# Run with:   frankiec run examples/whats_new_v14.fk
+
+puts "╔══════════════════════════════════════════╗"
+puts "║     What's New in Frankie v1.4           ║"
+puts "╠══════════════════════════════════════════╣"
+puts "║  Sinatra-style web server — zero deps    ║"
+puts "╚══════════════════════════════════════════╝"
+puts ""
+
+# ── 1. Response helpers ───────────────────────────────────────────
+puts "── 1. Response Helpers ──"
+
+r1 = response("Hello!")
+puts "response()      -> status #{r1.status}, type: #{r1.content_type}"
+
+r2 = response("Created", 201)
+puts "response(201)   -> status #{r2.status}"
+
+r3 = html_response("<h1>Hi</h1>")
+puts "html_response() -> status #{r3.status}, type: #{r3.content_type}"
+
+r4 = json_response({ok: true, count: 42})
+puts "json_response() -> status #{r4.status}, body: #{r4.body}"
+
+r5 = redirect("/new-path")
+puts "redirect()      -> status #{r5.status}, Location: #{r5.headers["Location"]}"
+
+r6 = halt(404, "Not Found")
+puts "halt(404)       -> status #{r6.status}, body: #{r6.body}"
+puts ""
+
+# ── 2. FrankieRequest anatomy ────────────────────────────────────
+puts "── 2. Request Object ──"
+puts "A FrankieRequest carries:"
+puts "  req.method   — HTTP verb (GET, POST, ...)"
+puts "  req.path     — URL path (/users/42)"
+puts "  req.params   — path params ({id: \"42\"})"
+puts "  req.query    — query string ({page: \"2\"})"
+puts "  req.headers  — request headers hash"
+puts "  req.body     — raw body string"
+puts "  req.json     — body parsed as JSON (or nil)"
+puts "  req.form     — body parsed as form data"
+puts ""
+
+# ── 3. Route registration (without running the server) ───────────
+puts "── 3. Routes ──"
+
+app = web_app()
+
+app.get("/") do |req|
+  html_response("<h1>Hello from Frankie! 🧟</h1>")
+end
+
+app.get("/greet/:name") do |req|
+  name = req.params["name"]
+  response("Hello, #{name}!")
+end
+
+app.get("/api/status") do |req|
+  json_response({status: "ok", version: "1.4"})
+end
+
+app.post("/echo") do |req|
+  json_response({method: req.method, body: req.body})
+end
+
+app.not_found do |req|
+  halt(404, "No route for #{req.path}")
+end
+
+puts "Registered routes: GET /, GET /greet/:name, GET /api/status, POST /echo"
+puts ""
+
+# ── 4. Dispatch without a live server ────────────────────────────
+puts "── 4. Internal Dispatch ──"
+
+r = app._dispatch("GET", "/", "", {}, "")
+puts "GET /           -> #{r.status} #{r.content_type}"
+
+r = app._dispatch("GET", "/greet/Alice", "", {}, "")
+puts "GET /greet/Alice -> #{r.status} | #{r.body}"
+
+r = app._dispatch("GET", "/api/status", "", {}, "")
+puts "GET /api/status -> #{r.status} | #{r.body}"
+
+r = app._dispatch("POST", "/echo", "", {}, "hello frankie")
+puts "POST /echo      -> #{r.status} | #{r.body}"
+
+r = app._dispatch("GET", "/missing", "", {}, "")
+puts "GET /missing    -> #{r.status} | #{r.body}"
+puts ""
+
+# ── 5. Path parameters ───────────────────────────────────────────
+puts "── 5. Path Parameters ──"
+
+app2 = web_app()
+
+app2.get("/users/:id/posts/:slug") do |req|
+  id   = req.params["id"]
+  slug = req.params["slug"]
+  json_response({user_id: id, post: slug})
+end
+
+r = app2._dispatch("GET", "/users/99/posts/hello-world", "", {}, "")
+puts "GET /users/99/posts/hello-world -> #{r.body}"
+puts ""
+
+# ── 6. Query parameters ──────────────────────────────────────────
+puts "── 6. Query Parameters ──"
+
+app3 = web_app()
+
+app3.get("/search") do |req|
+  q    = req.query["q"]
+  page = req.query["page"]
+  if q == nil
+    return halt(400, "Missing ?q=")
+  end
+  json_response({query: q, page: page})
+end
+
+r = app3._dispatch("GET", "/search", "q=frankie&page=2", {}, "")
+puts "GET /search?q=frankie&page=2 -> #{r.body}"
+
+r = app3._dispatch("GET", "/search", "", {}, "")
+puts "GET /search (no q)           -> #{r.status} #{r.body}"
+puts ""
+
+# ── 7. JSON body ─────────────────────────────────────────────────
+puts "── 7. JSON Body ──"
+
+app4 = web_app()
+store = {items: []}
+
+app4.post("/items") do |req|
+  data = req.json
+  if data == nil
+    return halt(400, "Expected JSON")
+  end
+  item = {id: length(store["items"]) + 1, name: data["name"]}
+  store["items"].push(item)
+  json_response(item, 201)
+end
+
+app4.get("/items") do |req|
+  json_response(store["items"])
+end
+
+r = app4._dispatch("POST", "/items", "", {"Content-Type": "application/json"}, "{\"name\": \"Widget\"}")
+puts "POST /items {name:Widget} -> #{r.status} | #{r.body}"
+
+r = app4._dispatch("POST", "/items", "", {"Content-Type": "application/json"}, "{\"name\": \"Gadget\"}")
+puts "POST /items {name:Gadget} -> #{r.status} | #{r.body}"
+
+r = app4._dispatch("GET", "/items", "", {}, "")
+puts "GET  /items               -> #{r.body}"
+
+r = app4._dispatch("POST", "/items", "", {}, "not-json")
+puts "POST /items (bad body)    -> #{r.status} | #{r.body}"
+puts ""
+
+# ── 8. Before / After filters ────────────────────────────────────
+puts "── 8. Before / After Filters ──"
+
+app5   = web_app()
+log    = []
+
+app5.before do |req|
+  log.push("before: #{req.method} #{req.path}")
+end
+
+app5.after do |req, res|
+  log.push("after: #{res.status}")
+end
+
+app5.get("/ping") do |req|
+  response("pong")
+end
+
+app5._dispatch("GET", "/ping", "", {}, "")
+log.each do |entry|
+  puts "  #{entry}"
+end
+puts ""
+
+# ── 9. Return value auto-wrapping ────────────────────────────────
+puts "── 9. Auto-wrap Return Values ──"
+
+app6 = web_app()
+
+app6.get("/string") do |req|
+  "plain string return"
+end
+
+app6.get("/hash") do |req|
+  {wrapped: true, auto: "json"}
+end
+
+r = app6._dispatch("GET", "/string", "", {}, "")
+puts "string return -> #{r.status} #{r.content_type} | #{r.body}"
+
+r = app6._dispatch("GET", "/hash", "", {}, "")
+puts "hash return   -> #{r.status} #{r.content_type} | #{r.body}"
+puts ""
+
+# ── 10. Bug fixes shipped in v1.4 ────────────────────────────────
+puts "── 10. Bug Fixes ──"
+
+puts "Fix 1: raise with postfix if inside begin/rescue"
+begin
+  x = -1
+  raise "negative!" if x < 0
+rescue e
+  puts "  Caught: #{e}"
+end
+
+puts "Fix 2: puts/print as pipe targets"
+[10, 20, 30] |> sum |> puts
+puts ""
+
+# ── Done ─────────────────────────────────────────────────────────
+puts "All v1.4 features verified! 🧟⚡"
+puts ""
+puts "To launch a live web server, run:"
+puts "  frankiec run examples/webapp.fk"
+puts "Then visit http://localhost:3000"

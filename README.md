@@ -7,7 +7,7 @@
  |  _|| | | (_| | | | |   <| |  __/
  |_|  |_|  \__,_|_| |_|_|\_\_|\___|
 
- The Frankie Language v1.3.1
+ The Frankie Language v1.4
  Stitched together from Ruby • Python • R • Fortran
 ```
 
@@ -96,7 +96,32 @@ end
 
 ---
 
-## SQLite Commands
+## Web Server
+
+```ruby
+# Sinatra-style web server — zero dependencies
+app = web_app()
+
+app.get("/greet/:name") do |req|
+  name = req.params["name"]
+  response("Hello, #{name}!")
+end
+
+app.get("/api/status") do |req|
+  json_response({status: "ok", version: "1.4"})
+end
+
+app.post("/notes") do |req|
+  data = req.json
+  json_response({id: 1, text: data["text"]}, 201)
+end
+
+app.run(3000)
+```
+
+---
+
+## SQLite
 
 ```ruby
 # SQLite — zero dependencies
@@ -105,14 +130,14 @@ db.exec("CREATE TABLE notes (id INTEGER PRIMARY KEY, text TEXT)")
 db.insert("notes", {text: "Frankie has SQLite!"})
 db.insert("notes", {text: "Zero dependencies."})
 db.find_all("notes").each do |row|
-  puts "#{row["id"]}: #{row["text"]}"
+  puts "#{row[\"id\"]}: #{row[\"text\"]}"
 end
 db.close
 ```
 
 ---
 
-## Commands
+## CLI Commands
 
 ```bash
 frankiec                    # launch the REPL
@@ -136,9 +161,10 @@ Full documentation lives in the `docs/` folder:
 | `docs/03_collections.md` | Vectors, hashes, all iterators |
 | `docs/04_stdlib.md` | Math, stats, strings, regex, file I/O, system |
 | `docs/05_examples.md` | All example programs explained |
-| `docs/06_changelog.md` | v1.0, v1.1 and v1.2 release notes |
+| `docs/06_changelog.md` | v1.0 – v1.4 release notes |
 | `docs/07_database.md` | SQLite database access — full API reference |
 | `docs/08_v13_features.md` | JSON, CSV, DateTime, HTTP, project scaffolding |
+| `docs/09_web.md` | Web server — routes, requests, responses, filters |
 
 The formal language grammar lives in `SPEC.md`.
 
@@ -156,7 +182,7 @@ frankie/
 │   ├── ast_nodes.py       ← AST node definitions
 │   └── codegen.py         ← Python code generator
 ├── docs/                  ← full documentation
-├── examples/              ← 12 example .fk programs
+├── examples/              ← 14 example .fk programs (incl. webapp.fk, whats_new_v14.fk)
 ├── frankiec.py            ← compiler CLI entry point
 ├── frankie_stdlib.py      ← runtime standard library
 ├── repl.py                ← interactive REPL

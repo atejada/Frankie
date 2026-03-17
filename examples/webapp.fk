@@ -1,0 +1,80 @@
+# webapp.fk — Frankie v1.4 web server demo
+#
+# Run with:   frankiec run examples/webapp.fk
+# Then visit: http://localhost:3000
+
+app = web_app()
+
+# ── Simple HTML response ──────────────────────────────────────────────────────
+app.get("/") do |req|
+  html_response("<h1>Hello from Frankie! 🧟</h1><p>Try <a href='/greet/world'>/greet/world</a></p>")
+end
+
+# ── Path parameters ───────────────────────────────────────────────────────────
+app.get("/greet/:name") do |req|
+  name = req.params["name"]
+  response("Hello, #{name}!")
+end
+
+# ── Query parameters ──────────────────────────────────────────────────────────
+# GET /search?q=frankie
+app.get("/search") do |req|
+  q = req.query["q"]
+  if q == nil
+    return response("Please provide ?q=something")
+  end
+  response("You searched for: #{q}")
+end
+
+# ── JSON response ─────────────────────────────────────────────────────────────
+app.get("/api/status") do |req|
+  json_response({status: "ok", language: "Frankie", version: "1.4"})
+end
+
+# ── In-memory notes store ─────────────────────────────────────────────────────
+# Use a wrapper hash so handlers can mutate the list without scoping issues
+store = {notes: []}
+
+app.get("/notes") do |req|
+  json_response(store["notes"])
+end
+
+app.post("/notes") do |req|
+  data = req.json
+  if data == nil
+    return halt(400, "Expected JSON body")
+  end
+  note = {id: length(store["notes"]) + 1, text: data["text"]}
+  store["notes"].push(note)
+  json_response(note, 201)
+end
+
+app.get("/notes/:id") do |req|
+  id = to_int(req.params["id"])
+  found = nil
+  store["notes"].each do |n|
+    if n["id"] == id
+      found = n
+    end
+  end
+  if found == nil
+    return halt(404, "Note not found")
+  end
+  json_response(found)
+end
+
+app.delete("/notes/:id") do |req|
+  id = to_int(req.params["id"])
+  store["notes"] = store["notes"].select do |n|
+    n["id"] != id
+  end
+  response("Deleted")
+end
+
+# ── Custom 404 ────────────────────────────────────────────────────────────────
+app.not_found do |req|
+  html_response("<h1>404</h1><p>No route for #{req.path}</p>", 404)
+end
+
+# ── Start ─────────────────────────────────────────────────────────────────────
+app.run(3000)

@@ -1,5 +1,40 @@
 # Changelog
 
+## v1.4.0 (2025)
+
+### New Features
+
+**Web Server** (built-in `http.server` — zero deps)
+- `web_app()` — create a new Frankie web application
+- `app.get(path) do |req| end` — register a GET route
+- `app.post(path) do |req| end` — register a POST route
+- `app.put(path) do |req| end` — register a PUT route
+- `app.delete(path) do |req| end` — register a DELETE route
+- `app.patch(path) do |req| end` — register a PATCH route
+- `app.before do |req| end` — before-filter (runs before every matched route)
+- `app.after do |req, res| end` — after-filter (runs after every matched route)
+- `app.not_found do |req| end` — custom 404 handler
+- `app.run(port)` / `app.run(port, host)` — start the server (blocking, multi-threaded)
+- Path parameters with `:name` segments: `"/users/:id"` → `req.params["id"]`
+- Query string access: `req.query["page"]`
+- JSON body parsing: `req.json` — returns parsed hash/vector or nil
+- Form body parsing: `req.form` — returns decoded hash
+- `response(body, status, headers)` — plain-text response
+- `html_response(body, status)` — HTML response
+- `json_response(data, status)` — JSON response (auto-serializes hashes and vectors)
+- `redirect(location, status)` — redirect response (default 302)
+- `halt(status, body)` — error response shortcut
+- Returning a plain string from a handler auto-wraps as `200 text/plain`
+- Returning a hash or vector auto-wraps as `200 application/json`
+- Full request object: `.method`, `.path`, `.params`, `.query`, `.headers`, `.body`, `.json`, `.form`
+- See `docs/09_web.md` and `examples/webapp.fk` for full reference and demo
+
+### Bug Fixes
+- `raise expr if cond` (postfix `if` on `raise`) now parsed correctly — was leaving the `if` clause unconsumed, causing `rescue` to be seen as an unexpected token in `begin/rescue` blocks
+- `data |> sum |> puts` — `puts` and `print` now accepted as bare pipe targets (previously raised an unexpected token error)
+
+---
+
 ## v1.3.0 (2025)
 
 ### New Features
