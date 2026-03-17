@@ -1364,3 +1364,124 @@ class FrankieApp:
 def web_app():
     """Create and return a new Frankie web application."""
     return FrankieApp()
+
+
+# ─── v1.5: Randomness ────────────────────────────────────────────────────────
+
+import random as _random
+
+def random():
+    """Return a random Float between 0.0 (inclusive) and 1.0 (exclusive)."""
+    return _random.random()
+
+def rand(n=None):
+    """
+    rand()    -> random Float 0.0..1.0
+    rand(n)   -> random Integer 0...n  (exclusive upper bound)
+    rand(a,b) -> not supported yet; use rand(b-a)+a
+    """
+    if n is None:
+        return _random.random()
+    return _random.randrange(int(n))
+
+def rand_float(a, b):
+    """Return a random Float in [a, b)."""
+    return _random.uniform(float(a), float(b))
+
+def rand_int(a, b):
+    """Return a random Integer in [a, b] (both inclusive)."""
+    return _random.randint(int(a), int(b))
+
+def shuffle(vec):
+    """Return a new shuffled copy of the vector."""
+    if not isinstance(vec, list):
+        raise RuntimeError("[Frankie] shuffle() requires a vector")
+    result = list(vec)
+    _random.shuffle(result)
+    return result
+
+def sample(vec, n=1):
+    """Return n randomly chosen elements from vec (no repeats)."""
+    if not isinstance(vec, list):
+        raise RuntimeError("[Frankie] sample() requires a vector")
+    return _random.sample(vec, int(n))
+
+def rand_seed(n):
+    """Seed the random number generator for reproducible results."""
+    _random.seed(n)
+    return n
+
+
+# ─── v1.5: Sleep ─────────────────────────────────────────────────────────────
+
+import time as _time
+
+def sleep(seconds):
+    """Pause execution for the given number of seconds (float ok)."""
+    _time.sleep(float(seconds))
+    return seconds
+
+
+# ─── v1.5: Sort helpers ───────────────────────────────────────────────────────
+
+def _fk_sort_by(vec, key_fn):
+    """sort_by do |x| ... end — sort by the value the block returns."""
+    if not isinstance(vec, list):
+        raise RuntimeError("[Frankie] sort_by requires a vector")
+    return sorted(vec, key=key_fn)
+
+def _fk_min_by(vec, key_fn):
+    """min_by do |x| ... end — element with the smallest key."""
+    if not isinstance(vec, list):
+        raise RuntimeError("[Frankie] min_by requires a vector")
+    return min(vec, key=key_fn)
+
+def _fk_max_by(vec, key_fn):
+    """max_by do |x| ... end — element with the largest key."""
+    if not isinstance(vec, list):
+        raise RuntimeError("[Frankie] max_by requires a vector")
+    return max(vec, key=key_fn)
+
+def _fk_sum_by(vec, key_fn):
+    """sum_by do |x| ... end — sum the values the block returns."""
+    if not isinstance(vec, list):
+        raise RuntimeError("[Frankie] sum_by requires a vector")
+    return sum(key_fn(x) for x in vec)
+
+
+# ─── v1.5: Unzip ─────────────────────────────────────────────────────────────
+
+def unzip(vec):
+    """
+    Inverse of zip: a vector of [a, b] pairs → [all_as, all_bs].
+    unzip([[1,"a"],[2,"b"]]) -> [[1,2],["a","b"]]
+    """
+    if not isinstance(vec, list) or not vec:
+        return []
+    width = len(vec[0]) if isinstance(vec[0], list) else 2
+    return [[row[i] for row in vec] for i in range(width)]
+
+
+# ─── v1.5: format alias ───────────────────────────────────────────────────────
+
+def format(fmt, *args, **kwargs):
+    """Alias for sprintf — format a string with positional or named values."""
+    return sprintf(fmt, *args, **kwargs)
+
+
+# ─── v1.5: Constants ─────────────────────────────────────────────────────────
+
+_fk_constants = {}
+
+def _fk_const_set(name, value):
+    """
+    Called by ConstAssign codegen.
+    First assignment stores the value. Subsequent assignments warn and
+    return the original value (constants are immutable by convention).
+    """
+    if name in _fk_constants:
+        import sys as _sys2
+        print(f"[Frankie] Warning: reassignment of constant {name}", file=_sys2.stderr)
+        return _fk_constants[name]   # preserve original value
+    _fk_constants[name] = value
+    return value

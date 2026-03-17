@@ -7,7 +7,7 @@
  |  _|| | | (_| | | | |   <| |  __/
  |_|  |_|  \__,_|_| |_|_|\_\_|\___|
 
- The Frankie Language v1.4
+ The Frankie Language v1.5
  Stitched together from Ruby • Python • R • Fortran
 ```
 
@@ -161,7 +161,7 @@ Full documentation lives in the `docs/` folder:
 | `docs/03_collections.md` | Vectors, hashes, all iterators |
 | `docs/04_stdlib.md` | Math, stats, strings, regex, file I/O, system |
 | `docs/05_examples.md` | All example programs explained |
-| `docs/06_changelog.md` | v1.0 – v1.4 release notes |
+| `docs/06_changelog.md` | v1.0 – v1.5 release notes |
 | `docs/07_database.md` | SQLite database access — full API reference |
 | `docs/08_v13_features.md` | JSON, CSV, DateTime, HTTP, project scaffolding |
 | `docs/09_web.md` | Web server — routes, requests, responses, filters |
@@ -182,7 +182,7 @@ frankie/
 │   ├── ast_nodes.py       ← AST node definitions
 │   └── codegen.py         ← Python code generator
 ├── docs/                  ← full documentation
-├── examples/              ← 14 example .fk programs (incl. webapp.fk, whats_new_v14.fk)
+├── examples/              ← 15 example .fk programs (incl. webapp.fk, whats_new_v15.fk)
 ├── frankiec.py            ← compiler CLI entry point
 ├── frankie_stdlib.py      ← runtime standard library
 ├── repl.py                ← interactive REPL

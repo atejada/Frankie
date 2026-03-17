@@ -1,0 +1,236 @@
+# whats_new_v15.fk — Frankie v1.5 Feature Showcase
+#
+# Run with:   frankiec run examples/whats_new_v15.fk
+
+puts "╔══════════════════════════════════════════╗"
+puts "║     What's New in Frankie v1.5           ║"
+puts "╠══════════════════════════════════════════╣"
+puts "║  Language + Standard Library upgrades    ║"
+puts "╚══════════════════════════════════════════╝"
+puts ""
+
+# ── 1. next — skip to the next iteration ─────────────────────────
+puts "── 1. next (skip iteration) ──"
+
+puts "Odd numbers only:"
+i = 0
+while i < 8
+  i = i + 1
+  next if i % 2 == 0
+  puts "  #{i}"
+end
+
+puts "Skip multiples of 3:"
+result = []
+[1, 2, 3, 4, 5, 6, 7, 8, 9].each do |n|
+  next if n % 3 == 0
+  result.push(n)
+end
+puts "  #{result}"
+puts ""
+
+# ── 2. break — exit a loop early ─────────────────────────────────
+puts "── 2. break (exit loop) ──"
+
+puts "Find first even number > 5:"
+found = nil
+[1, 3, 5, 6, 7, 8].each do |n|
+  if n > 5 and n % 2 == 0
+    found = n
+    break
+  end
+end
+puts "  Found: #{found}"
+
+puts "Count until sum exceeds 20:"
+nums = [3, 7, 2, 9, 4, 8, 1]
+total = 0
+count = 0
+nums.each do |n|
+  break if total + n > 20
+  total = total + n
+  count = count + 1
+end
+puts "  Added #{count} numbers, sum = #{total}"
+puts ""
+
+# ── 3. break value — exit with a result ──────────────────────────
+puts "── 3. break value ──"
+
+_fk_break_val = nil
+i = 0
+while i < 100
+  i = i + 1
+  break i * i if i * i > 50
+end
+puts "First square > 50: #{_fk_break_val}"
+
+_fk_break_val = nil
+words = ["apple", "fig", "banana", "kiwi", "mango"]
+words.each do |w|
+  break w.upcase if w.length > 4
+end
+puts "First long word (upcased): #{_fk_break_val}"
+puts ""
+
+# ── 4. Constants ──────────────────────────────────────────────────
+puts "── 4. Constants ──"
+
+MAX_RETRIES = 3
+PI          = 3.14159265358979
+APP_NAME    = "Frankie"
+PRIMES      = [2, 3, 5, 7, 11, 13]
+
+puts "MAX_RETRIES : #{MAX_RETRIES}"
+puts "PI          : #{PI}"
+puts "APP_NAME    : #{APP_NAME}"
+puts "PRIMES      : #{PRIMES}"
+
+puts "Attempting to reassign MAX_RETRIES..."
+MAX_RETRIES = 99
+puts "MAX_RETRIES is still: #{MAX_RETRIES}"
+puts ""
+
+# ── 5. Randomness ─────────────────────────────────────────────────
+puts "── 5. Randomness ──"
+
+rand_seed(2025)
+
+puts "random()        -> #{random()}"
+puts "rand(10)        -> #{rand(10)}"
+puts "rand_int(1, 6)  -> #{rand_int(1, 6)} (dice roll)"
+puts "rand_float(0,1) -> #{rand_float(0.0, 1.0)}"
+puts ""
+
+# ── 6. shuffle and sample ────────────────────────────────────────
+puts "── 6. shuffle / sample ──"
+
+deck = ["A", "K", "Q", "J", "10", "9", "8", "7"]
+rand_seed(42)
+
+shuffled = shuffle(deck)
+puts "Shuffled deck : #{shuffled}"
+
+hand = sample(deck, 3)
+puts "Random hand   : #{hand}"
+
+# Simulate a die roll 5 times
+rolls = []
+5.times do |i|
+  rolls.push(rand_int(1, 6))
+end
+puts "5 dice rolls  : #{rolls}"
+puts ""
+
+# ── 7. sleep ─────────────────────────────────────────────────────
+puts "── 7. sleep ──"
+puts "Sleeping 0.1s..."
+sleep(0.1)
+puts "Done."
+puts ""
+
+# ── 8. sort_by ───────────────────────────────────────────────────
+puts "── 8. sort_by ──"
+
+people = [
+  {name: "Charlie", age: 30},
+  {name: "Alice",   age: 25},
+  {name: "Bob",     age: 35},
+  {name: "Diana",   age: 28}
+]
+
+by_age = people.sort_by do |p|
+  p["age"]
+end
+puts "By age:"
+by_age.each do |p|
+  puts "  #{p["name"]} (#{p["age"]})"
+end
+
+by_name = people.sort_by do |p|
+  p["name"]
+end
+puts "By name:"
+by_name.each do |p|
+  puts "  #{p["name"]}"
+end
+
+words = ["banana", "fig", "apple", "date", "elderberry"]
+puts "By length: #{words.sort_by do |w| w.length end}"
+puts ""
+
+# ── 9. min_by / max_by / sum_by ──────────────────────────────────
+puts "── 9. min_by / max_by / sum_by ──"
+
+scores = [
+  {name: "Alice", score: 92},
+  {name: "Bob",   score: 78},
+  {name: "Carol", score: 95},
+  {name: "Dave",  score: 84}
+]
+
+top    = scores.max_by do |s| s["score"] end
+bottom = scores.min_by do |s| s["score"] end
+total  = scores.sum_by do |s| s["score"] end
+
+puts "Top scorer   : #{top["name"]} (#{top["score"]})"
+puts "Bottom scorer: #{bottom["name"]} (#{bottom["score"]})"
+puts "Total points : #{total}"
+puts "Average      : #{total / length(scores)}"
+puts ""
+
+# ── 10. unzip ────────────────────────────────────────────────────
+puts "── 10. unzip ──"
+
+pairs = [["Alice", 92], ["Bob", 78], ["Carol", 95]]
+cols  = unzip(pairs)
+names  = cols[0]
+grades = cols[1]
+
+puts "Names  : #{names}"
+puts "Grades : #{grades}"
+puts "Mean grade: #{mean(grades)}"
+puts ""
+
+# ── 11. format alias ─────────────────────────────────────────────
+puts "── 11. format (sprintf alias) ──"
+
+puts format("%-10s %5.1f%%", "Alice",  92.5)
+puts format("%-10s %5.1f%%", "Bob",    78.3)
+puts format("%-10s %5.1f%%", "Carol",  95.0)
+puts ""
+
+# ── 12. Combining it all ──────────────────────────────────────────
+puts "── 12. All Together: Random Tournament ──"
+
+rand_seed(99)
+players = ["Alice", "Bob", "Carol", "Dave", "Eve", "Frank"]
+players = shuffle(players)
+
+puts "Draw order: #{players}"
+puts ""
+
+bracket = []
+i = 0
+while i < length(players)
+  bracket.push([players[i], players[i + 1]])
+  i = i + 2
+end
+
+results = []
+bracket.each do |match|
+  winner = match[rand_int(0, 1)]
+  results.push({winner: winner, score: rand_int(1, 10)})
+end
+
+results = results.sort_by do |r| r["score"] end
+puts "Results (sorted by score):"
+results.each do |r|
+  puts "  #{r["winner"]} — #{r["score"]} pts"
+end
+
+champion = results.max_by do |r| r["score"] end
+puts ""
+puts "Champion: #{champion["winner"]} with #{champion["score"]} pts! 🏆"
+puts ""
+puts "Frankie v1.5 — Bigger, faster, randomiser! 🧟⚡"

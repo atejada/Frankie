@@ -273,3 +273,23 @@ class CaseStmt(Node):
 class DestructAssign(Node):
     names: List[str]
     value: Node
+
+# ─── Loop Control ─────────────────────────────────────────────────────────────
+
+@dataclass
+class NextStmt(Node):
+    """next — skip to the next iteration (like Python's continue)"""
+    pass
+
+@dataclass
+class BreakStmt(Node):
+    """break / break value — exit a loop, optionally returning a value"""
+    value: Optional[Node]
+
+# ─── Constants ────────────────────────────────────────────────────────────────
+
+@dataclass
+class ConstAssign(Node):
+    """UPPER_CASE = value — constant assignment with reassignment warning"""
+    name: str
+    value: Node

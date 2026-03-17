@@ -100,6 +100,8 @@ class TT(Enum):
     MATCH_OP     = auto()  # =~
     CASE         = auto()  # case
     WHEN         = auto()  # when
+    NEXT         = auto()  # next
+    BREAK        = auto()  # break
 
 
 KEYWORDS = {
@@ -138,6 +140,8 @@ KEYWORDS = {
     'require':          TT.REQUIRE,
     'case':             TT.CASE,
     'when':             TT.WHEN,
+    'next':             TT.NEXT,
+    'break':            TT.BREAK,
 }
 
 

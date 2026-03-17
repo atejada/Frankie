@@ -96,8 +96,15 @@ class Parser:
             stmt = self.parse_print()
             return self._maybe_postfix(stmt)
         if t.type == TT.P:
-            stmt = self.parse_debug_print()
-            return self._maybe_postfix(stmt)
+            # Only treat as debug-print if followed by an expression to print.
+            # If followed by [ . = it's being used as a variable named 'p'.
+            next_t = self.peek(1).type
+            if next_t in (TT.LBRACKET, TT.DOT, TT.ASSIGN):
+                # fall through to expression statement below
+                pass
+            else:
+                stmt = self.parse_debug_print()
+                return self._maybe_postfix(stmt)
         if t.type == TT.BEGIN_KW:
             return self.parse_begin_rescue()
         if t.type == TT.RAISE:
@@ -106,6 +113,10 @@ class Parser:
             return self.parse_require()
         if t.type == TT.CASE:
             return self.parse_case()
+        if t.type == TT.NEXT:
+            return self._maybe_postfix(self.parse_next())
+        if t.type == TT.BREAK:
+            return self._maybe_postfix(self.parse_break())
         if t.type == TT.EOF:
             return None
 
@@ -360,6 +371,18 @@ class Parser:
         value = self.parse_expr()
         return ReturnStmt(value=value)
 
+    def parse_next(self) -> 'NextStmt':
+        self.expect(TT.NEXT)
+        return NextStmt()
+
+    def parse_break(self) -> 'BreakStmt':
+        self.expect(TT.BREAK)
+        # Optional value: break expr — but NOT if next token is a postfix if/unless
+        if (self.check(TT.NEWLINE) or self.check(TT.EOF)
+                or self.check(TT.IF) or self.check(TT.UNLESS)):
+            return BreakStmt(value=None)
+        return BreakStmt(value=self.parse_expr())
+
     def parse_print(self) -> PrintStmt:
         tok = self.advance()
         newline = (tok.type == TT.PUTS)
@@ -405,6 +428,16 @@ class Parser:
                 return DestructAssign(names=names, value=value)
             # Not destructuring — backtrack
             self.pos = save_pos
+
+        # Constant assign: UPPER_CASE = expr
+        if (self.check(TT.IDENT)
+                and self.peek(1).type == TT.ASSIGN
+                and self.current().value == self.current().value.upper()
+                and self.current().value.replace('_', '').isalpha()):
+            name = self.advance().value
+            self.advance()  # consume =
+            value = self.parse_expr()
+            return ConstAssign(name=name, value=value)
 
         # Single assign: IDENT = expr
         if self.check(TT.IDENT) and self.peek(1).type == TT.ASSIGN:
@@ -529,15 +562,24 @@ class Parser:
 
         return node
 
+    def _parse_block_param(self) -> str:
+        """Accept any identifier-like token as a block parameter name."""
+        t = self.current()
+        if t.type in (TT.IDENT, TT.P, TT.TIMES, TT.EACH, TT.EACH_WITH_INDEX,
+                      TT.MAP, TT.IN, TT.AND, TT.OR, TT.NOT,
+                      TT.NEXT, TT.BREAK):
+            return self.advance().value
+        raise ParseError("Expected block param", t)
+
     def parse_block(self) -> Block:
         self.expect(TT.DO)
         params = []
         if self.check(TT.PIPE):
             self.advance()
             if not self.check(TT.PIPE):
-                params.append(self.expect(TT.IDENT, "Expected block param").value)
+                params.append(self._parse_block_param())
                 while self.match(TT.COMMA):
-                    params.append(self.expect(TT.IDENT, "Expected block param").value)
+                    params.append(self._parse_block_param())
             self.expect(TT.PIPE, "Expected '|' to close block params")
         self.skip_newlines()
         body = self.parse_body()
@@ -606,7 +648,7 @@ class Parser:
 
         # Allow iterator/method keywords to be used as plain variable names
         # e.g.  def repeat(times=3)  then  i < times  should work
-        if t.type in (TT.TIMES, TT.EACH, TT.EACH_WITH_INDEX, TT.MAP):
+        if t.type in (TT.TIMES, TT.EACH, TT.EACH_WITH_INDEX, TT.MAP, TT.P):
             name = self.advance().value
             if self.check(TT.LPAREN):
                 self.advance()

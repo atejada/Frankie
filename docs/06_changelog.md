@@ -1,5 +1,46 @@
 # Changelog
 
+## v1.5.0 (2025)
+
+### New Features
+
+**Language — Loop Control**
+- `next` — skip to the next iteration (like `continue` in other languages); supports postfix `next if cond`
+- `break` — exit a loop early; supports postfix `break if cond`
+- `break value` — exit a loop and store a result in `_fk_break_val`; supports postfix form
+
+**Language — Constants**
+- `UPPER_CASE = value` — UPPER_SNAKE_CASE identifiers are treated as constants
+- Reassignment prints a warning and preserves the original value
+- Works with any type: integers, floats, strings, vectors, hashes
+
+**Standard Library — Randomness**
+- `random()` — random Float in [0.0, 1.0)
+- `rand(n)` — random Integer in [0, n)
+- `rand_int(a, b)` — random Integer in [a, b] (both inclusive)
+- `rand_float(a, b)` — random Float in [a, b)
+- `shuffle(vec)` — return a shuffled copy of a vector
+- `sample(vec, n)` — return n randomly chosen elements (no repeats)
+- `rand_seed(n)` — seed the RNG for reproducible results
+
+**Standard Library — Sorting**
+- `.sort_by do |x| key end` — sort a vector by any computed key
+- `.min_by do |x| key end` — element with the smallest key
+- `.max_by do |x| key end` — element with the largest key
+- `.sum_by do |x| val end` — sum the values the block returns
+
+**Standard Library — Other**
+- `sleep(n)` — pause execution for n seconds (float supported)
+- `unzip(vec)` — inverse of zip: vector of pairs → vector of columns
+- `format(fmt, ...)` — alias for `sprintf`
+
+### Bug Fixes
+- Block parameters named `p` (e.g. `do |p|`) now parse correctly — `p` was always tokenised as the debug-print keyword, preventing it from being used as a loop variable
+- `p[...]` and `p.method` now correctly treated as variable access rather than a debug-print call
+- `break if cond` and `next if cond` (postfix forms) parse without errors
+
+---
+
 ## v1.4.0 (2025)
 
 ### New Features
