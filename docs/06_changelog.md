@@ -1,5 +1,53 @@
 # Changelog
 
+## v1.6.0 (2025)
+
+### New Features
+
+**Language — Compound Assignment Operators**
+- `+=` — add and assign: `x += 5`
+- `-=` — subtract and assign: `x -= 3`
+- `*=` — multiply and assign: `x *= 2`
+- `/=` — divide and assign (float): `x /= 4`
+- `//=` — integer-divide and assign (Fortran): `x //= 3`
+- `**=` — exponentiate and assign (Fortran): `x **= 2`
+- `%=` — modulo and assign: `x %= 7`
+- All operators also work on vector elements: `v[i] += 1`
+
+**Language — Typed Rescue Clauses**
+- `rescue TypeError e` — catch only `TypeError` errors
+- `rescue ZeroDivisionError e` — catch only division by zero
+- Multiple `rescue` clauses on one `begin...end` block, checked in order
+- Full list of supported types: `RuntimeError`, `TypeError`, `ValueError`,
+  `ZeroDivisionError`, `IndexError`, `KeyError`, `IOError`,
+  `FileNotFoundError`, `OverflowError`, `NameError`, `AttributeError`,
+  `StopIteration`, `Exception` / `Error` (catch-all aliases)
+- Untyped `rescue e` remains valid and catches everything
+
+**Standard Library — `.find` / `.detect`**
+- `.find do |x| ... end` — return the first element for which the block is true, or `nil`
+- `.detect do |x| ... end` — alias for `.find`
+- Works on any vector, including vectors of hashes
+- Chains naturally with `.select`, `.map`, `.sort_by`, etc.
+
+**Tooling — `frankiec test`**
+- `frankiec test` — run `test.fk` in the current directory
+- `frankiec test <file.fk>` — run a named test file
+- Built-in assertions (no imports needed):
+  - `assert_true(cond, msg)` — pass if condition is truthy
+  - `assert_eq(actual, expected, msg)` — pass if values are equal
+  - `assert_neq(actual, expected, msg)` — pass if values differ
+  - `assert_raises(fn, msg)` — pass if calling `fn` raises any error
+- Live `✓` / `✗` output per assertion
+- Summary line with pass count, fail count, and elapsed time
+- Exits with code 1 if any assertion fails (CI-friendly)
+
+### Bug Fixes
+- `_fk_test_suite` singleton now uses a fresh isolated copy per `frankiec test` run,
+  preventing state leakage between multiple test invocations in the same process
+
+---
+
 ## v1.5.0 (2025)
 
 ### New Features

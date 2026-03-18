@@ -250,6 +250,10 @@ def _fk_index(target, index):
     except IndexError:
         return None
 
+def _fk_index_key(index):
+    """Normalise a hash/list key — strings stay strings, ints stay ints."""
+    return index
+
 def _fk_slice(target, start, end, inclusive=True):
     """Range-based slice for strings and vectors."""
     if inclusive:
@@ -463,6 +467,13 @@ def _fk_reject(iterable, fn):
     """Return a new list of elements for which fn returns false."""
     return [x for x in iterable if not fn(x)]
 
+def _fk_find(iterable, fn):
+    """Return the first element for which fn returns true, or None."""
+    for x in iterable:
+        if fn(x):
+            return x
+    return None
+
 def _fk_reduce(iterable, fn, initial=None):
     """Fold a list into a single value."""
     lst = list(iterable)
@@ -505,6 +516,13 @@ def _fk_none(iterable, fn=None):
 def _fk_count_if(iterable, fn):
     """Count elements satisfying fn."""
     return sum(1 for x in iterable if fn(x))
+
+def _fk_find(iterable, fn):
+    """Return the first element for which fn returns truthy, else None."""
+    for item in (iterable if isinstance(iterable, list) else list(iterable)):
+        if fn(item):
+            return item
+    return None
 
 def _fk_flat_map(iterable, fn):
     """Map then flatten one level."""
@@ -1485,3 +1503,89 @@ def _fk_const_set(name, value):
         return _fk_constants[name]   # preserve original value
     _fk_constants[name] = value
     return value
+
+
+# ─── Test harness (frankiec test) ─────────────────────────────────────────────
+
+class _FKTestSuite:
+    """Lightweight test harness — zero external dependencies."""
+
+    def __init__(self):
+        self._pass = 0
+        self._fail = 0
+        self._errors = []
+
+    def assert_true(self, value, msg=None):
+        label = msg or "assertion"
+        if value:
+            self._pass += 1
+            print(f"  \033[32m✓\033[0m  {label}")
+        else:
+            self._fail += 1
+            self._errors.append(label)
+            print(f"  \033[31m✗\033[0m  {label}")
+
+    def assert_eq(self, actual, expected, msg=None):
+        ok = actual == expected
+        if ok:
+            self._pass += 1
+            label = msg or f"{actual!r} == {expected!r}"
+            print(f"  \033[32m✓\033[0m  {label}")
+        else:
+            self._fail += 1
+            label = msg or f"expected {expected!r}, got {actual!r}"
+            self._errors.append(label)
+            print(f"  \033[31m✗\033[0m  {label}")
+
+    def assert_neq(self, actual, expected, msg=None):
+        ok = actual != expected
+        if ok:
+            self._pass += 1
+            label = msg or f"{actual!r} != {expected!r}"
+            print(f"  \033[32m✓\033[0m  {label}")
+        else:
+            self._fail += 1
+            label = msg or f"expected values to differ, both were {actual!r}"
+            self._errors.append(label)
+            print(f"  \033[31m✗\033[0m  {label}")
+
+    def assert_raises(self, fn, msg=None):
+        label = msg or "expected an error to be raised"
+        try:
+            fn()
+            self._fail += 1
+            self._errors.append(f"{label} (no error was raised)")
+            print(f"  \033[31m✗\033[0m  {label} (no error was raised)")
+        except Exception:
+            self._pass += 1
+            print(f"  \033[32m✓\033[0m  {label}")
+
+    def report(self):
+        total = self._pass + self._fail
+        print()
+        if self._errors:
+            for e in self._errors:
+                print(f"    \033[31m✗\033[0m {e}")
+        if self._fail == 0:
+            print(f"  \033[32m✓  All {total} test(s) passed.\033[0m")
+        else:
+            print(f"  \033[31m✗  {self._fail} of {total} test(s) failed.\033[0m")
+        print()
+        return self._fail == 0
+
+_fk_test_suite = _FKTestSuite()
+
+def assert_true(value, msg=None):
+    _fk_test_suite.assert_true(value, msg)
+
+def assert_eq(actual, expected, msg=None):
+    _fk_test_suite.assert_eq(actual, expected, msg)
+
+def assert_neq(actual, expected, msg=None):
+    _fk_test_suite.assert_neq(actual, expected, msg)
+
+def assert_raises(fn, msg=None):
+    _fk_test_suite.assert_raises(fn, msg)
+
+def _fk_run_tests():
+    return _fk_test_suite.report()

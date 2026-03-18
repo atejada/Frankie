@@ -85,6 +85,22 @@ odds = [1,2,3,4,5,6].reject do |x|
 end
 # [1, 3, 5]
 
+# .find / .detect — first matching element (or nil)
+first_big = [3, 7, 2, 11, 4].find do |x|
+  x > 8
+end
+# 11
+
+first_even = [3, 7, 2, 11, 4].detect do |x|
+  x % 2 == 0
+end
+# 2   (.detect is an alias for .find)
+
+no_match = [1, 2, 3].find do |x|
+  x > 100
+end
+# nil
+
 # .reduce / .inject — fold to a single value
 total = [1,2,3,4,5].reduce(0) do |acc, x|
   acc + x

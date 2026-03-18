@@ -1,0 +1,232 @@
+# whats_new_v16.fk — Frankie v1.6 Feature Showcase
+#
+# Run with:   frankiec run examples/whats_new_v16.fk
+
+puts "╔══════════════════════════════════════════╗"
+puts "║     What's New in Frankie v1.6           ║"
+puts "╠══════════════════════════════════════════╣"
+puts "║  Compound Assignment  · Typed Rescue     ║"
+puts "║  .find / .detect     · frankiec test     ║"
+puts "╚══════════════════════════════════════════╝"
+puts ""
+
+# ── 1. Compound Assignment Operators ─────────────────────────────
+puts "── 1. Compound Assignment ──"
+
+x = 10
+x += 5
+puts "10 += 5  → #{x}"       # 15
+
+x -= 3
+puts "15 -= 3  → #{x}"       # 12
+
+x *= 4
+puts "12 *= 4  → #{x}"       # 48
+
+x /= 6
+puts "48 /= 6  → #{x}"       # 8.0
+
+x = 10
+x //= 3
+puts "10 //= 3 → #{x}"       # 3
+
+x = 2
+x **= 8
+puts "2 **= 8  → #{x}"       # 256
+
+x = 17
+x %= 5
+puts "17 %= 5  → #{x}"       # 2
+
+puts ""
+
+# Works on vector elements too
+puts "Vector element compound assign:"
+scores = [100, 200, 300]
+scores[0] += 50
+scores[1] *= 2
+scores[2] -= 100
+puts "  #{scores}"            # [150, 400, 200]
+puts ""
+
+# Practical: accumulate a running total
+puts "Running total with +=:"
+total = 0
+[12, 7, 23, 4, 19].each do |n|
+  total += n
+end
+puts "  Sum = #{total}"       # 65
+puts ""
+
+# Practical: countdown with -=
+puts "Countdown with -=:"
+count = 10
+result = []
+until count <= 0
+  result.push(count)
+  count -= 3
+end
+puts "  #{result}"            # [10, 7, 4, 1]
+puts ""
+
+# ── 2. Typed Rescue Clauses ───────────────────────────────────────
+puts "── 2. Typed Rescue ──"
+
+# Catch a specific exception type
+puts "ZeroDivisionError:"
+begin
+  x = 10 / 0
+rescue ZeroDivisionError e
+  puts "  Caught division error: #{e}"
+end
+
+# Multiple typed rescue clauses
+puts ""
+puts "Multiple rescue clauses:"
+def risky(n)
+  if n == 0
+    return 1 / 0
+  end
+  if n == 1
+    raise "something went wrong"
+  end
+  return 42
+end
+
+i = 0
+until i > 2
+  begin
+    result = risky(i)
+    puts "  risky(#{i}) = #{result}"
+  rescue ZeroDivisionError e
+    puts "  risky(#{i}): division error → #{e}"
+  rescue RuntimeError e
+    puts "  risky(#{i}): runtime error → #{e}"
+  end
+  i += 1
+end
+puts ""
+
+# Typed rescue with ensure
+puts "Typed rescue + ensure:"
+begin
+  raise "deliberate"
+rescue RuntimeError e
+  puts "  Rescued: #{e}"
+ensure
+  puts "  Ensure block always runs"
+end
+puts ""
+
+# ── 3. .find and .detect ─────────────────────────────────────────
+puts "── 3. .find / .detect ──"
+
+numbers = [3, 8, 1, 15, 4, 22, 7]
+
+first_big = numbers.find do |n|
+  n > 10
+end
+puts "First > 10: #{first_big}"          # 15
+
+first_even = numbers.detect do |n|
+  n % 2 == 0
+end
+puts "First even (detect): #{first_even}" # 8
+
+# Returns nil when nothing matches
+no_match = numbers.find do |n|
+  n > 100
+end
+puts "First > 100: #{no_match}"           # nil
+puts ""
+
+# Works on hashes-in-vectors — the classic use case
+puts "Find in a vector of hashes:"
+people = [
+  {name: "Alice",   age: 25, role: "dev"},
+  {name: "Bob",     age: 34, role: "ops"},
+  {name: "Carol",   age: 29, role: "dev"},
+  {name: "Dave",    age: 41, role: "mgr"}
+]
+
+senior = people.find do |p|
+  p["age"] > 30
+end
+puts "  First over 30: #{senior["name"]} (#{senior["age"]})"
+
+manager = people.find do |p|
+  p["role"] == "mgr"
+end
+puts "  Manager: #{manager["name"]}"
+puts ""
+
+# Chain with other iterators
+puts "Chain: find first dev over 27:"
+devs = people.select do |p|
+  p["role"] == "dev"
+end
+senior_dev = devs.find do |p|
+  p["age"] > 27
+end
+puts "  #{senior_dev["name"]} (age #{senior_dev["age"]})"
+puts ""
+
+# ── 4. Putting it all together ────────────────────────────────────
+puts "── 4. All Together: Inventory Manager ──"
+
+rand_seed(16)
+
+RESTOCK_THRESHOLD = 20
+MAX_STOCK         = 200
+
+inventory = [
+  {item: "bolts",    qty: 45},
+  {item: "nuts",     qty: 12},
+  {item: "washers",  qty: 8},
+  {item: "screws",   qty: 67},
+  {item: "rivets",   qty: 3}
+]
+
+puts "Initial inventory:"
+inventory.each do |i|
+  puts "  #{i["item"]}: #{i["qty"]}"
+end
+puts ""
+
+# Simulate daily sales with +=/-=
+days_simulated = 3
+day = 1
+until day > days_simulated
+  puts "Day #{day} — sales:"
+  inventory.each do |item|
+    sold = rand_int(1, 15)
+    item["qty"] -= sold
+    item["qty"] = 0 if item["qty"] < 0
+    puts "  #{item["item"]}: sold #{sold}, remaining #{item["qty"]}"
+  end
+  day += 1
+end
+puts ""
+
+# Find the first critically low item using .find
+critical = inventory.find do |item|
+  item["qty"] < RESTOCK_THRESHOLD
+end
+
+if critical != nil
+  puts "⚠ First critical item: #{critical["item"]} (qty #{critical["qty"]})"
+
+  begin
+    restock_qty = MAX_STOCK - critical["qty"]
+    raise "already at max" if restock_qty <= 0
+    critical["qty"] += restock_qty
+    puts "✓ Restocked #{critical["item"]} to #{critical["qty"]}"
+  rescue RuntimeError e
+    puts "  Skip restock: #{e}"
+  end
+else
+  puts "✓ All items above threshold"
+end
+
+puts ""
+puts "Frankie v1.6 — Compound. Typed. Found. Tested. 🧟⚡"

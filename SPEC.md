@@ -94,6 +94,24 @@ e = 2 ** 8      # exponentiation (Fortran)
 i = 10 // 3     # integer division (Fortran)
 ```
 
+### Compound Assignment
+
+All arithmetic operators have a compound assignment form:
+
+```frankie
+x += 5    # x = x + 5
+x -= 3    # x = x - 3
+x *= 2    # x = x * 2
+x /= 4    # x = x / 4   (float division)
+x //= 3   # x = x // 3  (integer division, Fortran)
+x **= 2   # x = x ** 2  (exponentiation, Fortran)
+x %= 7    # x = x % 7
+
+# Also works on vector elements
+v[0] += 10
+v[i] *= 2
+```
+
 ---
 
 ## 7. Comparison & Logic
@@ -350,6 +368,32 @@ raise "code #{code} invalid" if code < 0
 - `begin...rescue e...end` — catches any runtime error, binds message to `e`
 - `ensure` block always runs (even if no error)
 - `raise` throws a runtime error with a message
+
+### Typed Rescue
+
+Rescue clauses can specify an error type to catch only that category:
+
+```frankie
+begin
+  x = 10 // 0
+rescue ZeroDivisionError e
+  puts "division by zero: #{e}"
+rescue RuntimeError e
+  puts "runtime error: #{e}"
+rescue e
+  puts "something else: #{e}"
+ensure
+  puts "always runs"
+end
+```
+
+Multiple `rescue` clauses are checked in order; the first matching type wins.
+An untyped `rescue e` acts as a catch-all.
+
+Supported error types: `RuntimeError`, `TypeError`, `ValueError`,
+`ZeroDivisionError`, `IndexError`, `KeyError`, `IOError`,
+`FileNotFoundError`, `OverflowError`, `NameError`, `AttributeError`,
+`StopIteration`, `Exception`, `Error` (alias for `Exception`).
 
 ---
 

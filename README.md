@@ -7,7 +7,7 @@
  |  _|| | | (_| | | | |   <| |  __/
  |_|  |_|  \__,_|_| |_|_|\_\_|\___|
 
- The Frankie Language v1.5
+ The Frankie Language v1.6
  Stitched together from Ruby • Python • R • Fortran
 ```
 
@@ -96,6 +96,61 @@ end
 
 ---
 
+## v1.6 Highlights
+
+```ruby
+# Compound assignment
+score = 0
+score += 10
+score *= 2
+puts score       # 20
+
+v = [100, 200, 300]
+v[1] -= 50
+puts v           # [100, 150, 300]
+
+# Typed rescue
+begin
+  x = 10 // 0
+rescue ZeroDivisionError e
+  puts "division: #{e}"
+rescue RuntimeError e
+  puts "runtime: #{e}"
+end
+
+# .find / .detect
+first_adult = people.find do |p|
+  p["age"] >= 18
+end
+
+# frankiec test
+assert_eq(mean([1,2,3]), 2.0, "mean works")
+assert_eq(first_adult["name"], "Bob", "find works")
+```
+
+---
+
+## Testing
+
+```ruby
+# test.fk
+x = 10
+x += 5
+assert_eq(x, 15, "+= works")
+
+result = [1, 3, 5, 7].find do |n|
+  n > 4
+end
+assert_eq(result, 5, ".find returns first match")
+```
+
+```bash
+frankiec test           # runs test.fk
+frankiec test my.fk     # runs a named file
+```
+
+---
+
 ## Web Server
 
 ```ruby
@@ -108,7 +163,7 @@ app.get("/greet/:name") do |req|
 end
 
 app.get("/api/status") do |req|
-  json_response({status: "ok", version: "1.4"})
+  json_response({status: "ok", version: "1.6"})
 end
 
 app.post("/notes") do |req|
@@ -144,6 +199,7 @@ frankiec                    # launch the REPL
 frankiec run   <file.fk>    # run a program
 frankiec build <file.fk>    # compile to Python source
 frankiec check <file.fk>    # syntax check only
+frankiec test  [file.fk]    # run test suite (default: test.fk)
 frankiec repl               # interactive REPL
 frankiec version            # show version
 ```
@@ -161,7 +217,7 @@ Full documentation lives in the `docs/` folder:
 | `docs/03_collections.md` | Vectors, hashes, all iterators |
 | `docs/04_stdlib.md` | Math, stats, strings, regex, file I/O, system |
 | `docs/05_examples.md` | All example programs explained |
-| `docs/06_changelog.md` | v1.0 – v1.5 release notes |
+| `docs/06_changelog.md` | v1.0 – v1.6 release notes |
 | `docs/07_database.md` | SQLite database access — full API reference |
 | `docs/08_v13_features.md` | JSON, CSV, DateTime, HTTP, project scaffolding |
 | `docs/09_web.md` | Web server — routes, requests, responses, filters |
@@ -182,7 +238,7 @@ frankie/
 │   ├── ast_nodes.py       ← AST node definitions
 │   └── codegen.py         ← Python code generator
 ├── docs/                  ← full documentation
-├── examples/              ← 15 example .fk programs (incl. webapp.fk, whats_new_v15.fk)
+├── examples/              ← 15 example .fk programs (incl. webapp.fk, whats_new_v15.fk, whats_new_v16.fk)
 ├── frankiec.py            ← compiler CLI entry point
 ├── frankie_stdlib.py      ← runtime standard library
 ├── repl.py                ← interactive REPL

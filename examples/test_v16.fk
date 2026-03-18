@@ -1,0 +1,111 @@
+# test_v16.fk — Test suite for Frankie v1.6 features
+#
+# Run with:   frankiec test examples/test_v16.fk
+
+# ── Compound Assignment ───────────────────────────────────────────
+x = 10
+x += 5
+assert_eq(x, 15, "+= works")
+
+x -= 3
+assert_eq(x, 12, "-= works")
+
+x *= 4
+assert_eq(x, 48, "*= works")
+
+x //= 6
+assert_eq(x, 8, "//= integer division")
+
+x = 2
+x **= 8
+assert_eq(x, 256, "**= exponentiation")
+
+x = 17
+x %= 5
+assert_eq(x, 2, "%= modulo")
+
+x = 10
+x /= 4
+assert_eq(x, 2.5, "/= float division")
+
+# Index compound assign
+v = [10, 20, 30]
+v[0] += 5
+assert_eq(v[0], 15, "v[0] += 5")
+v[2] *= 3
+assert_eq(v[2], 90, "v[2] *= 3")
+
+# Compound assign in loops
+total = 0
+[1, 2, 3, 4, 5].each do |n|
+  total += n
+end
+assert_eq(total, 15, "accumulate with +=")
+
+# ── Typed Rescue ─────────────────────────────────────────────────
+caught = nil
+begin
+  x = 1 // 0
+rescue ZeroDivisionError e
+  caught = "zero"
+end
+assert_eq(caught, "zero", "rescue ZeroDivisionError")
+
+caught = nil
+begin
+  raise "boom"
+rescue ZeroDivisionError e
+  caught = "zero"
+rescue RuntimeError e
+  caught = "runtime"
+end
+assert_eq(caught, "runtime", "multi-clause rescue hits correct branch")
+
+# ensure always runs
+ran_ensure = false
+begin
+  x = 1 + 1
+rescue RuntimeError e
+  ran_ensure = false
+ensure
+  ran_ensure = true
+end
+assert_true(ran_ensure, "ensure runs even without error")
+
+# ── .find / .detect ───────────────────────────────────────────────
+nums = [3, 7, 2, 11, 4, 9]
+
+result = nums.find do |n|
+  n > 8
+end
+assert_eq(result, 11, ".find returns first match")
+
+result2 = nums.detect do |n|
+  n % 2 == 0
+end
+assert_eq(result2, 2, ".detect returns first even")
+
+no_result = nums.find do |n|
+  n > 100
+end
+assert_eq(no_result, nil, ".find returns nil when nothing matches")
+
+# .find on vector of hashes
+people = [
+  {name: "Alice", age: 17},
+  {name: "Bob",   age: 22},
+  {name: "Carol", age: 19}
+]
+adult = people.find do |p|
+  p["age"] >= 18
+end
+assert_eq(adult["name"], "Bob", ".find on hashes finds first adult")
+
+# .find after .select chains correctly
+long_words = ["fig", "banana", "kiwi", "cherry"].select do |w|
+  w.length > 4
+end
+first_with_a = long_words.find do |w|
+  w.include?("a")
+end
+assert_eq(first_with_a, "banana", ".find chained after .select")

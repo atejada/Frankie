@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
-frankiec — The Frankie Language Compiler & Interpreter v1.5
+frankiec — The Frankie Language Compiler & Interpreter v1.6
 Usage:
     frankiec new    <project>      Scaffold a new Frankie project
     frankiec run    <file.fk>      Run a Frankie program
     frankiec build  <file.fk>      Compile to Python source
     frankiec check  <file.fk>      Syntax check only
+    frankiec test   [file.fk]      Run test suite (default: test.fk)
     frankiec repl                  Start the interactive REPL
     frankiec version               Show version info
 """
@@ -22,7 +23,7 @@ from compiler.lexer import Lexer, LexError
 from compiler.parser import Parser, ParseError
 from compiler.codegen import CodeGen, CodeGenError
 
-FRANKIE_VERSION = "1.5.0"
+FRANKIE_VERSION = "1.6.0"
 FRANKIE_BANNER = r"""
   _____                 _    _        
  |  ___| __ __ _ _ __ | | _(_) ___   
@@ -194,6 +195,80 @@ def check_file(fk_file: str):
         sys.exit(1)
 
 
+def run_tests(fk_file: str = None):
+    """Run a Frankie test file using the built-in assert/assert_eq harness."""
+    import importlib.util, time
+
+    if fk_file is None:
+        fk_file = 'test.fk'
+
+    if not os.path.exists(fk_file):
+        print(f"[Frankie] Error: Test file not found: {fk_file}", file=sys.stderr)
+        sys.exit(1)
+
+    with open(fk_file, 'r', encoding='utf-8') as f:
+        source = f.read()
+
+    try:
+        py_source = compile_source(source, fk_file)
+    except (LexError, ParseError, CodeGenError) as e:
+        print(str(e), file=sys.stderr)
+        sys.exit(1)
+
+    # Load a fresh copy of the stdlib so we get a clean _fk_test_suite singleton
+    stdlib_dir = os.path.dirname(os.path.abspath(__file__))
+    stdlib_path = os.path.join(stdlib_dir, 'frankie_stdlib.py')
+    spec = importlib.util.spec_from_file_location("frankie_stdlib_test", stdlib_path)
+    stdlib_mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(stdlib_mod)
+    stdlib_globals = {k: v for k, v in vars(stdlib_mod).items() if not k.startswith('__')}
+
+    # The generated code does `from frankie_stdlib import *` which would pull
+    # from the installed module, not our fresh copy.  Patch sys.modules so the
+    # import inside exec picks up our fresh copy (with its clean suite).
+    import sys as _sys
+    _old = _sys.modules.get('frankie_stdlib')
+    _sys.modules['frankie_stdlib'] = stdlib_mod
+
+    print(f"\n╔══ Frankie Test Runner ════════════════════════════════")
+    print(f"║  {fk_file}")
+    print(f"╠═══════════════════════════════════════════════════════")
+    t0 = time.time()
+
+    exec_globals = {**stdlib_globals, '__name__': '__main__', '__file__': fk_file}
+
+    try:
+        exec(compile(py_source, fk_file, 'exec'), exec_globals)
+    except SystemExit:
+        pass
+    except Exception as e:
+        stdlib_mod._fk_test_suite._fail += 1
+        stdlib_mod._fk_test_suite._errors.append(str(e))
+        print(f"  \033[31m✗\033[0m  Uncaught error: {e}")
+    finally:
+        # Restore sys.modules
+        if _old is None:
+            _sys.modules.pop('frankie_stdlib', None)
+        else:
+            _sys.modules['frankie_stdlib'] = _old
+
+    suite = stdlib_mod._fk_test_suite
+    elapsed = time.time() - t0
+    total = suite._pass + suite._fail
+
+    print(f"╠═══════════════════════════════════════════════════════")
+    if suite._fail == 0:
+        print(f"║  \033[32m✓  All {total} test(s) passed\033[0m  ({elapsed*1000:.1f}ms)")
+    else:
+        print(f"║  \033[33m{suite._pass}/{total} passed, {suite._fail} failed\033[0m  ({elapsed*1000:.1f}ms)")
+        for err in suite._errors:
+            print(f"║    \033[31m✗\033[0m {err}")
+    print(f"╚═══════════════════════════════════════════════════════\n")
+
+    if suite._fail > 0:
+        sys.exit(1)
+
+
 def main():
     if len(sys.argv) < 2:
         from repl import run_repl
@@ -234,6 +309,10 @@ def main():
             print("[Frankie] Usage: frankiec check <file.fk>", file=sys.stderr)
             sys.exit(1)
         check_file(sys.argv[2])
+
+    elif cmd == 'test':
+        fk_file = sys.argv[2] if len(sys.argv) > 2 else None
+        run_tests(fk_file)
 
     else:
         print(f"[Frankie] Unknown command: {cmd!r}", file=sys.stderr)

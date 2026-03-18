@@ -57,6 +57,15 @@ class TT(Enum):
     RANGE_INC   = auto()   # ..
     RANGE_EXC   = auto()   # ...
 
+    # Compound assignment
+    PLUS_ASSIGN      = auto()   # +=
+    MINUS_ASSIGN     = auto()   # -=
+    STAR_ASSIGN      = auto()   # *=
+    SLASH_ASSIGN     = auto()   # /=
+    DOUBLESLASH_ASSIGN = auto() # //=
+    PERCENT_ASSIGN   = auto()   # %=
+    STARSTAR_ASSIGN  = auto()   # **=
+
     # Comparison
     EQ          = auto()   # ==
     NEQ         = auto()   # !=
@@ -390,21 +399,40 @@ class Lexer:
             self.advance()
 
             if ch == '+':
-                self.add_token(TT.PLUS, '+')
+                if self.match('='):
+                    self.add_token(TT.PLUS_ASSIGN, '+=')
+                else:
+                    self.add_token(TT.PLUS, '+')
             elif ch == '-':
-                self.add_token(TT.MINUS, '-')
+                if self.match('='):
+                    self.add_token(TT.MINUS_ASSIGN, '-=')
+                else:
+                    self.add_token(TT.MINUS, '-')
             elif ch == '*':
                 if self.match('*'):
-                    self.add_token(TT.STARSTAR, '**')
+                    if self.match('='):
+                        self.add_token(TT.STARSTAR_ASSIGN, '**=')
+                    else:
+                        self.add_token(TT.STARSTAR, '**')
+                elif self.match('='):
+                    self.add_token(TT.STAR_ASSIGN, '*=')
                 else:
                     self.add_token(TT.STAR, '*')
             elif ch == '/':
                 if self.match('/'):
-                    self.add_token(TT.DOUBLESLASH, '//')
+                    if self.match('='):
+                        self.add_token(TT.DOUBLESLASH_ASSIGN, '//=')
+                    else:
+                        self.add_token(TT.DOUBLESLASH, '//')
+                elif self.match('='):
+                    self.add_token(TT.SLASH_ASSIGN, '/=')
                 else:
                     self.add_token(TT.SLASH, '/')
             elif ch == '%':
-                self.add_token(TT.PERCENT, '%')
+                if self.match('='):
+                    self.add_token(TT.PERCENT_ASSIGN, '%=')
+                else:
+                    self.add_token(TT.PERCENT, '%')
             elif ch == '=':
                 if self.match('='):
                     self.add_token(TT.EQ, '==')

@@ -208,3 +208,54 @@ to_int("42")        # 42
 to_float("3.14")    # 3.14
 to_str(100)         # "100"
 ```
+
+---
+
+## Testing
+
+Run with `frankiec test [file.fk]`. All functions are available without imports.
+
+```ruby
+assert_true(cond, msg)            # pass if cond is truthy
+assert_eq(actual, expected, msg)  # pass if actual == expected
+assert_neq(actual, expected, msg) # pass if actual != expected
+assert_raises(fn, msg)            # pass if calling fn raises any error
+```
+
+```ruby
+# test.fk
+x = 10
+x += 5
+assert_eq(x, 15, "+= works")
+
+result = [1, 3, 5, 7].find do |n|
+  n > 4
+end
+assert_eq(result, 5, ".find returns first match")
+
+begin
+  y = 1 // 0
+rescue ZeroDivisionError e
+  assert_true(true, "typed rescue works")
+end
+```
+
+Run it:
+
+```bash
+frankiec test          # runs test.fk
+frankiec test my.fk    # runs a named file
+```
+
+Output:
+```
+╔══ Frankie Test Runner ════════════════════════════════
+║  test.fk
+╠═══════════════════════════════════════════════════════
+  ✓  += works
+  ✓  .find returns first match
+  ✓  typed rescue works
+╠═══════════════════════════════════════════════════════
+║  ✓  All 3 test(s) passed  (1.2ms)
+╚═══════════════════════════════════════════════════════
+```

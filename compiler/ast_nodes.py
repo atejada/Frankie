@@ -63,6 +63,21 @@ class Assign(Node):
     value: Node
 
 @dataclass
+class CompoundAssign(Node):
+    """x += 1, x -= 2, x *= 3, x /= 4, x //= 5, x **= 6, x %= 7"""
+    name: str
+    op: str   # '+', '-', '*', '/', '//', '**', '%'
+    value: Node
+
+@dataclass
+class IndexCompoundAssign(Node):
+    """x[i] += 1  etc."""
+    target: Node
+    index: Node
+    op: str
+    value: Node
+
+@dataclass
 class IndexAccess(Node):
     target: Node
     index: Node
@@ -224,11 +239,25 @@ class Program(Node):
 # ─── Error Handling ──────────────────────────────────────────────────────────
 
 @dataclass
+class RescueClause(Node):
+    """A single rescue clause: rescue [TypeName] [=> e | e]"""
+    error_type: Optional[str]   # None = catch-all; 'TypeError', 'RuntimeError', etc.
+    rescue_var: Optional[str]   # variable bound to the error message
+    body: List[Node]
+
+@dataclass
 class BeginRescue(Node):
     body: List[Node]
-    rescue_var: Optional[str]       # variable to bind the error to
-    rescue_body: List[Node]
+    rescue_clauses: List['RescueClause']   # one or more rescue clauses
     ensure_body: Optional[List[Node]]
+
+    # Back-compat shims so existing code still works
+    @property
+    def rescue_var(self):
+        return self.rescue_clauses[0].rescue_var if self.rescue_clauses else None
+    @property
+    def rescue_body(self):
+        return self.rescue_clauses[0].body if self.rescue_clauses else []
 
 @dataclass
 class RaiseStmt(Node):

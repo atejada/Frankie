@@ -285,23 +285,37 @@ class Parser:
         self.expect(TT.BEGIN_KW)
         self.skip_newlines()
         body = self.parse_rescue_body()
-        rescue_var = None
-        rescue_body = []
+        rescue_clauses = []
         ensure_body = None
-        if self.check(TT.RESCUE):
+        # One or more rescue clauses, each optionally typed
+        while self.check(TT.RESCUE):
             self.advance()
-            # Optional: rescue => e  or  rescue e
+            # Optional type name: rescue TypeError  rescue RuntimeError  etc.
+            error_type = None
+            rescue_var = None
+            # A capitalised IDENT that is NOT immediately followed by NEWLINE/EOF
+            # and is a known type hint is treated as the error type
+            if (self.check(TT.IDENT)
+                    and self.current().value[:1].isupper()
+                    and self.peek(1).type not in (TT.NEWLINE, TT.EOF)):
+                error_type = self.advance().value
+            # Optional variable binding: rescue [Type] e  or  rescue [Type] => e
             if self.check(TT.IDENT):
                 rescue_var = self.advance().value
             self.skip_newlines()
-            rescue_body = self.parse_rescue_body()
+            clause_body = self.parse_rescue_body()
+            rescue_clauses.append(RescueClause(
+                error_type=error_type, rescue_var=rescue_var, body=clause_body))
         if self.check(TT.ENSURE):
             self.advance()
             self.skip_newlines()
             ensure_body = self.parse_rescue_body()
         self.expect(TT.END, "Expected 'end' to close 'begin'")
-        return BeginRescue(body=body, rescue_var=rescue_var,
-                           rescue_body=rescue_body, ensure_body=ensure_body)
+        # Always produce at least one (empty catch-all) clause so codegen
+        # can iterate uniformly even when there is no rescue clause at all.
+        if not rescue_clauses:
+            rescue_clauses = [RescueClause(error_type=None, rescue_var=None, body=[])]
+        return BeginRescue(body=body, rescue_clauses=rescue_clauses, ensure_body=ensure_body)
 
     def parse_raise(self) -> RaiseStmt:
         self.expect(TT.RAISE)
@@ -439,6 +453,19 @@ class Parser:
             value = self.parse_expr()
             return ConstAssign(name=name, value=value)
 
+        # Compound assign: IDENT op= expr  (+=, -=, *=, /=, //=, **=, %=)
+        _COMPOUND_OPS = {
+            TT.PLUS_ASSIGN: '+', TT.MINUS_ASSIGN: '-', TT.STAR_ASSIGN: '*',
+            TT.SLASH_ASSIGN: '/', TT.DOUBLESLASH_ASSIGN: '//',
+            TT.STARSTAR_ASSIGN: '**', TT.PERCENT_ASSIGN: '%',
+        }
+        if self.check(TT.IDENT) and self.peek(1).type in _COMPOUND_OPS:
+            name = self.advance().value
+            op = _COMPOUND_OPS[self.current().type]
+            self.advance()  # consume op=
+            value = self.parse_expr()
+            return CompoundAssign(name=name, op=op, value=value)
+
         # Single assign: IDENT = expr
         if self.check(TT.IDENT) and self.peek(1).type == TT.ASSIGN:
             name = self.advance().value
@@ -446,7 +473,11 @@ class Parser:
             value = self.parse_expr()
             return Assign(name=name, value=value)
         node = self.parse_or()
-        # Index assign: expr[idx] = val
+        # Index assign: expr[idx] = val or expr[idx] op= val
+        if isinstance(node, IndexAccess) and self.current().type in _COMPOUND_OPS:
+            op = _COMPOUND_OPS[self.advance().type]
+            value = self.parse_expr()
+            return IndexCompoundAssign(target=node.target, index=node.index, op=op, value=value)
         if isinstance(node, IndexAccess) and self.check(TT.ASSIGN):
             self.advance()
             value = self.parse_expr()

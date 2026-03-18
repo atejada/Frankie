@@ -73,6 +73,20 @@ p [1, 2, 3]       # debug: (Vector) [1, 2, 3]
 2  ** 8     # 256      exponentiation   (Fortran)
 ```
 
+### Compound Assignment
+
+```ruby
+x += 5    # x = x + 5
+x -= 3    # x = x - 3
+x *= 2    # x = x * 2
+x /= 4    # x = x / 4   (float)
+x //= 3   # x = x // 3  (integer, Fortran)
+x **= 2   # x = x ** 2  (Fortran)
+x %= 7    # x = x % 7
+
+v[0] += 10   # works on vector elements too
+```
+
 ---
 
 ## Comparison & Logic
@@ -274,6 +288,27 @@ end
 raise "message"
 raise "invalid value: #{x}" if x < 0
 ```
+
+### Typed Rescue
+
+```ruby
+begin
+  x = 10 // 0
+rescue ZeroDivisionError e
+  puts "division by zero"
+rescue RuntimeError e
+  puts "runtime error: #{e}"
+rescue e
+  puts "other: #{e}"
+ensure
+  puts "always runs"
+end
+```
+
+Multiple `rescue` clauses are matched in order; the first matching type wins.
+Supported types: `RuntimeError`, `TypeError`, `ValueError`, `ZeroDivisionError`,
+`IndexError`, `KeyError`, `IOError`, `FileNotFoundError`, `OverflowError`,
+`NameError`, `AttributeError`, `Exception` / `Error`.
 
 ---
 
