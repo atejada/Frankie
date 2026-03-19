@@ -1,0 +1,98 @@
+# ─────────────────────────────────────────────────────────
+#  What's New in Frankie v1.7
+# ─────────────────────────────────────────────────────────
+
+puts "=== Frankie v1.7 — What's New ==="
+puts ""
+
+# ─── 1. Nil Safety — &. operator ─────────────────────────
+puts "--- 1. Nil Safety (&.) ---"
+
+user = {name: "Alice", age: 30}
+missing = nil
+
+# Safe navigation: returns nil instead of crashing
+puts user["name"]&.upcase       # ALICE
+puts missing&.upcase            # nil (no crash)
+
+name = user["name"]
+puts name&.length               # 5
+
+# Chaining: each step is nil-safe
+result = missing&.upcase&.reverse
+puts result                     # nil
+
+# Practical: optional user data
+def greet_user(u)
+  display = u&.upcase
+  if display == nil
+    puts "Hello, stranger!"
+  else
+    puts "Hello, #{display}!"
+  end
+end
+
+greet_user("bob")   # Hello, BOB!
+greet_user(nil)     # Hello, stranger!
+puts ""
+
+# ─── 2. String Templates — template() ────────────────────
+puts "--- 2. String Templates ---"
+
+msg = template("Hello, {{name}}! You are {{age}} years old.", {name: "Alice", age: 30})
+puts msg
+
+html = template("<h1>{{title}}</h1><p>{{body}}</p>", {
+  title: "Frankie v1.7",
+  body: "Now with nil safety and templates!"
+})
+puts html
+
+# Works great with loops
+people = [
+  {name: "Alice", role: "Engineer"},
+  {name: "Bob",   role: "Designer"}
+]
+
+people.each do |p|
+  puts template("  {{name}} — {{role}}", p)
+end
+puts ""
+
+# ─── 3. File System Operations ───────────────────────────
+puts "--- 3. File System Operations ---"
+
+# Create a directory
+file_mkdir("/tmp/frankie_demo")
+puts dir_exists("/tmp/frankie_demo")   # true
+
+# Write, copy, rename
+file_write("/tmp/frankie_demo/hello.txt", "Hello from Frankie!")
+file_copy("/tmp/frankie_demo/hello.txt", "/tmp/frankie_demo/backup.txt")
+file_rename("/tmp/frankie_demo/backup.txt", "/tmp/frankie_demo/copy.txt")
+
+# List directory
+entries = dir_list("/tmp/frankie_demo")
+puts entries    # [copy.txt, hello.txt]
+
+# Check existence
+puts file_exists("/tmp/frankie_demo/hello.txt")   # true
+puts file_exists("/tmp/frankie_demo/ghost.txt")   # false
+puts dir_exists("/tmp/nonexistent")               # false
+
+# Nested directories
+file_mkdir("/tmp/frankie_demo/a/b/c")
+puts dir_exists("/tmp/frankie_demo/a/b/c")        # true
+
+# Clean up
+file_delete("/tmp/frankie_demo/hello.txt")
+file_delete("/tmp/frankie_demo/copy.txt")
+puts dir_list("/tmp/frankie_demo")   # [a]
+puts ""
+
+# ─── 4. assert_raises_typed ──────────────────────────────
+puts "--- 4. assert_raises_typed (run via frankiec test) ---"
+puts "See examples/test_v17.fk for typed assertion tests."
+puts ""
+
+puts "=== Done! ==="

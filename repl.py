@@ -16,7 +16,7 @@ BANNER = r"""
  |  _|| | | (_| | | | |   <| |  __/
  |_|  |_|  \__,_|_| |_|_|\_\_|\___|
 
- Frankie v1.6 Interactive REPL
+ Frankie v1.7 Interactive REPL
  Type 'exit' or Ctrl+D to quit, 'help' for commands.
 """
 

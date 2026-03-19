@@ -1,0 +1,52 @@
+# test_v17.fk — v1.7 feature tests
+# Run with: frankiec test examples/test_v17.fk
+
+# ─── Nil safety ──────────────────────────────────────────
+x = nil
+assert_eq(x&.upcase, nil, "nil&.method returns nil")
+
+s = "hello"
+assert_eq(s&.upcase, "HELLO", "string&.upcase works")
+assert_eq(s&.length, 5, "string&.length works")
+
+# Chained safe nav
+assert_eq(nil&.upcase&.reverse, nil, "chained nil safe nav returns nil")
+
+# ─── template() ──────────────────────────────────────────
+out = template("{{a}} and {{b}}", {a: "foo", b: "bar"})
+assert_eq(out, "foo and bar", "template basic substitution")
+
+out2 = template("Hello, {{name}}!", {name: "World"})
+assert_eq(out2, "Hello, World!", "template with punctuation")
+
+out3 = template("no placeholders", {x: 1})
+assert_eq(out3, "no placeholders", "template with no placeholders")
+
+# ─── File system ─────────────────────────────────────────
+file_mkdir("/tmp/fk_test_17")
+assert_true(dir_exists("/tmp/fk_test_17"), "dir_exists after file_mkdir")
+assert_true(not dir_exists("/tmp/fk_test_no_such_dir_xyz"), "dir_exists false for missing")
+
+file_write("/tmp/fk_test_17/a.txt", "hello")
+file_copy("/tmp/fk_test_17/a.txt", "/tmp/fk_test_17/b.txt")
+assert_true(file_exists("/tmp/fk_test_17/b.txt"), "file_copy creates destination")
+
+file_rename("/tmp/fk_test_17/b.txt", "/tmp/fk_test_17/c.txt")
+assert_true(file_exists("/tmp/fk_test_17/c.txt"), "file_rename creates new name")
+assert_true(not file_exists("/tmp/fk_test_17/b.txt"), "file_rename removes old name")
+
+entries = dir_list("/tmp/fk_test_17")
+assert_eq(entries, ["a.txt", "c.txt"], "dir_list returns sorted filenames")
+
+# ─── assert_raises_typed ─────────────────────────────────
+assert_raises_typed(def()
+  x = 1 // 0
+end, "ZeroDivisionError", "typed: catches ZeroDivisionError")
+
+assert_raises_typed(def()
+  file_read("/no/such/file/xyz.txt")
+end, "RuntimeError", "typed: catches RuntimeError from file_read")
+
+assert_raises(def()
+  raise "generic error"
+end, "assert_raises still works")

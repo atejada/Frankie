@@ -89,7 +89,7 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
 <body>
 
 <nav>
-  <a href="#" class="nav-logo">🧟 Frankie <span>v1.6</span></a>
+  <a href="#" class="nav-logo">🧟 Frankie <span>v1.7</span></a>
   <ul>
     <li><a href="#features">Features</a></li>
     <li><a href="#syntax">Syntax</a></li>
@@ -116,7 +116,7 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
   </div>
   <div class="ctas">
     <a href="#install" class="btn btn-p">Get Started →</a>
-    <a href="https://github.com/atejada/Frankie/releases" class="btn btn-s">Download v1.6</a>
+    <a href="https://github.com/atejada/Frankie/releases" class="btn btn-s">Download v1.7</a>
     <a href="https://github.com/atejada/Frankie" class="btn btn-s">★ Star on GitHub</a>
   </div>
   <p class="scroll">▼ scroll</p>
@@ -129,18 +129,18 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
   <h2>Everything you need.<br>Nothing you don't.</h2>
   <p style="color:var(--muted);max-width:560px;font-size:.97rem">Proudly procedural — functions, data, loops, logic. No classes, no <code>self</code>, no inheritance. Runs on Python 3.10+ with zero external dependencies.</p>
   <div class="grid">
+    <div class="card"><div class="card-icon">🛡️</div><h3>Nil Safety <code>&amp;.</code> <span class="new-badge">v1.7</span></h3><p><code>x&amp;.method</code> returns <code>nil</code> instead of crashing when <code>x</code> is nil. Chains safely: <code>a&amp;.b&amp;.c</code> short-circuits at the first nil. No more defensive nil checks.</p></div>
+    <div class="card"><div class="card-icon">📄</div><h3>String Templates <span class="new-badge">v1.7</span></h3><p><code>template("Hello, {{name}}!", hash)</code> — replace <code>{{key}}</code> placeholders with values from a hash. Clean alternative to <code>sprintf</code> for dynamic or externally-stored templates.</p></div>
+    <div class="card"><div class="card-icon">📁</div><h3>File System Ops <span class="new-badge">v1.7</span></h3><p><code>file_rename</code>, <code>file_copy</code>, <code>file_mkdir</code>, <code>dir_exists</code>, <code>dir_list</code> — complete file and directory management. Pure stdlib, zero external dependencies.</p></div>
+    <div class="card"><div class="card-icon">🧪</div><h3>assert_raises_typed <span class="new-badge">v1.7</span></h3><p>Test that a <em>specific</em> error type is raised: <code>assert_raises_typed(fn, "ZeroDivisionError", msg)</code>. Pairs naturally with typed <code>rescue</code> clauses already in the language.</p></div>
     <div class="card"><div class="card-icon">➕</div><h3>Compound Assignment <span class="new-badge">v1.6</span></h3><p><code>+=</code> <code>-=</code> <code>*=</code> <code>/=</code> <code>//=</code> <code>**=</code> <code>%=</code> — all operators, including Fortran-style integer division and exponentiation. Works on variables and vector elements.</p></div>
     <div class="card"><div class="card-icon">🛡️</div><h3>Typed Rescue <span class="new-badge">v1.6</span></h3><p><code>rescue ZeroDivisionError e</code>, <code>rescue TypeError e</code> — multiple typed clauses on one <code>begin…end</code> block. Catch exactly what you mean.</p></div>
     <div class="card"><div class="card-icon">🔍</div><h3>.find / .detect <span class="new-badge">v1.6</span></h3><p>Return the first element where the block is true, or <code>nil</code>. Works on any vector including vectors of hashes. Chains naturally with <code>.select</code>, <code>.sort_by</code>, and the pipe operator.</p></div>
-    <div class="card"><div class="card-icon">🧪</div><h3>frankiec test <span class="new-badge">v1.6</span></h3><p>Built-in test runner. <code>assert_true</code>, <code>assert_eq</code>, <code>assert_neq</code>, <code>assert_raises</code> — no imports. Live ✓ / ✗ output per assertion. Exits 1 on failure for CI.</p></div>
+    <div class="card"><div class="card-icon">🧪</div><h3>frankiec test <span class="new-badge">v1.6</span></h3><p>Built-in test runner. <code>assert_true</code>, <code>assert_eq</code>, <code>assert_neq</code>, <code>assert_raises</code>, <code>assert_raises_typed</code> — no imports. Live ✓ / ✗ output per assertion. Exits 1 on failure for CI.</p></div>
     <div class="card"><div class="card-icon">📊</div><h3>R-style Statistics</h3><p>Built-in <code>mean</code>, <code>stdev</code>, <code>median</code>, <code>variance</code>. Vectorised arithmetic. Pipe operator <code>|&gt;</code> for clean data pipelines.</p></div>
     <div class="card"><div class="card-icon">🌐</div><h3>Built-in Web Server</h3><p>Sinatra-style routing with <code>web_app()</code>. Path params, JSON bodies, before/after filters, custom 404 — zero external deps.</p></div>
     <div class="card"><div class="card-icon">🗄️</div><h3>SQLite Built-in</h3><p>Open databases, run queries, insert rows with clean Frankie syntax. No ORM, no driver, no setup required.</p></div>
     <div class="card"><div class="card-icon">🔗</div><h3>HTTP, JSON &amp; CSV</h3><p>Make HTTP requests, parse JSON and CSV, work with DateTime — all in the stdlib, all zero-dependency.</p></div>
-    <div class="card"><div class="card-icon">🎲</div><h3>Randomness</h3><p><code>rand</code>, <code>rand_int</code>, <code>rand_float</code>, <code>shuffle</code>, <code>sample</code>, <code>rand_seed</code> — everything for games and simulations.</p></div>
-    <div class="card"><div class="card-icon">🔁</div><h3>Rich Iterators</h3><p><code>.map</code>, <code>.select</code>, <code>.find</code>, <code>.sort_by</code>, <code>.reduce</code>, <code>.min_by</code>, <code>.max_by</code> with <code>do |x| end</code> blocks.</p></div>
-    <div class="card"><div class="card-icon">⏭️</div><h3>Loop Control</h3><p><code>next</code> to skip iterations, <code>break</code> to exit early, <code>break value</code> to exit with a result. Postfix forms work too.</p></div>
-    <div class="card"><div class="card-icon">🔒</div><h3>Constants</h3><p><code>UPPER_SNAKE_CASE</code> names are constants. Reassignment warns and preserves the original value automatically.</p></div>
   </div>
 </section>
 
@@ -152,101 +152,113 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
   <div class="code-grid">
 
     <div class="cp">
-      <div class="cp-head"><span class="cp-title">compound.fk <span class="new-badge">v1.6</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
-      <pre><span class="cm"># Compound assignment operators</span>
-<span class="vr">score</span> = <span class="num">0</span>
-<span class="vr">score</span> += <span class="num">10</span>   <span class="cm"># score = 10</span>
-<span class="vr">score</span> *= <span class="num">2</span>    <span class="cm"># score = 20</span>
-<span class="vr">score</span> -= <span class="num">3</span>    <span class="cm"># score = 17</span>
-<span class="vr">score</span> **= <span class="num">2</span>   <span class="cm"># score = 289 (Fortran!)</span>
-<span class="vr">score</span> %= <span class="num">100</span>  <span class="cm"># score = 89</span>
+      <div class="cp-head"><span class="cp-title">nil_safety.fk <span class="new-badge">v1.7</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
+      <pre><span class="cm"># &amp;. — nil-safe navigation operator</span>
+<span class="vr">user</span>    = {name: <span class="str">"Alice"</span>, age: <span class="num">30</span>}
+<span class="vr">missing</span> = <span class="kw">nil</span>
 
-<span class="cm"># Works on vector elements too</span>
-<span class="vr">v</span> = [<span class="num">10</span>, <span class="num">20</span>, <span class="num">30</span>]
-<span class="vr">v</span>[<span class="num">0</span>] += <span class="num">5</span>     <span class="cm"># [15, 20, 30]</span>
-<span class="vr">v</span>[<span class="num">2</span>] //= <span class="num">4</span>    <span class="cm"># [15, 20, 7]</span>
+<span class="cm"># Safe: returns nil instead of crashing</span>
+<span class="fn">puts</span> <span class="vr">user</span>[<span class="str">"name"</span>]&amp;.<span class="fn">upcase</span>    <span class="cm"># ALICE</span>
+<span class="fn">puts</span> <span class="vr">missing</span>&amp;.<span class="fn">upcase</span>         <span class="cm"># nil</span>
 
-<span class="cm"># Idiomatic loop accumulation</span>
-<span class="vr">total</span> = <span class="num">0</span>
-[<span class="num">3</span>, <span class="num">7</span>, <span class="num">2</span>, <span class="num">9</span>].<span class="fn">each</span> <span class="kw">do</span> |<span class="vr">n</span>|
-  <span class="vr">total</span> += <span class="vr">n</span>
-<span class="kw">end</span>
-<span class="fn">puts</span> <span class="vr">total</span>  <span class="cm"># 21</span></pre>
-    </div>
+<span class="cm"># Chains short-circuit at first nil</span>
+<span class="fn">puts</span> <span class="vr">missing</span>&amp;.<span class="fn">upcase</span>&amp;.<span class="fn">reverse</span>  <span class="cm"># nil</span>
 
-    <div class="cp">
-      <div class="cp-head"><span class="cp-title">rescue.fk <span class="new-badge">v1.6</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
-      <pre><span class="cm"># Typed rescue clauses</span>
-<span class="kw">def</span> <span class="fn">safe_divide</span>(<span class="vr">a</span>, <span class="vr">b</span>)
-  <span class="kw">begin</span>
-    <span class="kw">return</span> <span class="vr">a</span> // <span class="vr">b</span>
-  <span class="kw">rescue</span> <span class="vr">ZeroDivisionError</span> <span class="vr">e</span>
-    <span class="fn">puts</span> <span class="str">"division by zero"</span>
-    <span class="kw">return</span> <span class="num">0</span>
-  <span class="kw">rescue</span> <span class="vr">TypeError</span> <span class="vr">e</span>
-    <span class="fn">puts</span> <span class="str">"wrong type: #{e}"</span>
-    <span class="kw">return</span> <span class="num">0</span>
-  <span class="kw">rescue</span> <span class="vr">e</span>
-    <span class="fn">puts</span> <span class="str">"unexpected: #{e}"</span>
-    <span class="kw">return</span> <span class="num">0</span>
-  <span class="kw">ensure</span>
-    <span class="fn">puts</span> <span class="str">"always runs"</span>
+<span class="cm"># No more defensive nil checks</span>
+<span class="kw">def</span> <span class="fn">greet</span>(<span class="vr">name</span>)
+  <span class="vr">display</span> = <span class="vr">name</span>&amp;.<span class="fn">upcase</span>
+  <span class="kw">if</span> <span class="vr">display</span> == <span class="kw">nil</span>
+    <span class="fn">puts</span> <span class="str">"Hello, stranger!"</span>
+  <span class="kw">else</span>
+    <span class="fn">puts</span> <span class="str">"Hello, #{display}!"</span>
   <span class="kw">end</span>
 <span class="kw">end</span>
 
-<span class="fn">puts</span> <span class="fn">safe_divide</span>(<span class="num">10</span>, <span class="num">2</span>)   <span class="cm"># 5</span>
-<span class="fn">puts</span> <span class="fn">safe_divide</span>(<span class="num">10</span>, <span class="num">0</span>)   <span class="cm"># 0</span></pre>
+<span class="fn">greet</span>(<span class="str">"bob"</span>)  <span class="cm"># Hello, BOB!</span>
+<span class="fn">greet</span>(<span class="kw">nil</span>)   <span class="cm"># Hello, stranger!</span></pre>
     </div>
 
     <div class="cp">
-      <div class="cp-head"><span class="cp-title">find.fk <span class="new-badge">v1.6</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
-      <pre><span class="vr">nums</span> = [<span class="num">3</span>, <span class="num">7</span>, <span class="num">2</span>, <span class="num">11</span>, <span class="num">4</span>, <span class="num">9</span>]
+      <div class="cp-head"><span class="cp-title">template.fk <span class="new-badge">v1.7</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
+      <pre><span class="cm"># template() — {{key}} placeholder substitution</span>
+<span class="vr">msg</span> = <span class="fn">template</span>(<span class="str">"Hello, {{name}}! Age: {{age}}."</span>,
+               {name: <span class="str">"Alice"</span>, age: <span class="num">30</span>})
+<span class="fn">puts</span> <span class="vr">msg</span>
+<span class="cm"># Hello, Alice! Age: 30.</span>
 
-<span class="cm"># First element matching the block</span>
-<span class="vr">big</span> = <span class="vr">nums</span>.<span class="fn">find</span> <span class="kw">do</span> |<span class="vr">n</span>|
-  <span class="vr">n</span> &gt; <span class="num">8</span>
-<span class="kw">end</span>
-<span class="fn">puts</span> <span class="vr">big</span>  <span class="cm"># 11</span>
+<span class="vr">html</span> = <span class="fn">template</span>(<span class="str">"&lt;h1&gt;{{title}}&lt;/h1&gt;&lt;p&gt;{{body}}&lt;/p&gt;"</span>, {
+  title: <span class="str">"Frankie v1.7"</span>,
+  body:  <span class="str">"nil safety + templates!"</span>
+})
+<span class="fn">puts</span> <span class="vr">html</span>
 
-<span class="cm"># .detect is an alias</span>
-<span class="vr">even</span> = <span class="vr">nums</span>.<span class="fn">detect</span> <span class="kw">do</span> |<span class="vr">n</span>|
-  <span class="vr">n</span> % <span class="num">2</span> == <span class="num">0</span>
+<span class="cm"># Great with loops</span>
+<span class="vr">people</span> = [
+  {name: <span class="str">"Alice"</span>, role: <span class="str">"Engineer"</span>},
+  {name: <span class="str">"Bob"</span>,   role: <span class="str">"Designer"</span>}
+]
+<span class="vr">people</span>.<span class="fn">each</span> <span class="kw">do</span> |<span class="vr">p</span>|
+  <span class="fn">puts</span> <span class="fn">template</span>(<span class="str">"  {{name}} — {{role}}"</span>, <span class="vr">p</span>)
 <span class="kw">end</span>
-<span class="fn">puts</span> <span class="vr">even</span>  <span class="cm"># 2</span>
-
-<span class="cm"># Returns nil when nothing matches</span>
-<span class="vr">huge</span> = <span class="vr">nums</span>.<span class="fn">find</span> <span class="kw">do</span> |<span class="vr">n</span>|
-  <span class="vr">n</span> &gt; <span class="num">100</span>
-<span class="kw">end</span>
-<span class="fn">p</span> <span class="vr">huge</span>  <span class="cm"># (Nil) nil</span></pre>
+<span class="cm"># Alice — Engineer</span>
+<span class="cm"># Bob   — Designer</span></pre>
     </div>
 
     <div class="cp">
-      <div class="cp-head"><span class="cp-title">test.fk <span class="new-badge">v1.6</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
-      <pre><span class="cm"># frankiec test — built-in test runner</span>
-<span class="cm"># No imports needed. Run: frankiec test</span>
+      <div class="cp-head"><span class="cp-title">filesystem.fk <span class="new-badge">v1.7</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
+      <pre><span class="cm"># File system — zero dependencies</span>
+<span class="fn">file_mkdir</span>(<span class="str">"/tmp/myapp/data"</span>)
+<span class="fn">puts</span> <span class="fn">dir_exists</span>(<span class="str">"/tmp/myapp/data"</span>)   <span class="cm"># true</span>
+<span class="fn">puts</span> <span class="fn">dir_exists</span>(<span class="str">"/tmp/ghost"</span>)        <span class="cm"># false</span>
 
-<span class="vr">x</span> = <span class="num">10</span>
-<span class="vr">x</span> += <span class="num">5</span>
-<span class="fn">assert_eq</span>(<span class="vr">x</span>, <span class="num">15</span>, <span class="str">"+= works"</span>)
+<span class="fn">file_write</span>(<span class="str">"/tmp/myapp/data/a.txt"</span>, <span class="str">"hello"</span>)
+<span class="fn">file_copy</span>(<span class="str">"/tmp/myapp/data/a.txt"</span>,
+          <span class="str">"/tmp/myapp/data/b.txt"</span>)
+<span class="fn">file_rename</span>(<span class="str">"/tmp/myapp/data/b.txt"</span>,
+            <span class="str">"/tmp/myapp/data/c.txt"</span>)
 
-<span class="vr">result</span> = [<span class="num">1</span>, <span class="num">3</span>, <span class="num">5</span>, <span class="num">7</span>].<span class="fn">find</span> <span class="kw">do</span> |<span class="vr">n</span>|
-  <span class="vr">n</span> &gt; <span class="num">4</span>
-<span class="kw">end</span>
-<span class="fn">assert_eq</span>(<span class="vr">result</span>, <span class="num">5</span>, <span class="str">".find works"</span>)
+<span class="vr">entries</span> = <span class="fn">dir_list</span>(<span class="str">"/tmp/myapp/data"</span>)
+<span class="fn">puts</span> <span class="vr">entries</span>   <span class="cm"># [a.txt, c.txt]</span>
 
-<span class="vr">caught</span> = <span class="kw">nil</span>
-<span class="kw">begin</span>
-  <span class="vr">y</span> = <span class="num">1</span> // <span class="num">0</span>
-<span class="kw">rescue</span> <span class="vr">ZeroDivisionError</span> <span class="vr">e</span>
-  <span class="vr">caught</span> = <span class="str">"zero"</span>
-<span class="kw">end</span>
-<span class="fn">assert_eq</span>(<span class="vr">caught</span>, <span class="str">"zero"</span>, <span class="str">"typed rescue"</span>)
+<span class="cm"># Nested dirs (like mkdir -p)</span>
+<span class="fn">file_mkdir</span>(<span class="str">"/tmp/myapp/a/b/c"</span>)
+<span class="fn">puts</span> <span class="fn">dir_exists</span>(<span class="str">"/tmp/myapp/a/b/c"</span>)  <span class="cm"># true</span>
 
-<span class="cm"># ✓  += works</span>
-<span class="cm"># ✓  .find works</span>
-<span class="cm"># ✓  typed rescue</span>
-<span class="cm"># ✓  All 3 test(s) passed  (1.4ms)</span></pre>
+<span class="cm"># dir_list defaults to current dir</span>
+<span class="vr">here</span> = <span class="fn">dir_list</span>()
+<span class="fn">puts</span> <span class="vr">here</span>.<span class="fn">length</span>   <span class="cm"># file count</span></pre>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head"><span class="cp-title">test_typed.fk <span class="new-badge">v1.7</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
+      <pre><span class="cm"># assert_raises_typed — precise error testing</span>
+<span class="cm"># Run: frankiec test</span>
+
+<span class="cm"># Typed: pass only for exact error type</span>
+<span class="fn">assert_raises_typed</span>(<span class="kw">def</span>()
+  <span class="vr">x</span> = <span class="num">1</span> // <span class="num">0</span>
+<span class="kw">end</span>, <span class="str">"ZeroDivisionError"</span>, <span class="str">"catches ZeroDivisionError"</span>)
+
+<span class="fn">assert_raises_typed</span>(<span class="kw">def</span>()
+  <span class="fn">file_read</span>(<span class="str">"/no/such/file.txt"</span>)
+<span class="kw">end</span>, <span class="str">"RuntimeError"</span>, <span class="str">"file_read raises RuntimeError"</span>)
+
+<span class="cm"># Nil safety assertions</span>
+<span class="fn">assert_eq</span>(<span class="kw">nil</span>&amp;.<span class="fn">upcase</span>, <span class="kw">nil</span>, <span class="str">"nil&amp;.method = nil"</span>)
+<span class="fn">assert_eq</span>(<span class="str">"hi"</span>&amp;.<span class="fn">upcase</span>, <span class="str">"HI"</span>, <span class="str">"safe nav works"</span>)
+
+<span class="cm"># Template assertions</span>
+<span class="fn">assert_eq</span>(
+  <span class="fn">template</span>(<span class="str">"{{a}}+{{b}}"</span>, {a: <span class="str">"x"</span>, b: <span class="str">"y"</span>}),
+  <span class="str">"x+y"</span>, <span class="str">"template substitution"</span>
+)
+
+<span class="cm"># ✓  catches ZeroDivisionError</span>
+<span class="cm"># ✓  file_read raises RuntimeError</span>
+<span class="cm"># ✓  nil&amp;.method = nil</span>
+<span class="cm"># ✓  safe nav works</span>
+<span class="cm"># ✓  template substitution</span>
+<span class="cm"># ✓  All 5 test(s) passed  (2.1ms)</span></pre>
     </div>
 
     <div class="cp">
@@ -309,7 +321,7 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
 <span class="kw">end</span>
 
 <span class="vr">app</span>.<span class="fn">get</span>(<span class="str">"/api/status"</span>) <span class="kw">do</span> |<span class="vr">req</span>|
-  <span class="fn">json_response</span>({status: <span class="str">"ok"</span>, version: <span class="str">"1.6"</span>})
+  <span class="fn">json_response</span>({status: <span class="str">"ok"</span>, version: <span class="str">"1.7"</span>})
 <span class="kw">end</span>
 
 <span class="vr">store</span> = {notes: []}
@@ -373,8 +385,9 @@ frankiec test</pre></div>
   <table>
     <thead><tr><th>Version</th><th>Highlights</th><th>Status</th></tr></thead>
     <tbody>
-      <tr><td><strong>v1.6</strong></td><td>Compound assign +=/-=/*= etc., typed rescue, .find/.detect, frankiec test</td><td><span class="badge bl">Latest</span></td></tr>
-      <tr><td>v1.5</td><td>next / break, constants, randomness, sort_by, sleep, unzip</td><td><span class="badge bs">Stable</span></td></tr>
+      <tr><td><strong>v1.7</strong></td><td>Nil safety <code>&amp;.</code>, string templates, file system ops, assert_raises_typed</td><td><span class="badge bl">Latest</span></td></tr>
+      <tr><td>v1.6</td><td>Compound assign +=/-=/*= etc., typed rescue, .find/.detect, frankiec test</td><td><span class="badge bs">Stable</span></td></tr>
+      <tr><td>v1.5</td><td>next / break, constants, randomness, sort_by, sleep, unzip</td><td><span class="badge bo">Old</span></td></tr>
       <tr><td>v1.4</td><td>Built-in web server, routes, JSON API, filters, custom 404</td><td><span class="badge bo">Old</span></td></tr>
       <tr><td>v1.3</td><td>JSON, CSV, DateTime, HTTP client, project scaffolding</td><td><span class="badge bo">Old</span></td></tr>
       <tr><td>v1.2</td><td>SQLite built-in, transactions, multi-file with require</td><td><span class="badge bo">Old</span></td></tr>

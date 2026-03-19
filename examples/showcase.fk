@@ -1,7 +1,7 @@
 # showcase.fk — Everything Frankie can do in one program
 
 puts "╔══════════════════════════════════════╗"
-puts "║     Frankie v1.0 — Full Showcase     ║"
+puts "║     Frankie v1.7 — Full Showcase     ║"
 puts "╚══════════════════════════════════════╝"
 puts ""
 
@@ -30,21 +30,85 @@ end
 
 puts safe_sqrt(9)
 puts safe_sqrt(-4)
+
+# Typed rescue (v1.6)
+begin
+  x = 10 // 0
+rescue ZeroDivisionError e
+  puts "Caught ZeroDivisionError: #{e}"
+rescue RuntimeError e
+  puts "Caught RuntimeError: #{e}"
+end
 puts ""
 
-# ── 2. Regex ───────────────────────────────────────────────────────
-puts "── 2. Regex ──"
+# ── 2. Nil Safety — &. operator (v1.7) ────────────────────────────
+puts "── 2. Nil Safety (&.) ──"
+
+user = {name: "Alice", role: "Engineer"}
+ghost = nil
+
+puts user["name"]&.upcase
+puts ghost&.upcase
+puts ghost&.upcase&.reverse
+
+def display_name(u)
+  label = u&.upcase
+  if label == nil
+    return "anonymous"
+  end
+  return label
+end
+
+puts display_name("frankie")
+puts display_name(nil)
+puts ""
+
+# ── 3. String Templates (v1.7) ─────────────────────────────────────
+puts "── 3. String Templates ──"
+
+msg = template("Hello, {{name}}! You are {{age}} years old.", {name: "Alice", age: 30})
+puts msg
+
+people = [
+  {name: "Alice", role: "Engineer"},
+  {name: "Bob",   role: "Designer"},
+  {name: "Carol", role: "Manager"}
+]
+people.each do |p|
+  puts template("  {{name}} — {{role}}", p)
+end
+puts ""
+
+# ── 4. File System (v1.7) ──────────────────────────────────────────
+puts "── 4. File System ──"
+
+file_mkdir("/tmp/fk_showcase")
+puts dir_exists("/tmp/fk_showcase")
+puts dir_exists("/tmp/no_such_dir_xyz")
+
+file_write("/tmp/fk_showcase/hello.txt", "Hello from Frankie!")
+file_copy("/tmp/fk_showcase/hello.txt", "/tmp/fk_showcase/copy.txt")
+file_rename("/tmp/fk_showcase/copy.txt", "/tmp/fk_showcase/renamed.txt")
+puts dir_list("/tmp/fk_showcase")
+puts file_exists("/tmp/fk_showcase/renamed.txt")
+
+file_delete("/tmp/fk_showcase/hello.txt")
+file_delete("/tmp/fk_showcase/renamed.txt")
+puts dir_list("/tmp/fk_showcase")
+puts ""
+
+# ── 5. Regex ───────────────────────────────────────────────────────
+puts "── 5. Regex ──"
 
 log = "ERROR 2025-03-14: disk full. WARNING 2025-03-15: low memory."
-
 puts matches(log, "ERROR")
 puts match_all(log, "[0-9]{4}-[0-9]{2}-[0-9]{2}")
 puts gsub(log, "WARNING", "WARN")
 puts "hello" =~ "ell"
 puts ""
 
-# ── 3. File I/O ────────────────────────────────────────────────────
-puts "── 3. File I/O ──"
+# ── 6. File I/O ────────────────────────────────────────────────────
+puts "── 6. File I/O ──"
 
 file_write("/tmp/fk_showcase.txt", "Frankie\nRuby\nPython\nR\nFortran\n")
 lines = file_lines("/tmp/fk_showcase.txt")
@@ -58,43 +122,129 @@ file_delete("/tmp/fk_showcase.txt")
 puts "Deleted: #{file_exists("/tmp/fk_showcase.txt")}"
 puts ""
 
-# ── 4. Named Arguments ─────────────────────────────────────────────
-puts "── 4. Named Arguments ──"
+# ── 7. Collections & Iterators ─────────────────────────────────────
+puts "── 7. Collections & Iterators ──"
 
-puts paste("Designed", "by", "Claude", sep: " ")
-puts paste("2025", "03", "14", sep: "-")
-puts sprintf("%-10s %5d %8.2f", "Frankie", 1, 3.14)
+nums = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3]
+puts nums.select do |n| n > 4 end
+puts nums.map do |n| n * 2 end
+puts nums.sort_by do |n| n end
+
+first_big = nums.find do |n|
+  n > 7
+end
+puts "First > 7: #{first_big}"
+puts nums.reduce(0) do |acc, n| acc + n end
+puts nums.tally
+puts nums.uniq
+puts nums.chunk(3)
 puts ""
 
-# ── 5. String Slicing ──────────────────────────────────────────────
-puts "── 5. String & Vector Slicing ──"
+# ── 8. Compound Assignment (v1.6) ──────────────────────────────────
+puts "── 8. Compound Assignment ──"
 
-s = "Frankenstein"
-puts s[0..6]
-puts s[7..11]
-puts s[-5..-1]
+score = 0
+score += 10
+score *= 3
+score -= 5
+score //= 2
+puts "Score: #{score}"
 
-v = [10, 20, 30, 40, 50, 60, 70]
-puts v[1..4]
-puts v[-3..-1]
+v = [100, 200, 300]
+v[0] += 50
+v[1] *= 2
+v[2] //= 3
+puts v
 puts ""
 
-# ── 6. Nil-safe Hash Access ────────────────────────────────────────
-puts "── 6. Nil-safe Hash Access ──"
+# ── 9. R-style Statistics ──────────────────────────────────────────
+puts "── 9. Statistics ──"
 
-config = {host: "localhost", port: 5432}
-puts config[:host]
-puts config[:port]
-puts config[:password]
-puts config[:timeout]
+data = [23, 45, 12, 67, 34, 89, 56, 11, 78, 42]
+puts "mean:    #{mean(data)}"
+puts "median:  #{median(data)}"
+puts "stdev:   #{stdev(data)}"
+puts "min/max: #{min(data)} / #{max(data)}"
+data |> sum |> puts
+puts ""
 
-unless config[:password] != nil
-  puts "No password configured (safe default)"
+# ── 10. JSON & CSV ─────────────────────────────────────────────────
+puts "── 10. JSON & CSV ──"
+
+record = {name: "Alice", scores: [95, 87, 92]}
+json_str = json_dump(record)
+puts json_str
+
+parsed = json_parse(json_str)
+puts parsed["name"]
+puts parsed["scores"]
+
+rows = [
+  {name: "Alice", dept: "Engineering", score: 95},
+  {name: "Bob",   dept: "Design",      score: 87}
+]
+csv_str = csv_dump(rows)
+puts csv_str
+
+reparsed = csv_parse(csv_str)
+reparsed.each do |row|
+  puts "  #{row["name"]}: #{row["score"]}"
 end
 puts ""
 
-# ── 7. All Together: a mini log analyser ──────────────────────────
-puts "── 7. Mini Log Analyser ──"
+# ── 11. SQLite ─────────────────────────────────────────────────────
+puts "── 11. SQLite ──"
+
+db = db_open(":memory:")
+db.exec("CREATE TABLE people (id INTEGER PRIMARY KEY, name TEXT, score INTEGER)")
+db.insert("people", {name: "Alice", score: 95})
+db.insert("people", {name: "Bob",   score: 87})
+db.insert("people", {name: "Carol", score: 92})
+
+db.find_all("people").each do |row|
+  puts "  #{row["id"]}. #{row["name"]} — #{row["score"]}"
+end
+
+top = db.query_one("SELECT * FROM people ORDER BY score DESC LIMIT 1", [])
+puts "Top scorer: #{top["name"]} (#{top["score"]})"
+db.close
+puts ""
+
+# ── 12. DateTime ───────────────────────────────────────────────────
+puts "── 12. DateTime ──"
+
+t = today()
+puts t.format("%A, %d %B %Y")
+puts "Next week: #{t.add_days(7).format("%Y-%m-%d")}"
+puts ""
+
+# ── 13. Randomness ─────────────────────────────────────────────────
+puts "── 13. Randomness ──"
+
+rand_seed(42)
+puts rand_int(1, 100)
+puts shuffle([1, 2, 3, 4, 5])
+puts sample([10, 20, 30, 40, 50], 3)
+puts ""
+
+# ── 14. Constants & Loop Control (v1.5) ────────────────────────────
+puts "── 14. Constants & Loop Control ──"
+
+MAX_RETRIES = 5
+PI = 3.14159
+puts "Max retries: #{MAX_RETRIES}, Pi: #{PI}"
+
+result = 0
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].each do |n|
+  next if n % 2 == 0
+  break if n > 7
+  result += n
+end
+puts "Odd sum up to 7: #{result}"
+puts ""
+
+# ── 15. Mini Log Analyser ──────────────────────────────────────────
+puts "── 15. Mini Log Analyser ──"
 
 logs = [
   "INFO  app started",
@@ -106,17 +256,16 @@ logs = [
   "INFO  request complete"
 ]
 
-counts = {INFO: 0, ERROR: 0, WARN: 0, DEBUG: 0}
-
+counts = {"INFO": 0, "ERROR": 0, "WARN": 0, "DEBUG": 0}
 logs.each do |line|
   if matches(line, "^INFO")
-    counts[:INFO] = counts[:INFO] + 1
+    counts["INFO"] += 1
   elsif matches(line, "^ERROR")
-    counts[:ERROR] = counts[:ERROR] + 1
+    counts["ERROR"] += 1
   elsif matches(line, "^WARN")
-    counts[:WARN] = counts[:WARN] + 1
+    counts["WARN"] += 1
   elsif matches(line, "^DEBUG")
-    counts[:DEBUG] = counts[:DEBUG] + 1
+    counts["DEBUG"] += 1
   end
 end
 
@@ -124,13 +273,8 @@ counts.each do |level, n|
   puts sprintf("  %-6s %d", level, n)
 end
 
-errors = logs.map do |line|
-  line
-end
-
-actual_errors = []
-logs.each do |line|
-  actual_errors.push(line) if matches(line, "^ERROR")
+actual_errors = logs.select do |line|
+  matches(line, "^ERROR")
 end
 puts "Error lines:"
 actual_errors.each do |e|

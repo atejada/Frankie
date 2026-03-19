@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-frankiec — The Frankie Language Compiler & Interpreter v1.6
+frankiec — The Frankie Language Compiler & Interpreter v1.7
 Usage:
     frankiec new    <project>      Scaffold a new Frankie project
     frankiec run    <file.fk>      Run a Frankie program
@@ -23,7 +23,7 @@ from compiler.lexer import Lexer, LexError
 from compiler.parser import Parser, ParseError
 from compiler.codegen import CodeGen, CodeGenError
 
-FRANKIE_VERSION = "1.6.0"
+FRANKIE_VERSION = "1.7.0"
 FRANKIE_BANNER = r"""
   _____                 _    _        
  |  ___| __ __ _ _ __ | | _(_) ___   

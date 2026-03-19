@@ -101,6 +101,7 @@ class TT(Enum):
     INTERP_END   = auto()  # }
     QUESTION     = auto()  # ? (for method names like include?)
     BANG         = auto()  # ! (for method names)
+    SAFE_NAV     = auto()  # &. (nil-safe navigation operator)
     BEGIN_KW     = auto()  # begin
     RESCUE       = auto()  # rescue
     ENSURE       = auto()  # ensure
@@ -486,6 +487,9 @@ class Lexer:
                 self.add_token(TT.COLON, ':')
             elif ch == '?':
                 self.add_token(TT.QUESTION, '?')
+            elif ch == '&':
+                if self.match('.'):
+                    self.add_token(TT.SAFE_NAV, '&.')
             else:
                 self.error(f"Unexpected character: {ch!r}")
 

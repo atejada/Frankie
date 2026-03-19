@@ -265,6 +265,24 @@ def _fk_slice(target, start, end, inclusive=True):
     else:
         return target[start:end]
 
+def _fk_attr_or_method(obj, name):
+    """Safe nav helper: get obj.name as attribute (property) or zero-arg method call."""
+    val = getattr(obj, name, None)
+    if callable(val):
+        return val()
+    return val
+
+def _fk_method_call(obj, name, args):
+    """Safe nav helper: call obj.name(*args)."""
+    return getattr(obj, name)(*args)
+
+def _fk_method_with_block(obj, name, args, block_fn):
+    """Safe nav helper: call obj.name(*args) passing block_fn where needed."""
+    method = getattr(obj, name)
+    if args:
+        return method(*args, block_fn)
+    return method(block_fn)
+
 
 # ─── Regex ────────────────────────────────────────────────────────────────────
 import re as _re
@@ -423,6 +441,45 @@ def file_delete(path):
     except FileNotFoundError:
         return False
 
+def file_rename(src, dst):
+    """Rename or move a file from src to dst."""
+    try:
+        _os.rename(src, dst)
+        return True
+    except OSError as e:
+        raise RuntimeError(f"[Frankie] file_rename failed: {e}")
+
+def file_copy(src, dst):
+    """Copy a file from src to dst. Returns dst path."""
+    import shutil as _shutil
+    try:
+        _shutil.copy2(src, dst)
+        return dst
+    except OSError as e:
+        raise RuntimeError(f"[Frankie] file_copy failed: {e}")
+
+def file_mkdir(path, recursive=True):
+    """Create a directory. If recursive=true (default), creates all intermediate dirs."""
+    try:
+        if recursive:
+            _os.makedirs(path, exist_ok=True)
+        else:
+            _os.mkdir(path)
+        return True
+    except OSError as e:
+        raise RuntimeError(f"[Frankie] file_mkdir failed: {e}")
+
+def dir_exists(path):
+    """Return true if path is an existing directory."""
+    return _os.path.isdir(path)
+
+def dir_list(path="."):
+    """Return a list of filenames in directory path (excluding . and ..)."""
+    try:
+        return sorted(_os.listdir(path))
+    except OSError as e:
+        raise RuntimeError(f"[Frankie] dir_list failed: {e}")
+
 
 # ─── String Formatting ────────────────────────────────────────────────────────
 
@@ -439,6 +496,20 @@ def sprintf(fmt, *args):
         return fmt % args
     except TypeError:
         return fmt
+
+def template(tmpl, values):
+    """Simple string template: replace {{key}} placeholders with values from a hash.
+    Example: template(\"Hello, {{name}}! You are {{age}}.\", {name: \"Alice\", age: 30})
+    """
+    if not isinstance(values, dict):
+        raise TypeError("[Frankie] template: second argument must be a hash")
+    import re as _re_tmpl
+    def replacer(m):
+        key = m.group(1).strip()
+        if key not in values:
+            raise KeyError(f"[Frankie] template: key '{{key}}' not found in hash")
+        return str(values[key])
+    return _re_tmpl.sub(r'\{\{([^}]+)\}\}', replacer, tmpl)
 
 
 # ─── System ───────────────────────────────────────────────────────────────────
@@ -1560,6 +1631,37 @@ class _FKTestSuite:
             self._pass += 1
             print(f"  \033[32m✓\033[0m  {label}")
 
+    def assert_raises_typed(self, fn, error_type, msg=None):
+        label = msg or f"expected {error_type} to be raised"
+        # error_type can be a string name or an actual exception class
+        if isinstance(error_type, str):
+            _type_map = {
+                'RuntimeError': RuntimeError, 'TypeError': TypeError,
+                'ValueError': ValueError, 'ZeroDivisionError': ZeroDivisionError,
+                'IndexError': IndexError, 'KeyError': KeyError,
+                'IOError': IOError, 'FileNotFoundError': FileNotFoundError,
+                'OverflowError': OverflowError, 'NameError': NameError,
+                'AttributeError': AttributeError, 'Exception': Exception,
+                'Error': Exception,
+            }
+            exc_class = _type_map.get(error_type, Exception)
+        else:
+            exc_class = error_type
+        try:
+            fn()
+            self._fail += 1
+            self._errors.append(f"{label} (no error was raised)")
+            print(f"  \033[31m✗\033[0m  {label} (no error was raised)")
+        except exc_class:
+            self._pass += 1
+            print(f"  \033[32m✓\033[0m  {label}")
+        except Exception as e:
+            self._fail += 1
+            actual = type(e).__name__
+            detail = f"{label} (got {actual} instead)"
+            self._errors.append(detail)
+            print(f"  \033[31m✗\033[0m  {detail}")
+
     def report(self):
         total = self._pass + self._fail
         print()
@@ -1586,6 +1688,9 @@ def assert_neq(actual, expected, msg=None):
 
 def assert_raises(fn, msg=None):
     _fk_test_suite.assert_raises(fn, msg)
+
+def assert_raises_typed(fn, error_type, msg=None):
+    _fk_test_suite.assert_raises_typed(fn, error_type, msg)
 
 def _fk_run_tests():
     return _fk_test_suite.report()

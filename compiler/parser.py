@@ -583,6 +583,29 @@ class Parser:
 
                 node = MethodCall(receiver=node, method=method, args=args, block=block)
 
+            elif self.check(TT.SAFE_NAV):
+                self.advance()  # consume &.
+                method_tok = self.current()
+                if method_tok.type in (TT.IDENT, TT.TIMES, TT.EACH, TT.EACH_WITH_INDEX, TT.MAP):
+                    method = self.advance().value
+                else:
+                    self.error("Expected method name after '&.'")
+
+                args = []
+                if self.check(TT.LPAREN):
+                    self.advance()
+                    if not self.check(TT.RPAREN):
+                        args.append(self.parse_expr())
+                        while self.match(TT.COMMA):
+                            args.append(self.parse_expr())
+                    self.expect(TT.RPAREN)
+
+                block = None
+                if self.check(TT.DO):
+                    block = self.parse_block()
+
+                node = SafeNavCall(receiver=node, method=method, args=args, block=block)
+
             elif self.check(TT.LBRACKET):
                 self.advance()
                 index = self.parse_expr()

@@ -180,6 +180,14 @@ class MethodCall(Node):
     block: Optional['Block'] = None
 
 @dataclass
+class SafeNavCall(Node):
+    """receiver&.method(...) — returns nil if receiver is nil, otherwise calls method"""
+    receiver: Node
+    method: str
+    args: List[Node]
+    block: Optional['Block'] = None
+
+@dataclass
 class Block(Node):
     params: List[str]
     body: List[Node]

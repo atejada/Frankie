@@ -1,5 +1,80 @@
 # Changelog
 
+## v1.7.0 (2025)
+
+### New Features
+
+**Language — Nil Safety Operator `&.`**
+- `x&.method` — call `.method` on `x`, returning `nil` if `x` is nil (no crash)
+- `x&.method(args)` — nil-safe method call with arguments
+- `x&.property` — nil-safe property / zero-arg attribute access
+- Chains naturally: `a&.b&.c` — short-circuits at the first nil
+- Works with any value: strings, hashes, vectors, custom objects
+- No language keywords added — `&.` is a single new operator token
+
+```ruby
+user = {name: "Alice"}
+missing = nil
+
+puts user["name"]&.upcase   # ALICE
+puts missing&.upcase        # nil  (no crash)
+puts missing&.upcase&.reverse  # nil  (chain short-circuits)
+```
+
+**Standard Library — `template(str, hash)`**
+- Replace `{{key}}` placeholders in a string with values from a hash
+- Clean alternative to `sprintf` / `#{}` when keys are dynamic or templates are stored externally
+- Raises `KeyError` if a placeholder key is missing from the hash
+
+```ruby
+msg = template("Hello, {{name}}! Age: {{age}}.", {name: "Alice", age: 30})
+puts msg   # Hello, Alice! Age: 30.
+```
+
+**Standard Library — File System Operations**
+- `file_rename(src, dst)` — rename or move a file
+- `file_copy(src, dst)` — copy a file (preserving metadata); returns `dst`
+- `file_mkdir(path)` — create a directory; creates intermediate dirs by default (like `mkdir -p`)
+- `file_mkdir(path, false)` — create a single directory only (no parents)
+- `dir_exists(path)` — return `true` if path is an existing directory
+- `dir_list(path)` — return a sorted vector of filenames in a directory (default: `"."`)
+- All use Python's built-in `os` / `shutil` — zero external dependencies
+
+```ruby
+file_mkdir("/tmp/myapp/data")
+puts dir_exists("/tmp/myapp/data")     # true
+
+file_write("/tmp/myapp/data/a.txt", "hello")
+file_copy("/tmp/myapp/data/a.txt", "/tmp/myapp/data/b.txt")
+file_rename("/tmp/myapp/data/b.txt", "/tmp/myapp/data/c.txt")
+
+puts dir_list("/tmp/myapp/data")       # [a.txt, c.txt]
+```
+
+**Standard Library — `assert_raises_typed(fn, type, msg)`**
+- Extends the test runner to assert that a specific error *type* was raised
+- `type` can be a string (`"ZeroDivisionError"`) or a Python exception class
+- Fails with a clear message if no error is raised, or if the wrong type is raised
+- Supported type names mirror typed `rescue`: `RuntimeError`, `TypeError`, `ValueError`,
+  `ZeroDivisionError`, `IndexError`, `KeyError`, `IOError`, `FileNotFoundError`,
+  `OverflowError`, `NameError`, `AttributeError`, `Exception` / `Error`
+
+```ruby
+assert_raises_typed(def()
+  x = 1 // 0
+end, "ZeroDivisionError", "division by zero raises correctly")
+
+assert_raises_typed(def()
+  file_read("/no/such/file.txt")
+end, "RuntimeError", "missing file raises RuntimeError")
+```
+
+### Bug Fixes
+- `&.` operator correctly short-circuits chains — once a nil is encountered, remaining
+  method calls in the chain are skipped without raising errors
+
+---
+
 ## v1.6.0 (2025)
 
 ### New Features

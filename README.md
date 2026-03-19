@@ -7,7 +7,7 @@
  |  _|| | | (_| | | | |   <| |  __/
  |_|  |_|  \__,_|_| |_|_|\_\_|\___|
 
- The Frankie Language v1.6
+ The Frankie Language v1.7
  Stitched together from Ruby • Python • R • Fortran
 ```
 
@@ -96,36 +96,34 @@ end
 
 ---
 
-## v1.6 Highlights
+## v1.7 Highlights
 
 ```ruby
-# Compound assignment
-score = 0
-score += 10
-score *= 2
-puts score       # 20
+# Nil Safety — &. operator
+user = {name: "Alice"}
+missing = nil
 
-v = [100, 200, 300]
-v[1] -= 50
-puts v           # [100, 150, 300]
+puts user["name"]&.upcase   # ALICE
+puts missing&.upcase        # nil  (no crash, ever)
+puts missing&.upcase&.reverse  # nil  (chain short-circuits)
 
-# Typed rescue
-begin
-  x = 10 // 0
-rescue ZeroDivisionError e
-  puts "division: #{e}"
-rescue RuntimeError e
-  puts "runtime: #{e}"
-end
+# String Templates
+msg = template("Hello, {{name}}! You are {{age}}.", {name: "Bob", age: 25})
+puts msg   # Hello, Bob! You are 25.
 
-# .find / .detect
-first_adult = people.find do |p|
-  p["age"] >= 18
-end
+# File System Operations
+file_mkdir("/tmp/myapp/data")
+puts dir_exists("/tmp/myapp/data")    # true
 
-# frankiec test
-assert_eq(mean([1,2,3]), 2.0, "mean works")
-assert_eq(first_adult["name"], "Bob", "find works")
+file_write("/tmp/myapp/data/a.txt", "hello")
+file_copy("/tmp/myapp/data/a.txt", "/tmp/myapp/data/b.txt")
+file_rename("/tmp/myapp/data/b.txt", "/tmp/myapp/data/c.txt")
+puts dir_list("/tmp/myapp/data")      # [a.txt, c.txt]
+
+# assert_raises_typed in tests
+assert_raises_typed(def()
+  x = 1 // 0
+end, "ZeroDivisionError", "division raises correctly")
 ```
 
 ---
@@ -217,7 +215,7 @@ Full documentation lives in the `docs/` folder:
 | `docs/03_collections.md` | Vectors, hashes, all iterators |
 | `docs/04_stdlib.md` | Math, stats, strings, regex, file I/O, system |
 | `docs/05_examples.md` | All example programs explained |
-| `docs/06_changelog.md` | v1.0 – v1.6 release notes |
+| `docs/06_changelog.md` | v1.0 – v1.7 release notes |
 | `docs/07_database.md` | SQLite database access — full API reference |
 | `docs/08_v13_features.md` | JSON, CSV, DateTime, HTTP, project scaffolding |
 | `docs/09_web.md` | Web server — routes, requests, responses, filters |
@@ -238,7 +236,7 @@ frankie/
 │   ├── ast_nodes.py       ← AST node definitions
 │   └── codegen.py         ← Python code generator
 ├── docs/                  ← full documentation
-├── examples/              ← 15 example .fk programs (incl. webapp.fk, whats_new_v15.fk, whats_new_v16.fk)
+├── examples/              ← example .fk programs (incl. webapp.fk, whats_new_v16.fk, whats_new_v17.fk)
 ├── frankiec.py            ← compiler CLI entry point
 ├── frankie_stdlib.py      ← runtime standard library
 ├── repl.py                ← interactive REPL
