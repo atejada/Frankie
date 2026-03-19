@@ -1,7 +1,7 @@
 # 🧟 Frankie Programming Language
 
 ```
-  _____                 _    _
+  _____                _    _
  |  ___| __ __ _ _ __ | | _(_) ___
  | |_ | '__/ _` | '_ \| |/ / |/ _ \
  |  _|| | | (_| | | | |   <| |  __/
@@ -17,6 +17,8 @@
 ---
 
 ## What is Frankie?
+
+![Frankie - The Programming Language](https://github.com/atejada/Frankie/blob/main/The%20Frankie%20Programming%20Language.png)
 
 Frankie is a **procedural, expressive, terminal-native programming language** named after Frankenstein — lovingly stitched together from the best parts of four legendary languages:
 
