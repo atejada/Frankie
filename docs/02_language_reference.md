@@ -45,7 +45,16 @@ name = "Frankie"
 puts "Hello, #{name}!"
 puts "Two plus two is #{2 + 2}"
 puts "Pi ≈ #{3.14159}"
-puts "Hash: #{my_hash}"
+```
+
+Triple-quoted strings span multiple lines:
+
+```ruby
+text = """
+  Hello, #{name}!
+  Welcome to Frankie.
+"""
+puts text
 ```
 
 ---
@@ -57,6 +66,16 @@ print "no newline"
 puts "adds a newline"
 p 42              # debug: (Integer) 42
 p [1, 2, 3]       # debug: (Vector) [1, 2, 3]
+```
+
+---
+
+## Input
+
+```ruby
+name  = input("Name: ")
+age   = input_int("Age: ")
+score = input_float("Score: ")
 ```
 
 ---
@@ -180,17 +199,17 @@ end
 ```ruby
 # while
 while x < 10
-  x = x + 1
+  x += 1
 end
 
 # until
 until x == 10
-  x = x + 1
+  x += 1
 end
 
 # do...while — body runs at least once (Fortran-style)
 do
-  x = x + 1
+  x += 1
 while x < 10
 
 # for...in
@@ -201,6 +220,48 @@ end
 for item in ["apple", "banana"]
   puts item
 end
+```
+
+### Loop Control
+
+```ruby
+# next — skip to next iteration (like continue)
+[1,2,3,4,5].each do |n|
+  next if n % 2 == 0
+  puts n              # 1 3 5
+end
+
+# break — exit the loop early
+[1,2,3,4,5].each do |n|
+  break if n > 3
+  puts n              # 1 2 3
+end
+
+# break with value
+result = [1,2,3,4,5].each do |n|
+  break n * 10 if n == 3
+end
+puts result           # 30
+
+# postfix forms
+next if condition
+break if condition
+```
+
+---
+
+## Constants
+
+`UPPER_SNAKE_CASE` identifiers are treated as constants. Reassignment prints a warning and preserves the original value.
+
+```ruby
+MAX_SIZE = 100
+PI       = 3.14159
+APP_NAME = "Frankie"
+
+puts MAX_SIZE   # 100
+MAX_SIZE = 200  # Warning: MAX_SIZE is a constant
+puts MAX_SIZE   # 100  (unchanged)
 ```
 
 ---
@@ -219,13 +280,25 @@ puts add(3, 4)    # 7
 - Recursion is fully supported
 - Variables from outer scope are accessible
 
+### Default Parameters
+
 ```ruby
-def factorial(n)
-  if n <= 1
-    return 1
-  end
-  return n * factorial(n - 1)
+def greet(name, msg="Hello", punct="!")
+  puts "#{msg}, #{name}#{punct}"
 end
+
+greet("Alice")             # Hello, Alice!
+greet("Bob", "Hi")         # Hi, Bob!
+greet("Carol", "Hey", ".") # Hey, Carol.
+```
+
+Required parameters must come before optional ones.
+
+### Named Arguments
+
+```ruby
+puts paste("2025", "03", "14", sep: "-")    # 2025-03-14
+puts sprintf("%-10s %d", "Frankie", 1)
 ```
 
 ---
@@ -236,7 +309,6 @@ end
 a, b, c = [10, 20, 30]
 puts a    # 10
 
-# From a function returning a vector
 def min_max(v)
   return [min(v), max(v)]
 end
@@ -247,15 +319,6 @@ puts "#{lo}..#{hi}"    # 1..9
 # Short vectors pad with nil
 x, y, z = [1, 2]
 puts z    # nil
-```
-
----
-
-## Named Arguments
-
-```ruby
-puts paste("2025", "03", "14", sep: "-")    # 2025-03-14
-puts sprintf("%-10s %d", "Frankie", 1)
 ```
 
 ---
@@ -271,6 +334,24 @@ def double(x)
 end
 10 |> double |> puts            # 20
 ```
+
+---
+
+## Nil Safety — `&.` Operator
+
+`x&.method` calls `.method` on `x`, returning `nil` if `x` is nil — no crash.
+
+```ruby
+user    = {name: "Alice"}
+missing = nil
+
+puts user["name"]&.upcase       # ALICE
+puts missing&.upcase            # nil  (no crash)
+puts missing&.upcase&.reverse   # nil  (chain short-circuits)
+puts missing&.length            # nil
+```
+
+Chains short-circuit at the first `nil` — once a nil is encountered, the rest of the chain is skipped.
 
 ---
 
@@ -296,6 +377,8 @@ begin
   x = 10 // 0
 rescue ZeroDivisionError e
   puts "division by zero"
+rescue TypeError e
+  puts "wrong type: #{e}"
 rescue RuntimeError e
   puts "runtime error: #{e}"
 rescue e
@@ -306,6 +389,7 @@ end
 ```
 
 Multiple `rescue` clauses are matched in order; the first matching type wins.
+
 Supported types: `RuntimeError`, `TypeError`, `ValueError`, `ZeroDivisionError`,
 `IndexError`, `KeyError`, `IOError`, `FileNotFoundError`, `OverflowError`,
 `NameError`, `AttributeError`, `Exception` / `Error`.
@@ -323,20 +407,21 @@ Each file is loaded at most once.
 
 ---
 
-## Input
-
-```ruby
-name  = input("Name: ")
-age   = input_int("Age: ")
-score = input_float("Score: ")
-```
-
----
-
 ## Type Conversion
 
 ```ruby
 to_int("42")      # 42
 to_float("3.14")  # 3.14
 to_str(100)       # "100"
+```
+
+## Type Checking
+
+```ruby
+is_integer(42)      # true
+is_float(3.14)      # true
+is_string("hi")     # true
+is_vector([1,2,3])  # true
+is_nil(nil)         # true
+is_bool(true)       # true
 ```

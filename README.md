@@ -18,8 +18,6 @@
 
 ## What is Frankie?
 
-![Frankie - The Programming Language](https://github.com/atejada/Frankie/blob/main/The%20Frankie%20Programming%20Language.png)
-
 Frankie is a **procedural, expressive, terminal-native programming language** named after Frankenstein — lovingly stitched together from the best parts of four legendary languages:
 
 | Donor | What Frankie Borrows |
@@ -210,14 +208,14 @@ Full documentation lives in the `docs/` folder:
 
 | File | Contents |
 |---|---|
-| `docs/01_getting_started.md` | Installation, first program, REPL guide |
-| `docs/02_language_reference.md` | Variables, types, operators, control flow, functions |
+| `docs/01_getting_started.md` | Installation, CLI commands, REPL guide, scaffolding |
+| `docs/02_language_reference.md` | Variables, types, operators, control flow, nil safety, functions |
 | `docs/03_collections.md` | Vectors, hashes, all iterators |
-| `docs/04_stdlib.md` | Math, stats, strings, regex, file I/O, system |
+| `docs/04_stdlib.md` | Math, stats, randomness, strings, regex, file I/O, file system, JSON, CSV, DateTime, HTTP, testing |
 | `docs/05_examples.md` | All example programs explained |
 | `docs/06_changelog.md` | v1.0 – v1.7 release notes |
 | `docs/07_database.md` | SQLite database access — full API reference |
-| `docs/08_v13_features.md` | JSON, CSV, DateTime, HTTP, project scaffolding |
+| `docs/08_v17_features.md` | v1.4–v1.7 feature reference: nil safety, templates, file system, typed asserts, web server, randomness, constants, compound assignment |
 | `docs/09_web.md` | Web server — routes, requests, responses, filters |
 
 The formal language grammar lives in `SPEC.md`.
