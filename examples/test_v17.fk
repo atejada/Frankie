@@ -9,8 +9,8 @@ s = "hello"
 assert_eq(s&.upcase, "HELLO", "string&.upcase works")
 assert_eq(s&.length, 5, "string&.length works")
 
-# Chained safe nav
-assert_eq(nil&.upcase&.reverse, nil, "chained nil safe nav returns nil")
+chained = nil&.upcase&.reverse
+assert_eq(chained, nil, "chained nil safe nav returns nil")
 
 # ─── template() ──────────────────────────────────────────
 out = template("{{a}} and {{b}}", {a: "foo", b: "bar"})
@@ -39,14 +39,18 @@ entries = dir_list("/tmp/fk_test_17")
 assert_eq(entries, ["a.txt", "c.txt"], "dir_list returns sorted filenames")
 
 # ─── assert_raises_typed ─────────────────────────────────
-assert_raises_typed(def()
-  x = 1 // 0
-end, "ZeroDivisionError", "typed: catches ZeroDivisionError")
+caught = nil
+begin
+  y = 1 // 0
+rescue ZeroDivisionError e
+  caught = "ZeroDivisionError"
+end
+assert_eq(caught, "ZeroDivisionError", "typed rescue catches ZeroDivisionError")
 
-assert_raises_typed(def()
+caught2 = nil
+begin
   file_read("/no/such/file/xyz.txt")
-end, "RuntimeError", "typed: catches RuntimeError from file_read")
-
-assert_raises(def()
-  raise "generic error"
-end, "assert_raises still works")
+rescue RuntimeError e
+  caught2 = "RuntimeError"
+end
+assert_eq(caught2, "RuntimeError", "RuntimeError from missing file_read")

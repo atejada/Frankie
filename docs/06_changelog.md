@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.7.1 (2025)
+
+### Bug Fixes
+- **`N.times do`** — `def _gen_times` method definition was accidentally dropped from
+  `compiler/codegen.py` during v1.7 development, causing an `AttributeError` at runtime.
+  The method body was present but the `def` header was missing.
+- **`test_v17.fk`** — example test file used `def()` anonymous function syntax inside
+  `assert_raises_typed` which does not exist in Frankie yet. Rewritten to use
+  `begin/rescue` blocks instead.
+
+---
+
 ## v1.7.0 (2025)
 
 ### New Features

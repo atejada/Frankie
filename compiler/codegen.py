@@ -799,7 +799,7 @@ class CodeGen:
         # Wrap with nil guard using walrus operator so recv is evaluated once
         return f"(None if ({recv_expr}) is None else {inner})"
 
-
+    def _gen_times(self, recv, node: MethodCall) -> str:
         """Generate a for loop for N.times do |i| ... end"""
         block = node.block
         if block is None:
