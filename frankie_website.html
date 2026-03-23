@@ -89,7 +89,7 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
 <body>
 
 <nav>
-  <a href="#" class="nav-logo">🧟 Frankie <span>v1.7</span></a>
+  <a href="#" class="nav-logo">🧟 Frankie <span>v1.8</span></a>
   <ul>
     <li><a href="#features">Features</a></li>
     <li><a href="#syntax">Syntax</a></li>
@@ -101,11 +101,12 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
 
 <div class="hero">
   <p class="eyebrow">⚡ It's alive!</p>
-  <pre class="ascii">  _____                 _    _
- |  ___| __ __ _ _ __ | | _(_) ___
- | |_ | '__/ _` | '_ \| |/ / |/ _ \
- |  _|| | | (_| | | | |   &lt;| |  __/
- |_|  |_|  \__,_|_| |_|_|\_\_|\___| </pre>
+  <pre class="ascii">
+ _____                _    _
+     |  ___| __ __ _ _ __ | | _(_) ___
+     | |_ | '__/ _` | '_ \| |/ / |/ _ \
+     |  _|| | | (_| | | | |   &lt;| |  __/
+     |_|  |_|  \__,_|_| |_|_|\_\_|\___| </pre>
   <h1>The <em>Frankie</em> Language</h1>
   <p class="sub">A procedural programming language lovingly stitched together from Ruby, Python, R, and Fortran. Zero dependencies. Proudly monstrous.</p>
   <div class="tags">
@@ -116,7 +117,7 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
   </div>
   <div class="ctas">
     <a href="#install" class="btn btn-p">Get Started →</a>
-    <a href="https://github.com/atejada/Frankie/releases" class="btn btn-s">Download v1.7</a>
+    <a href="https://github.com/atejada/Frankie/releases" class="btn btn-s">Download v1.8</a>
     <a href="https://github.com/atejada/Frankie" class="btn btn-s">★ Star on GitHub</a>
   </div>
   <p class="scroll">▼ scroll</p>
@@ -129,14 +130,18 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
   <h2>Everything you need.<br>Nothing you don't.</h2>
   <p style="color:var(--muted);max-width:560px;font-size:.97rem">Proudly procedural — functions, data, loops, logic. No classes, no <code>self</code>, no inheritance. Runs on Python 3.10+ with zero external dependencies.</p>
   <div class="grid">
-    <div class="card"><div class="card-icon">🛡️</div><h3>Nil Safety <code>&amp;.</code> <span class="new-badge">v1.7</span></h3><p><code>x&amp;.method</code> returns <code>nil</code> instead of crashing when <code>x</code> is nil. Chains safely: <code>a&amp;.b&amp;.c</code> short-circuits at the first nil. No more defensive nil checks.</p></div>
-    <div class="card"><div class="card-icon">📄</div><h3>String Templates <span class="new-badge">v1.7</span></h3><p><code>template("Hello, {{name}}!", hash)</code> — replace <code>{{key}}</code> placeholders with values from a hash. Clean alternative to <code>sprintf</code> for dynamic or externally-stored templates.</p></div>
-    <div class="card"><div class="card-icon">📁</div><h3>File System Ops <span class="new-badge">v1.7</span></h3><p><code>file_rename</code>, <code>file_copy</code>, <code>file_mkdir</code>, <code>dir_exists</code>, <code>dir_list</code> — complete file and directory management. Pure stdlib, zero external dependencies.</p></div>
-    <div class="card"><div class="card-icon">🧪</div><h3>assert_raises_typed <span class="new-badge">v1.7</span></h3><p>Test that a <em>specific</em> error type is raised: <code>assert_raises_typed(fn, "ZeroDivisionError", msg)</code>. Pairs naturally with typed <code>rescue</code> clauses already in the language.</p></div>
-    <div class="card"><div class="card-icon">➕</div><h3>Compound Assignment <span class="new-badge">v1.6</span></h3><p><code>+=</code> <code>-=</code> <code>*=</code> <code>/=</code> <code>//=</code> <code>**=</code> <code>%=</code> — all operators, including Fortran-style integer division and exponentiation. Works on variables and vector elements.</p></div>
-    <div class="card"><div class="card-icon">🛡️</div><h3>Typed Rescue <span class="new-badge">v1.6</span></h3><p><code>rescue ZeroDivisionError e</code>, <code>rescue TypeError e</code> — multiple typed clauses on one <code>begin…end</code> block. Catch exactly what you mean.</p></div>
-    <div class="card"><div class="card-icon">🔍</div><h3>.find / .detect <span class="new-badge">v1.6</span></h3><p>Return the first element where the block is true, or <code>nil</code>. Works on any vector including vectors of hashes. Chains naturally with <code>.select</code>, <code>.sort_by</code>, and the pipe operator.</p></div>
-    <div class="card"><div class="card-icon">🧪</div><h3>frankiec test <span class="new-badge">v1.6</span></h3><p>Built-in test runner. <code>assert_true</code>, <code>assert_eq</code>, <code>assert_neq</code>, <code>assert_raises</code>, <code>assert_raises_typed</code> — no imports. Live ✓ / ✗ output per assertion. Exits 1 on failure for CI.</p></div>
+    <div class="card"><div class="card-icon">λ</div><h3>Lambdas <code>-&gt;(x) { }</code> <span class="new-badge">v1.8</span></h3><p>Store and pass functions as first-class values. <code>double = -&gt;(x) { x * 2 }</code>, then <code>double.call(5)</code>. Default params, multi-statement <code>do...end</code> bodies, and full higher-order function support.</p></div>
+    <div class="card"><div class="card-icon">🔀</div><h3>Hash Merge <code>h1 | h2</code> <span class="new-badge">v1.8</span></h3><p>Merge two hashes with a clean operator. Right-hand keys win on conflict. Chains naturally: <code>defaults | env | local</code>. Neither operand is modified.</p></div>
+    <div class="card"><div class="card-icon">📦</div><h3>group_by <span class="new-badge">v1.8</span></h3><p><code>vec.group_by do |x| x["dept"] end</code> buckets a vector into a hash of arrays. Pairs naturally with <code>.tally</code>, <code>.sort_by</code>, and the new <code>|</code> merge operator.</p></div>
+    <div class="card"><div class="card-icon">🪟</div><h3>each_slice &amp; each_cons <span class="new-badge">v1.8</span></h3><p><code>.each_slice(n)</code> iterates in fixed chunks; <code>.each_cons(n)</code> iterates with a sliding window. Perfect for batch processing, pagination, rolling averages, and delta detection.</p></div>
+    <div class="card"><div class="card-icon">🛡️</div><h3>Nil Safety <code>&amp;.</code> <span class="badge bs">v1.7</span></h3><p><code>x&amp;.method</code> returns <code>nil</code> instead of crashing when <code>x</code> is nil. Chains safely: <code>a&amp;.b&amp;.c</code> short-circuits at the first nil. No more defensive nil checks.</p></div>
+    <div class="card"><div class="card-icon">📄</div><h3>String Templates <span class="badge bs">v1.7</span></h3><p><code>template("Hello, {{name}}!", hash)</code> — replace <code>{{key}}</code> placeholders with values from a hash. Clean alternative to <code>sprintf</code> for dynamic or externally-stored templates.</p></div>
+    <div class="card"><div class="card-icon">📁</div><h3>File System Ops <span class="badge bs">v1.7</span></h3><p><code>file_rename</code>, <code>file_copy</code>, <code>file_mkdir</code>, <code>dir_exists</code>, <code>dir_list</code> — complete file and directory management. Pure stdlib, zero external dependencies.</p></div>
+    <div class="card"><div class="card-icon">🧪</div><h3>assert_raises_typed <span class="badge bs">v1.7</span></h3><p>Test that a <em>specific</em> error type is raised: <code>assert_raises_typed(fn, "ZeroDivisionError", msg)</code>. Pairs naturally with typed <code>rescue</code> clauses already in the language.</p></div>
+    <div class="card"><div class="card-icon">➕</div><h3>Compound Assignment</h3><p><code>+=</code> <code>-=</code> <code>*=</code> <code>/=</code> <code>//=</code> <code>**=</code> <code>%=</code> — all operators, including Fortran-style integer division and exponentiation. Works on variables and vector elements.</p></div>
+    <div class="card"><div class="card-icon">🛡️</div><h3>Typed Rescue</h3><p><code>rescue ZeroDivisionError e</code>, <code>rescue TypeError e</code> — multiple typed clauses on one <code>begin…end</code> block. Catch exactly what you mean.</p></div>
+    <div class="card"><div class="card-icon">🔍</div><h3>.find / .detect</h3><p>Return the first element where the block is true, or <code>nil</code>. Works on any vector including vectors of hashes. Chains naturally with <code>.select</code>, <code>.sort_by</code>, and the pipe operator.</p></div>
+    <div class="card"><div class="card-icon">🧪</div><h3>frankiec test</h3><p>Built-in test runner. <code>assert_true</code>, <code>assert_eq</code>, <code>assert_neq</code>, <code>assert_raises</code>, <code>assert_raises_typed</code> — no imports. Live ✓ / ✗ output per assertion. Exits 1 on failure for CI.</p></div>
     <div class="card"><div class="card-icon">📊</div><h3>R-style Statistics</h3><p>Built-in <code>mean</code>, <code>stdev</code>, <code>median</code>, <code>variance</code>. Vectorised arithmetic. Pipe operator <code>|&gt;</code> for clean data pipelines.</p></div>
     <div class="card"><div class="card-icon">🌐</div><h3>Built-in Web Server</h3><p>Sinatra-style routing with <code>web_app()</code>. Path params, JSON bodies, before/after filters, custom 404 — zero external deps.</p></div>
     <div class="card"><div class="card-icon">🗄️</div><h3>SQLite Built-in</h3><p>Open databases, run queries, insert rows with clean Frankie syntax. No ORM, no driver, no setup required.</p></div>
@@ -152,7 +157,7 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
   <div class="code-grid">
 
     <div class="cp">
-      <div class="cp-head"><span class="cp-title">nil_safety.fk <span class="new-badge">v1.7</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
+      <div class="cp-head"><span class="cp-title">nil_safety.fk <span class="badge bs">v1.7</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
       <pre><span class="cm"># &amp;. — nil-safe navigation operator</span>
 <span class="vr">user</span>    = {name: <span class="str">"Alice"</span>, age: <span class="num">30</span>}
 <span class="vr">missing</span> = <span class="kw">nil</span>
@@ -179,7 +184,7 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
     </div>
 
     <div class="cp">
-      <div class="cp-head"><span class="cp-title">template.fk <span class="new-badge">v1.7</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
+      <div class="cp-head"><span class="cp-title">template.fk <span class="badge bs">v1.7</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
       <pre><span class="cm"># template() — {{key}} placeholder substitution</span>
 <span class="vr">msg</span> = <span class="fn">template</span>(<span class="str">"Hello, {{name}}! Age: {{age}}."</span>,
                {name: <span class="str">"Alice"</span>, age: <span class="num">30</span>})
@@ -205,7 +210,7 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
     </div>
 
     <div class="cp">
-      <div class="cp-head"><span class="cp-title">filesystem.fk <span class="new-badge">v1.7</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
+      <div class="cp-head"><span class="cp-title">filesystem.fk <span class="badge bs">v1.7</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
       <pre><span class="cm"># File system — zero dependencies</span>
 <span class="fn">file_mkdir</span>(<span class="str">"/tmp/myapp/data"</span>)
 <span class="fn">puts</span> <span class="fn">dir_exists</span>(<span class="str">"/tmp/myapp/data"</span>)   <span class="cm"># true</span>
@@ -230,7 +235,7 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
     </div>
 
     <div class="cp">
-      <div class="cp-head"><span class="cp-title">test_typed.fk <span class="new-badge">v1.7</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
+      <div class="cp-head"><span class="cp-title">test_typed.fk <span class="badge bs">v1.7</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
       <pre><span class="cm"># assert_raises_typed — precise error testing</span>
 <span class="cm"># Run: frankiec test</span>
 
@@ -259,6 +264,51 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
 <span class="cm"># ✓  safe nav works</span>
 <span class="cm"># ✓  template substitution</span>
 <span class="cm"># ✓  All 5 test(s) passed  (2.1ms)</span></pre>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head"><span class="cp-title">lambdas.fk <span class="new-badge">v1.8</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
+      <pre><span class="cm"># Lambdas — functions as first-class values</span>
+<span class="vr">double</span> = <span class="fn">-&gt;</span>(<span class="vr">x</span>) { <span class="vr">x</span> * <span class="num">2</span> }
+<span class="vr">square</span> = <span class="fn">-&gt;</span>(<span class="vr">x</span>) { <span class="vr">x</span> * <span class="vr">x</span> }
+<span class="fn">puts</span> <span class="vr">double</span>.<span class="fn">call</span>(<span class="num">7</span>)   <span class="cm"># 14</span>
+<span class="fn">puts</span> <span class="vr">square</span>.<span class="fn">call</span>(<span class="num">5</span>)   <span class="cm"># 25</span>
+
+<span class="cm"># Higher-order functions</span>
+<span class="kw">def</span> <span class="fn">apply</span>(<span class="vr">fn</span>, <span class="vr">val</span>)
+  <span class="kw">return</span> <span class="vr">fn</span>.<span class="fn">call</span>(<span class="vr">val</span>)
+<span class="kw">end</span>
+<span class="fn">puts</span> <span class="fn">apply</span>(<span class="vr">double</span>, <span class="num">9</span>)   <span class="cm"># 18</span>
+
+<span class="cm"># Hash merge operator |</span>
+<span class="vr">defaults</span> = {color: <span class="str">"blue"</span>, size: <span class="str">"md"</span>}
+<span class="vr">overrides</span> = {color: <span class="str">"red"</span>}
+<span class="fn">puts</span> <span class="vr">defaults</span> | <span class="vr">overrides</span>
+<span class="cm"># {color: red, size: md}</span></pre>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head"><span class="cp-title">data_processing.fk <span class="new-badge">v1.8</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
+      <pre><span class="cm"># group_by — bucket a vector by key</span>
+<span class="vr">people</span> = [
+  {name: <span class="str">"Alice"</span>, dept: <span class="str">"Eng"</span>},
+  {name: <span class="str">"Bob"</span>,   dept: <span class="str">"Design"</span>},
+  {name: <span class="str">"Carol"</span>, dept: <span class="str">"Eng"</span>}
+]
+<span class="vr">by_dept</span> = <span class="vr">people</span>.<span class="fn">group_by</span> <span class="kw">do</span> |<span class="vr">p</span>|
+  <span class="vr">p</span>[<span class="str">"dept"</span>]
+<span class="kw">end</span>
+<span class="fn">puts</span> <span class="vr">by_dept</span>[<span class="str">"Eng"</span>].<span class="fn">length</span>   <span class="cm"># 2</span>
+
+<span class="cm"># each_slice — fixed chunks</span>
+[<span class="num">1</span>,<span class="num">2</span>,<span class="num">3</span>,<span class="num">4</span>,<span class="num">5</span>,<span class="num">6</span>].<span class="fn">each_slice</span>(<span class="num">2</span>) <span class="kw">do</span> |<span class="vr">s</span>|
+  <span class="fn">puts</span> <span class="vr">s</span>   <span class="cm"># [1,2]  [3,4]  [5,6]</span>
+<span class="kw">end</span>
+
+<span class="cm"># each_cons — sliding window</span>
+[<span class="num">10</span>,<span class="num">13</span>,<span class="num">11</span>,<span class="num">15</span>].<span class="fn">each_cons</span>(<span class="num">2</span>) <span class="kw">do</span> |<span class="vr">w</span>|
+  <span class="fn">puts</span> <span class="vr">w</span>[<span class="num">1</span>] - <span class="vr">w</span>[<span class="num">0</span>]   <span class="cm"># 3  -2  4</span>
+<span class="kw">end</span></pre>
     </div>
 
     <div class="cp">
@@ -321,7 +371,7 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
 <span class="kw">end</span>
 
 <span class="vr">app</span>.<span class="fn">get</span>(<span class="str">"/api/status"</span>) <span class="kw">do</span> |<span class="vr">req</span>|
-  <span class="fn">json_response</span>({status: <span class="str">"ok"</span>, version: <span class="str">"1.7"</span>})
+  <span class="fn">json_response</span>({status: <span class="str">"ok"</span>, version: <span class="str">"1.8"</span>})
 <span class="kw">end</span>
 
 <span class="vr">store</span> = {notes: []}
@@ -385,8 +435,9 @@ frankiec test</pre></div>
   <table>
     <thead><tr><th>Version</th><th>Highlights</th><th>Status</th></tr></thead>
     <tbody>
-      <tr><td><strong>v1.7</strong></td><td>Nil safety <code>&amp;.</code>, string templates, file system ops, assert_raises_typed</td><td><span class="badge bl">Latest</span></td></tr>
-      <tr><td>v1.6</td><td>Compound assign +=/-=/*= etc., typed rescue, .find/.detect, frankiec test</td><td><span class="badge bs">Stable</span></td></tr>
+      <tr><td><strong>v1.8</strong></td><td>Lambdas <code>-&gt;(x) { }</code>, hash merge <code>|</code>, group_by, each_slice, each_cons</td><td><span class="badge bl">Latest</span></td></tr>
+      <tr><td>v1.7</td><td>Nil safety <code>&amp;.</code>, string templates, file system ops, assert_raises_typed</td><td><span class="badge bs">Stable</span></td></tr>
+      <tr><td>v1.6</td><td>Compound assign +=/-=/*= etc., typed rescue, .find/.detect, frankiec test</td><td><span class="badge bo">Old</span></td></tr>
       <tr><td>v1.5</td><td>next / break, constants, randomness, sort_by, sleep, unzip</td><td><span class="badge bo">Old</span></td></tr>
       <tr><td>v1.4</td><td>Built-in web server, routes, JSON API, filters, custom 404</td><td><span class="badge bo">Old</span></td></tr>
       <tr><td>v1.3</td><td>JSON, CSV, DateTime, HTTP client, project scaffolding</td><td><span class="badge bo">Old</span></td></tr>

@@ -645,6 +645,44 @@ def _fk_chunk(iterable, n):
     lst = list(iterable)
     return [lst[i:i+n] for i in range(0, len(lst), n)]
 
+def _fk_group_by(iterable, key_fn):
+    """Group elements by the result of key_fn. Returns a hash of arrays."""
+    result = {}
+    for item in iterable:
+        key = key_fn(item)
+        if isinstance(key, bool):
+            k = str(key).lower()
+        elif key is None:
+            k = 'nil'
+        else:
+            k = str(key)
+        if k not in result:
+            result[k] = []
+        result[k].append(item)
+    return result
+
+def _fk_each_slice(iterable, n):
+    """Yield successive non-overlapping slices of size n."""
+    lst = list(iterable)
+    return [lst[i:i+n] for i in range(0, len(lst), n)]
+
+def _fk_each_cons(iterable, n):
+    """Yield all consecutive windows of size n (sliding window)."""
+    lst = list(iterable)
+    if n > len(lst):
+        return []
+    return [lst[i:i+n] for i in range(len(lst) - n + 1)]
+
+def _fk_hash_merge(h1, h2):
+    """Merge two hashes — h2 values win on key conflicts. Returns a new hash."""
+    if not isinstance(h1, dict):
+        raise TypeError(f"| operator requires a hash on the left, got {type(h1).__name__}")
+    if not isinstance(h2, dict):
+        raise TypeError(f"| operator requires a hash on the right, got {type(h2).__name__}")
+    return {**h1, **h2}
+
+
+
 
 # ─── Destructuring Helper ─────────────────────────────────────────────────────
 

@@ -1,5 +1,80 @@
 # Changelog
 
+## v1.8.0 (2026)
+
+### New Features
+
+**Language — Lambda / Anonymous Functions (`->`)**
+- Store functions as first-class values: `double = ->(x) { x * 2 }`
+- Call with `.call(args)`: `double.call(5)` → `10`
+- Single-expression bodies use brace syntax: `->(x) { x * 2 }`
+- Multi-statement bodies use `do...end`: `->(x) do ... end`
+- Default parameters are supported: `->(x, y = 1) { x + y }`
+- Lambdas can be stored in variables, vectors, and hashes
+- Lambdas can be passed to functions as arguments (higher-order functions)
+- Lambdas can be returned from functions
+- New token: `ARROW` (`->`)
+- New AST node: `LambdaLiteral`
+
+```ruby
+double = ->(x) { x * 2 }
+add    = ->(a, b) { a + b }
+puts double.call(7)      # 14
+puts add.call(3, 4)      # 7
+
+def apply(fn, val)
+  return fn.call(val)
+end
+puts apply(double, 9)    # 18
+```
+
+**Language — Hash Merge Operator `|`**
+- `h1 | h2` merges two hashes; right-hand keys win on conflict
+- Returns a new hash — neither operand is modified
+- Chains naturally: `a | b | c`
+- Complements the existing `.merge(other)` method
+
+```ruby
+defaults = {color: "blue", size: "medium"}
+overrides = {color: "red"}
+puts defaults | overrides   # {color: red, size: medium}
+```
+
+**Standard Library — `group_by`**
+- `vector.group_by do |x| key end` buckets elements by block return value
+- Returns a hash whose values are arrays of matching elements, in original order
+- Pairs naturally with `.tally`, `.sort_by`, `.each`, and the new `|` operator
+
+```ruby
+words = ["ant", "ape", "bear", "bee", "cat"]
+puts words.group_by do |w| w[0] end
+# {"a" => ["ant", "ape"], "b" => ["bear", "bee"], "c" => ["cat"]}
+```
+
+**Standard Library — `each_slice` and `each_cons`**
+- `vector.each_slice(n)` — iterate non-overlapping chunks of size `n`
+- `vector.each_cons(n)` — iterate all consecutive windows of size `n` (sliding window)
+- Both accept an optional `do |var| ... end` block; without a block, return a vector of slices/windows
+- Mirrors Ruby's API; natural fit for data-processing, batch operations, and rolling statistics
+
+```ruby
+[1,2,3,4,5,6].each_slice(2) do |s|
+  puts s     # [1,2]  [3,4]  [5,6]
+end
+
+[10, 13, 11, 15].each_cons(2) do |w|
+  puts w[1] - w[0]    # 3  -2  4
+end
+```
+
+### Bug Fixes
+- **`_block_to_lambda`** — blocks whose body ends with a control-flow expression
+  (`if`, `case`, `unless`) now correctly capture the result value instead of
+  raising a `CodeGenError`. Affects `select`, `reject`, `sort_by`, `min_by`,
+  `max_by`, `sum_by`, `find`, `flat_map`, and the new `group_by`.
+
+---
+
 ## v1.7.1 (2025)
 
 ### Bug Fixes

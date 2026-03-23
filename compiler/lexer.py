@@ -87,8 +87,9 @@ class TT(Enum):
     COMMA       = auto()
     COLON       = auto()
     DOT         = auto()
-    PIPE        = auto()   # | (block param delimiter)
+    PIPE        = auto()   # | (block param delimiter / hash merge operator)
     HASH        = auto()   # #
+    ARROW       = auto()   # -> (lambda)
 
     # Structural
     NEWLINE     = auto()
@@ -407,6 +408,8 @@ class Lexer:
             elif ch == '-':
                 if self.match('='):
                     self.add_token(TT.MINUS_ASSIGN, '-=')
+                elif self.match('>'):
+                    self.add_token(TT.ARROW, '->')
                 else:
                     self.add_token(TT.MINUS, '-')
             elif ch == '*':

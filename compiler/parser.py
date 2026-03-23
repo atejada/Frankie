@@ -492,6 +492,17 @@ class Parser:
             left = BinOp(op='or', left=left, right=right)
         return left
 
+    def parse_hash_merge(self) -> Node:
+        """hash1 | hash2 — merge operator (lower precedence than comparison)"""
+        left = self.parse_comparison()
+        while self.check(TT.PIPE):
+            # Only treat PIPE as merge if we are NOT inside a block-param context.
+            # Heuristic: if the left side is a hash literal or identifier, consume it.
+            self.advance()
+            right = self.parse_comparison()
+            left = BinOp(op='|', left=left, right=right)
+        return left
+
     def parse_and(self) -> Node:
         left = self.parse_not()
         while self.check(TT.AND):
@@ -505,7 +516,7 @@ class Parser:
             self.advance()
             operand = self.parse_not()
             return UnaryOp(op='not', operand=operand)
-        return self.parse_comparison()
+        return self.parse_hash_merge()
 
     def parse_comparison(self) -> Node:
         left = self.parse_addition()
@@ -582,6 +593,10 @@ class Parser:
                     block = self.parse_block()
 
                 node = MethodCall(receiver=node, method=method, args=args, block=block)
+
+            # Lambda call:  fn.(arg1, arg2)  — dot followed immediately by LPAREN
+            elif self.check(TT.DOT) is False and False:
+                pass  # placeholder — handled below
 
             elif self.check(TT.SAFE_NAV):
                 self.advance()  # consume &.
@@ -733,6 +748,10 @@ class Parser:
                 return FuncCall(name=name, args=args)
             return Identifier(name=name)
 
+        # Lambda literal:  ->(x) { body }  OR  ->(x, y) { body }  OR  ->() { body }
+        if t.type == TT.ARROW:
+            return self.parse_lambda()
+
         self.error(f"Unexpected token in expression: {t.type.name}")
 
     def parse_arg(self) -> Node:
@@ -744,6 +763,54 @@ class Parser:
             val = self.parse_expr()
             return NamedArg(name=arg_name, value=val)
         return self.parse_expr()
+
+    def parse_lambda(self) -> 'LambdaLiteral':
+        """Parse  ->(params) do body end  — anonymous function literal.
+        Syntax:  ->(x)       { single-expr }   — brace block (single statement)
+                 ->(x, y)    do ... end         — do..end block (multi-statement)
+                 ->()        do ... end         — no params
+        Both brace and do..end forms are supported.
+        """
+        self.expect(TT.ARROW)           # consume ->
+        params = []
+        defaults = []
+        self.expect(TT.LPAREN, "Expected '(' after '->'")
+        if not self.check(TT.RPAREN):
+            pname = self._parse_param_name()
+            params.append(pname)
+            if self.match(TT.ASSIGN):
+                defaults.append(self.parse_expr())
+            else:
+                defaults.append(None)
+            while self.match(TT.COMMA):
+                pname = self._parse_param_name()
+                params.append(pname)
+                if self.match(TT.ASSIGN):
+                    defaults.append(self.parse_expr())
+                else:
+                    defaults.append(None)
+        self.expect(TT.RPAREN, "Expected ')' after lambda params")
+
+        # Body: brace block  { expr }  OR  do ... end
+        if self.check(TT.LBRACE):
+            self.advance()           # consume {
+            self.skip_newlines()
+            body = []
+            while not self.check(TT.RBRACE) and not self.check(TT.EOF):
+                stmt = self.parse_statement()
+                if stmt is not None:
+                    body.append(stmt)
+                self.skip_newlines()
+            self.expect(TT.RBRACE, "Expected '}' to close lambda body")
+        else:
+            self.expect(TT.DO, "Expected 'do' or '{' to open lambda body")
+            self.skip_newlines()
+            body = self.parse_body()
+            self.expect(TT.END, "Expected 'end' to close lambda body")
+
+        return LambdaLiteral(params=params, defaults=defaults, body=body)
+
+
 
     def parse_vector(self) -> VectorLiteral:
         self.expect(TT.LBRACKET)

@@ -1,0 +1,118 @@
+# test_v18.fk — Frankie v1.8 feature tests
+
+# ── Lambdas ──────────────────────────────────────────────────────────────────
+
+double = ->(x) { x * 2 }
+assert_eq(double.call(5), 10, "lambda single expr: double")
+assert_eq(double.call(0), 0,  "lambda single expr: double zero")
+
+add = ->(x, y) { x + y }
+assert_eq(add.call(3, 4), 7,  "lambda two params")
+
+# Multi-statement lambda
+abs_val = ->(n) do
+  if n < 0
+    return n * -1
+  end
+  return n
+end
+assert_eq(abs_val.call(-5), 5,  "multi-stmt lambda: negative")
+assert_eq(abs_val.call(7),  7,  "multi-stmt lambda: positive")
+
+# Lambda with default param
+greet = ->(name, prefix = "Hi") { "#{prefix}, #{name}!" }
+assert_eq(greet.call("Alice"),          "Hi, Alice!",    "lambda default param used")
+assert_eq(greet.call("Bob", "Hello"),   "Hello, Bob!",   "lambda default param overridden")
+
+# Lambda passed to function
+def apply(fn, val)
+  return fn.call(val)
+end
+triple = ->(x) { x * 3 }
+assert_eq(apply(triple, 4), 12, "lambda passed as argument")
+
+# Lambda stored in vector
+fns = [->(x) { x + 1 }, ->(x) { x * 2 }]
+assert_eq(fns[0].call(10), 11, "lambda from vector [0]")
+assert_eq(fns[1].call(10), 20, "lambda from vector [1]")
+
+# Lambda called via .call in .map block
+nums = [1, 2, 3]
+sq   = ->(x) { x * x }
+result = nums.map do |n| sq.call(n) end
+assert_eq(result, [1, 4, 9], "lambda called inside map block")
+
+# ── Hash Merge Operator | ────────────────────────────────────────────────────
+
+a = {x: 1, y: 2}
+b = {y: 99, z: 3}
+m = a | b
+assert_eq(m["x"], 1,  "hash merge: left key preserved")
+assert_eq(m["y"], 99, "hash merge: right key wins on conflict")
+assert_eq(m["z"], 3,  "hash merge: right-only key included")
+
+# Original hashes unmodified
+assert_eq(a["y"], 2, "hash merge: left operand unchanged")
+
+# Three-way merge
+c = {z: 100, w: 4}
+t = a | b | c
+assert_eq(t["w"], 4,   "three-way merge: new key")
+assert_eq(t["z"], 100, "three-way merge: rightmost wins")
+
+# Merge with empty hash
+e = {}
+assert_eq((a | e)["x"], 1, "merge with empty right")
+assert_eq((e | a)["x"], 1, "merge with empty left")
+
+# ── group_by ─────────────────────────────────────────────────────────────────
+
+words = ["ant", "bear", "cat", "ape", "bee"]
+by_letter = words.group_by do |w| w[0] end
+assert_eq(by_letter["a"], ["ant", "ape"],  "group_by: 'a' words")
+assert_eq(by_letter["b"], ["bear", "bee"], "group_by: 'b' words")
+assert_eq(by_letter["c"], ["cat"],         "group_by: 'c' words")
+
+nums = [1, 2, 3, 4, 5, 6]
+by_parity = nums.group_by do |n|
+  if n % 2 == 0
+    "even"
+  else
+    "odd"
+  end
+end
+assert_eq(by_parity["even"], [2, 4, 6], "group_by: even numbers")
+assert_eq(by_parity["odd"],  [1, 3, 5], "group_by: odd numbers")
+
+# ── each_slice ───────────────────────────────────────────────────────────────
+
+data = [1, 2, 3, 4, 5, 6]
+slices = data.each_slice(2)
+assert_eq(slices, [[1,2],[3,4],[5,6]], "each_slice: even split")
+
+uneven = [1, 2, 3, 4, 5]
+assert_eq(uneven.each_slice(2), [[1,2],[3,4],[5]], "each_slice: remainder chunk")
+
+assert_eq([1,2,3].each_slice(10), [[1,2,3]], "each_slice: n > length")
+
+# With block — collect results manually
+collected = []
+[10, 20, 30, 40].each_slice(2) do |s|
+  collected.push(s[0] + s[1])
+end
+assert_eq(collected, [30, 70], "each_slice block: sums of pairs")
+
+# ── each_cons ────────────────────────────────────────────────────────────────
+
+windows = [1, 2, 3, 4].each_cons(2)
+assert_eq(windows, [[1,2],[2,3],[3,4]], "each_cons: size-2 windows")
+
+assert_eq([1,2,3].each_cons(3), [[1,2,3]], "each_cons: window = length")
+assert_eq([1,2].each_cons(5),   [],         "each_cons: n > length → empty")
+
+# Deltas via each_cons
+deltas = []
+[10, 13, 11, 15].each_cons(2) do |w|
+  deltas.push(w[1] - w[0])
+end
+assert_eq(deltas, [3, -2, 4], "each_cons block: consecutive deltas")

@@ -1,7 +1,7 @@
 # showcase.fk — Everything Frankie can do in one program
 
 puts "╔══════════════════════════════════════╗"
-puts "║     Frankie v1.7 — Full Showcase     ║"
+puts "║     Frankie v1.8 — Full Showcase     ║"
 puts "╚══════════════════════════════════════╝"
 puts ""
 
@@ -283,3 +283,65 @@ end
 
 puts ""
 puts "Frankie is alive and kicking! 🧟⚡"
+
+# ── 16. Lambdas (v1.8) ─────────────────────────────────────────────────────
+puts ""
+puts "── 16. Lambdas / Anonymous Functions (v1.8) ──"
+
+double = ->(x) { x * 2 }
+square = ->(x) { x * x }
+add    = ->(x, y) { x + y }
+
+puts double.call(7)      # 14
+puts square.call(5)      # 25
+puts add.call(10, 3)     # 13
+
+def apply(fn, val)
+  return fn.call(val)
+end
+puts apply(double, 6)    # 12
+
+transforms = [->(x) { x + 100 }, ->(x) { x * x }, ->(x) { x - 1 }]
+transforms.each do |fn|
+  puts fn.call(5)        # 105, 25, 4
+end
+
+# ── 17. Hash Merge Operator | (v1.8) ───────────────────────────────────────
+puts ""
+puts "── 17. Hash Merge Operator | (v1.8) ──"
+
+defaults = {color: "blue", size: "medium", debug: false}
+overrides = {color: "green", debug: true}
+config = defaults | overrides
+puts config["color"]   # green
+puts config["size"]    # medium
+puts config["debug"]   # true
+
+# ── 18. group_by (v1.8) ────────────────────────────────────────────────────
+puts ""
+puts "── 18. group_by (v1.8) ──"
+
+animals = ["ant", "bear", "cat", "ape", "crow", "bat"]
+by_first = animals.group_by do |a| a[0] end
+by_first.each do |letter, group|
+  puts "#{letter}: #{group}"
+end
+
+nums = [1, 2, 3, 4, 5, 6, 7, 8]
+by_mod = nums.group_by do |n| n % 3 end
+puts by_mod
+
+# ── 19. each_slice & each_cons (v1.8) ──────────────────────────────────────
+puts ""
+puts "── 19. each_slice & each_cons (v1.8) ──"
+
+[1,2,3,4,5,6,7,8,9].each_slice(3) do |s|
+  puts s
+end
+
+prices = [10.0, 10.5, 9.8, 11.2, 12.0, 11.8]
+puts "Price deltas:"
+prices.each_cons(2) do |w|
+  delta = w[1] - w[0]
+  puts "  #{delta}"
+end

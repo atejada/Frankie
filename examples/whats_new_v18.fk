@@ -1,0 +1,201 @@
+# whats_new_v18.fk — Frankie v1.8 new features showcase
+
+puts "╔══════════════════════════════════════════╗"
+puts "║        Frankie v1.8 — What's New         ║"
+puts "╚══════════════════════════════════════════╝"
+puts ""
+
+# ── 1. Lambda / Anonymous Functions ────────────────────────────────────────
+puts "── 1. Lambdas (Anonymous Functions) ──"
+
+# Store a function as a value
+double = ->(x) { x * 2 }
+square = ->(x) { x * x }
+add    = ->(x, y) { x + y }
+
+puts double.call(5)      # 10
+puts square.call(4)      # 16
+puts add.call(3, 7)      # 10
+
+# Lambdas passed as arguments — higher-order functions
+def apply(fn, value)
+  return fn.call(value)
+end
+
+puts apply(double, 9)    # 18
+puts apply(square, 6)    # 36
+
+# Lambdas stored in a vector and iterated
+transforms = [
+  ->(x) { x + 1 },
+  ->(x) { x * 3 },
+  ->(x) { x * x }
+]
+
+transforms.each do |fn|
+  puts fn.call(4)        # 5, 12, 16
+end
+
+# Multi-statement lambda using do...end
+greet = ->(name) do
+  msg = "Hello, #{name}!"
+  return msg
+end
+
+puts greet.call("Frankie")   # Hello, Frankie!
+
+# Lambdas as map/select callbacks
+nums = [1, 2, 3, 4, 5, 6]
+tripler = ->(x) { x * 3 }
+is_even = ->(x) { x % 2 == 0 }
+
+puts nums.map do |n| tripler.call(n) end    # [3, 6, 9, 12, 15, 18]
+puts nums.select do |n| is_even.call(n) end # [2, 4, 6]
+
+# Default parameter in lambda
+greet_person = ->(name, greeting = "Hi") { "#{greeting}, #{name}!" }
+puts greet_person.call("Alice")           # Hi, Alice!
+puts greet_person.call("Bob", "Hello")   # Hello, Bob!
+
+puts ""
+
+# ── 2. Hash Merge Operator  |  ──────────────────────────────────────────────
+puts "── 2. Hash Merge Operator ( | ) ──"
+
+defaults = {color: "blue", size: "medium", weight: 1}
+overrides = {color: "red", weight: 5}
+
+merged = defaults | overrides
+puts merged        # {color: red, size: medium, weight: 5}
+
+# Chain merges
+base    = {a: 1, b: 2}
+extra   = {b: 99, c: 3}
+more    = {c: 100, d: 4}
+result  = base | extra | more
+puts result        # {a: 1, b: 99, c: 100, d: 4}
+
+# Merge in-place style
+config = {host: "localhost", port: 3000, debug: false}
+env    = {port: 8080, debug: true}
+config = config | env
+puts config["port"]    # 8080
+puts config["debug"]   # true
+puts config["host"]    # localhost
+
+# Works with dynamic hashes
+user    = {name: "Alice", role: "user"}
+admin   = {role: "admin", level: 5}
+profile = user | admin
+puts profile["role"]   # admin
+puts profile["name"]   # Alice
+
+puts ""
+
+# ── 3. group_by ─────────────────────────────────────────────────────────────
+puts "── 3. group_by ──"
+
+people = [
+  {name: "Alice", dept: "Engineering"},
+  {name: "Bob",   dept: "Design"},
+  {name: "Carol", dept: "Engineering"},
+  {name: "Dave",  dept: "Design"},
+  {name: "Eve",   dept: "Management"}
+]
+
+by_dept = people.group_by do |p|
+  p["dept"]
+end
+
+puts "Engineering team:"
+by_dept["Engineering"].each do |p|
+  puts "  #{p["name"]}"
+end
+
+puts "Design team:"
+by_dept["Design"].each do |p|
+  puts "  #{p["name"]}"
+end
+
+# group_by with numbers
+nums = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+by_parity = nums.group_by do |n|
+  if n % 2 == 0
+    "even"
+  else
+    "odd"
+  end
+end
+
+puts "Odd:  #{by_parity["odd"]}"
+puts "Even: #{by_parity["even"]}"
+
+# group_by then tally size per group
+scores = [
+  {name: "Alice", grade: "A"},
+  {name: "Bob",   grade: "B"},
+  {name: "Carol", grade: "A"},
+  {name: "Dave",  grade: "C"},
+  {name: "Eve",   grade: "B"},
+  {name: "Frank", grade: "A"}
+]
+
+by_grade = scores.group_by do |s| s["grade"] end
+by_grade.each do |grade, students|
+  puts "#{grade}: #{students.length} students"
+end
+
+puts ""
+
+# ── 4. each_slice ────────────────────────────────────────────────────────────
+puts "── 4. each_slice ──"
+
+data = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+# Process in pages of 3
+data.each_slice(3) do |slice|
+  puts slice
+end
+
+# Batch processing example
+ids = [101, 102, 103, 104, 105, 106, 107]
+ids.each_slice(3) do |batch|
+  puts "Processing batch: #{batch}"
+end
+
+# each_slice returns a vector if no block given
+slices = data.each_slice(4)
+puts slices          # [[1,2,3,4],[5,6,7,8],[9]]
+
+puts ""
+
+# ── 5. each_cons ─────────────────────────────────────────────────────────────
+puts "── 5. each_cons ──"
+
+temps = [18, 21, 19, 25, 23, 28, 30]
+
+# Compare consecutive pairs
+puts "Daily temperature deltas:"
+temps.each_cons(2) do |window|
+  delta = window[1] - window[0]
+  if delta > 0
+    puts "  +#{delta}°C"
+  else
+    puts "  #{delta}°C"
+  end
+end
+
+# 3-day moving average
+puts "3-day moving averages:"
+temps.each_cons(3) do |window|
+  avg = mean(window)
+  puts "  #{avg}"
+end
+
+# each_cons without block returns a vector of windows
+windows = [1, 2, 3, 4, 5].each_cons(2)
+puts windows     # [[1,2],[2,3],[3,4],[4,5]]
+
+puts ""
+puts "v1.8 is alive! 🧟⚡"

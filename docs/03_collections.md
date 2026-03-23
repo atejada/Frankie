@@ -53,6 +53,9 @@ v + [1, 2, 3, 4, 5]     # [11, 22, 33, 44, 55]
 | `.zip(other)` | Zip two vectors together |
 | `.flatten` | Flatten one level |
 | `.empty?` | True if empty |
+| `.group_by { \|x\| key }` | Bucket into hash of arrays by key *(v1.8)* |
+| `.each_slice(n)` | Iterate in non-overlapping chunks of n *(v1.8)* |
+| `.each_cons(n)` | Iterate with sliding window of n *(v1.8)* |
 
 ### Iteration
 
@@ -176,7 +179,8 @@ person[:age] = 31       # write / add
 | `.has_key?(k)` | True if key exists |
 | `.fetch(k, default)` | Get with default |
 | `.delete(k)` | Remove key |
-| `.merge(other)` | Return merged hash |
+| `.merge(other)` | Return merged hash (method form) |
+| `h1 \| h2` | Merge operator — right wins on conflict *(v1.8)* |
 | `.to_a` | Convert to vector of pairs |
 
 ### Hash Iteration

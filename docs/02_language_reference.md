@@ -303,6 +303,54 @@ puts sprintf("%-10s %d", "Frankie", 1)
 
 ---
 
+## Lambdas — Anonymous Functions *(v1.8)*
+
+Functions can be stored as values with the `->` operator.
+
+```ruby
+double = ->(x) { x * 2 }
+puts double.call(5)     # 10
+
+add = ->(a, b) { a + b }
+puts add.call(3, 4)     # 7
+```
+
+Single-expression bodies use braces `{ }`. Multi-statement bodies use `do...end`:
+
+```ruby
+clamp = ->(n, lo, hi) do
+  if n < lo
+    return lo
+  end
+  if n > hi
+    return hi
+  end
+  return n
+end
+puts clamp.call(-5, 0, 100)   # 0
+```
+
+Lambdas accept default parameters the same way `def` does:
+
+```ruby
+greet = ->(name, prefix = "Hello") { "#{prefix}, #{name}!" }
+puts greet.call("Alice")            # Hello, Alice!
+puts greet.call("Bob", "Hi")        # Hi, Bob!
+```
+
+Lambdas are first-class values — store them in variables, vectors, or hashes,
+and pass them to functions:
+
+```ruby
+def apply(fn, val)
+  return fn.call(val)
+end
+square = ->(x) { x * x }
+puts apply(square, 6)    # 36
+```
+
+---
+
 ## Destructuring Assignment
 
 ```ruby

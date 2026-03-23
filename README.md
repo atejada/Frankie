@@ -7,7 +7,7 @@
  |  _|| | | (_| | | | |   <| |  __/
  |_|  |_|  \__,_|_| |_|_|\_\_|\___|
 
- The Frankie Language v1.7.1
+ The Frankie Language v1.8
  Stitched together from Ruby • Python • R • Fortran
 ```
 
@@ -96,34 +96,40 @@ end
 
 ---
 
-## v1.7 Highlights
+## v1.8 Highlights
 
 ```ruby
-# Nil Safety — &. operator
-user = {name: "Alice"}
-missing = nil
+# Lambdas — store and pass functions as values
+double = ->(x) { x * 2 }
+puts double.call(5)      # 10
 
-puts user["name"]&.upcase   # ALICE
-puts missing&.upcase        # nil  (no crash, ever)
-puts missing&.upcase&.reverse  # nil  (chain short-circuits)
+add = ->(a, b) { a + b }
+puts add.call(3, 7)      # 10
 
-# String Templates
-msg = template("Hello, {{name}}! You are {{age}}.", {name: "Bob", age: 25})
-puts msg   # Hello, Bob! You are 25.
+def apply(fn, val)        # higher-order functions
+  return fn.call(val)
+end
+puts apply(double, 9)    # 18
 
-# File System Operations
-file_mkdir("/tmp/myapp/data")
-puts dir_exists("/tmp/myapp/data")    # true
+# Hash merge operator  |
+defaults = {color: "blue", size: "medium"}
+overrides = {color: "red"}
+puts defaults | overrides  # {color: red, size: medium}
 
-file_write("/tmp/myapp/data/a.txt", "hello")
-file_copy("/tmp/myapp/data/a.txt", "/tmp/myapp/data/b.txt")
-file_rename("/tmp/myapp/data/b.txt", "/tmp/myapp/data/c.txt")
-puts dir_list("/tmp/myapp/data")      # [a.txt, c.txt]
+# group_by — bucket a vector by a key
+people = [{name: "Alice", dept: "Eng"}, {name: "Bob", dept: "Design"}, {name: "Carol", dept: "Eng"}]
+by_dept = people.group_by do |p| p["dept"] end
+puts by_dept["Eng"].length   # 2
 
-# assert_raises_typed in tests
-assert_raises_typed(def()
-  x = 1 // 0
-end, "ZeroDivisionError", "division raises correctly")
+# each_slice — iterate in fixed-size chunks
+[1,2,3,4,5,6].each_slice(2) do |s|
+  puts s       # [1,2]  [3,4]  [5,6]
+end
+
+# each_cons — sliding window iteration
+[10, 13, 11, 15].each_cons(2) do |w|
+  puts w[1] - w[0]    # 3  -2  4
+end
 ```
 
 ---
@@ -215,10 +221,11 @@ Full documentation lives in the `docs/` folder:
 | `docs/03_collections.md` | Vectors, hashes, all iterators |
 | `docs/04_stdlib.md` | Math, stats, randomness, strings, regex, file I/O, file system, JSON, CSV, DateTime, HTTP, testing |
 | `docs/05_examples.md` | All example programs explained |
-| `docs/06_changelog.md` | v1.0 – v1.7 release notes |
+| `docs/06_changelog.md` | v1.0 – v1.8 release notes |
 | `docs/07_database.md` | SQLite database access — full API reference |
 | `docs/08_v17_features.md` | v1.4–v1.7 feature reference: nil safety, templates, file system, typed asserts, web server, randomness, constants, compound assignment |
 | `docs/09_web.md` | Web server — routes, requests, responses, filters |
+| `docs/10_v18_features.md` | v1.8 feature reference: lambdas, hash merge `\|`, group_by, each_slice, each_cons |
 
 The formal language grammar lives in `SPEC.md`.
 

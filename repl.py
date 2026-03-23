@@ -9,14 +9,27 @@ import importlib.util
 
 FRANKIE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-BANNER = r"""
+# Import the canonical version from frankiec.py so there is only one source of truth
+def _load_version():
+    try:
+        spec = importlib.util.spec_from_file_location(
+            "frankiec_meta", os.path.join(FRANKIE_DIR, "frankiec.py"))
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod.FRANKIE_VERSION
+    except Exception:
+        return "unknown"
+
+_VERSION = _load_version()
+
+BANNER = rf"""
   _____                 _    _
  |  ___| __ __ _ _ __ | | _(_) ___
  | |_ | '__/ _` | '_ \| |/ / |/ _ \
  |  _|| | | (_| | | | |   <| |  __/
  |_|  |_|  \__,_|_| |_|_|\_\_|\___|
 
- Frankie v1.7.1 Interactive REPL
+ Frankie v{_VERSION} Interactive REPL
  Type 'exit' or Ctrl+D to quit, 'help' for commands.
 """
 

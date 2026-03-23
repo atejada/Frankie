@@ -330,3 +330,10 @@ class ConstAssign(Node):
     """UPPER_CASE = value — constant assignment with reassignment warning"""
     name: str
     value: Node
+
+@dataclass
+class LambdaLiteral(Node):
+    """->( params ) { body }  — anonymous function / lambda value"""
+    params: List[str]
+    defaults: List        # parallel list: None or default Node per param
+    body: List[Node]
