@@ -113,6 +113,7 @@ class TT(Enum):
     WHEN         = auto()  # when
     NEXT         = auto()  # next
     BREAK        = auto()  # break
+    RECORD       = auto()  # record
 
 
 KEYWORDS = {
@@ -153,6 +154,7 @@ KEYWORDS = {
     'when':             TT.WHEN,
     'next':             TT.NEXT,
     'break':            TT.BREAK,
+    'record':           TT.RECORD,
 }
 
 

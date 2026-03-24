@@ -32,6 +32,13 @@ def _fk_to_str(x):
         inner = ", ".join(_fk_to_str(e) for e in x)
         return f"[{inner}]"
     if isinstance(x, dict):
+        # Record type — display as RecordName(field: val, ...)
+        if "__type__" in x:
+            type_name = x["__type__"]
+            fields = ", ".join(
+                f"{k}: {_fk_to_str(v)}" for k, v in x.items() if k != "__type__"
+            )
+            return f"{type_name}({fields})"
         pairs = ", ".join(f"{k}: {_fk_to_str(v)}" for k, v in x.items())
         return "{" + pairs + "}"
     # FrankieDate duck-type check
@@ -682,6 +689,33 @@ def _fk_hash_merge(h1, h2):
     return {**h1, **h2}
 
 
+def _fk_dig(obj, *keys):
+    """Safe deep access: hash.dig("a", "b", "c") — returns nil instead of crashing."""
+    current = obj
+    for key in keys:
+        if current is None:
+            return None
+        if isinstance(current, dict):
+            k = str(key) if not isinstance(key, str) else key
+            current = current.get(k, current.get(key))
+        elif isinstance(current, list):
+            try:
+                idx = int(key)
+                current = current[idx] if -len(current) <= idx < len(current) else None
+            except (TypeError, ValueError):
+                return None
+        else:
+            return None
+    return current
+
+
+import builtins as _builtins
+
+def zip(*vecs):
+    """Standalone zip: zip([1,2,3], ["a","b","c"]) → [[1,"a"],[2,"b"],[3,"c"]]"""
+    if len(vecs) == 0:
+        return []
+    return [list(t) for t in _builtins.zip(*vecs)]
 
 
 # ─── Destructuring Helper ─────────────────────────────────────────────────────

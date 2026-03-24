@@ -473,3 +473,29 @@ is_vector([1,2,3])  # true
 is_nil(nil)         # true
 is_bool(true)       # true
 ```
+
+---
+
+## Record Types *(v1.9)*
+
+Records are lightweight named data objects — structured alternatives to plain
+hashes when you want named fields and a readable `puts` representation.
+
+```ruby
+record Point(x, y)
+record Employee(name, dept, salary)
+
+p1  = Point(3, 4)
+emp = Employee("Alice", "Engineering", 95000)
+
+puts p1     # Point(x: 3, y: 4)
+puts emp    # Employee(name: Alice, dept: Engineering, salary: 95000)
+
+# Field access — records are hashes
+puts p1["x"]            # 3
+puts emp["dept"]        # Engineering
+puts p1["__type__"]     # Point
+```
+
+Records support all hash methods (`.keys`, `.values`, `.has_key?`, `.dig`,
+`.merge`, `|`, etc.) and all iterators (`.each`, `.map`, `.group_by`, etc.).

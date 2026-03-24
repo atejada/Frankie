@@ -16,7 +16,7 @@ __pycache__/
 MAIN_FK = '''# {name}/main.fk — entry point
 
 puts "Hello from {name}!"
-puts "Built with Frankie v1.3 🧟"
+puts "Built with Frankie v1.9 🧟"
 '''
 
 README_FK = """# {name}

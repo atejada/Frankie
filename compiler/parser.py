@@ -113,6 +113,8 @@ class Parser:
             return self.parse_require()
         if t.type == TT.CASE:
             return self.parse_case()
+        if t.type == TT.RECORD:
+            return self.parse_record_def()
         if t.type == TT.NEXT:
             return self._maybe_postfix(self.parse_next())
         if t.type == TT.BREAK:
@@ -186,6 +188,20 @@ class Parser:
         body = self.parse_body()
         self.expect(TT.END, "Expected 'end' to close 'def'")
         return FuncDef(name=name, params=params, defaults=defaults, body=body)
+
+    def parse_record_def(self) -> RecordDef:
+        """Parse:  record Point(x, y, z)"""
+        self.expect(TT.RECORD)
+        name_tok = self.expect(TT.IDENT, "Expected record name after 'record'")
+        name = name_tok.value
+        fields = []
+        self.expect(TT.LPAREN, "Expected '(' after record name")
+        if not self.check(TT.RPAREN):
+            fields.append(self._parse_param_name())
+            while self.match(TT.COMMA):
+                fields.append(self._parse_param_name())
+        self.expect(TT.RPAREN, "Expected ')' to close record field list")
+        return RecordDef(name=name, fields=fields)
 
     def _parse_param_name(self) -> str:
         """Accept any identifier-like token as a parameter name."""

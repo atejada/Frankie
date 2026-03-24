@@ -1,7 +1,7 @@
 # showcase.fk — Everything Frankie can do in one program
 
 puts "╔══════════════════════════════════════╗"
-puts "║     Frankie v1.8 — Full Showcase     ║"
+puts "║     Frankie v1.9 — Full Showcase     ║"
 puts "╚══════════════════════════════════════╝"
 puts ""
 
@@ -171,8 +171,8 @@ puts ""
 # ── 10. JSON & CSV ─────────────────────────────────────────────────
 puts "── 10. JSON & CSV ──"
 
-record = {name: "Alice", scores: [95, 87, 92]}
-json_str = json_dump(record)
+data_record = {name: "Alice", scores: [95, 87, 92]}
+json_str = json_dump(data_record)
 puts json_str
 
 parsed = json_parse(json_str)
@@ -345,3 +345,47 @@ prices.each_cons(2) do |w|
   delta = w[1] - w[0]
   puts "  #{delta}"
 end
+
+# ── 20. Records (v1.9) ─────────────────────────────────────────────────────
+puts ""
+puts "── 20. Record Types (v1.9) ──"
+
+record Pixel(x, y, color)
+record BBox(x1, y1, x2, y2)
+
+px = Pixel(10, 20, "red")
+puts px                     # Pixel(x: 10, y: 20, color: red)
+puts px["color"]            # red
+
+bbox = BBox(0, 0, 100, 80)
+w = bbox["x2"] - bbox["x1"]
+h = bbox["y2"] - bbox["y1"]
+puts "Width: #{w}, Height: #{h}"
+
+pixels = [Pixel(1, 1, "red"), Pixel(2, 2, "blue"), Pixel(3, 1, "red")]
+by_color = pixels.group_by do |p| p["color"] end
+puts by_color["red"].length    # 2
+
+# ── 21. .dig (v1.9) ────────────────────────────────────────────────────────
+puts ""
+puts "── 21. Hash .dig (v1.9) ──"
+
+settings = {
+  server: {host: "0.0.0.0", port: 3000},
+  auth:   {jwt: {secret: "abc", expiry: 3600}}
+}
+puts settings.dig("server", "host")           # 0.0.0.0
+puts settings.dig("auth", "jwt", "expiry")    # 3600
+puts settings.dig("auth", "missing", "key")   # nil  (no crash)
+
+# ── 22. Standalone zip() (v1.9) ─────────────────────────────────────────────
+puts ""
+puts "── 22. Standalone zip() (v1.9) ──"
+
+keys   = ["name", "age", "city"]
+vals   = ["Alice", 30, "Lima"]
+row_record = zip(keys, vals).reduce({}) do |acc, pair|
+  acc[pair[0]] = pair[1]
+  acc
+end
+puts row_record    # {name: Alice, age: 30, city: Lima}

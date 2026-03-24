@@ -337,3 +337,9 @@ class LambdaLiteral(Node):
     params: List[str]
     defaults: List        # parallel list: None or default Node per param
     body: List[Node]
+
+@dataclass
+class RecordDef(Node):
+    """record Point(x, y) — lightweight named data object / struct"""
+    name: str
+    fields: List[str]

@@ -1,0 +1,161 @@
+# whats_new_v19.fk — Frankie v1.9 feature showcase
+
+puts "╔══════════════════════════════════════════╗"
+puts "║        Frankie v1.9 — What's New         ║"
+puts "╚══════════════════════════════════════════╝"
+puts ""
+
+# ── 1. Hash .dig — safe deep access ─────────────────────────────────────────
+puts "── 1. Hash .dig ──"
+
+config = {
+  db:  {host: "localhost", port: 5432, pool: {min: 2, max: 10}},
+  app: {debug: false, name: "Frankie App"}
+}
+
+puts config.dig("db", "host")          # localhost
+puts config.dig("db", "pool", "max")   # 10
+puts config.dig("db", "missing")       # nil
+puts config.dig("nope", "host")        # nil
+
+# No more defensive bracket-chaining
+# Before: config["db"]["pool"]["min"]  — crashes if any level is nil
+# After:  config.dig("db", "pool", "min")  — returns nil safely
+puts config.dig("db", "pool", "min")   # 2
+
+# Works with vectors too (index-based)
+matrix = [[1, 2, 3], [4, 5, 6]]
+puts matrix.dig(1, 2)    # 6
+puts matrix.dig(9, 0)    # nil  (out of bounds, no crash)
+
+# Works beautifully with &. for nil-safe chaining
+user = nil
+puts user&.dig("profile", "avatar")   # nil
+
+puts ""
+
+# ── 2. Standalone zip() ──────────────────────────────────────────────────────
+puts "── 2. Standalone zip() ──"
+
+names  = ["Alice", "Bob", "Carol"]
+scores = [95, 87, 92]
+ids    = [1, 2, 3]
+
+# R-style: zip as a function, not just a method
+pairs = zip(names, scores)
+pairs.each do |pair|
+  puts "  #{pair[0]}: #{pair[1]}"
+end
+
+# Three-way zip
+rows = zip(ids, names, scores)
+rows.each do |row|
+  puts "  #{row[0]}. #{row[1]} — #{row[2]}"
+end
+
+# Zip then process — natural pipeline
+zip(names, scores).select do |pair|
+  pair[1] >= 90
+end.each do |pair|
+  puts "  Top scorer: #{pair[0]}"
+end
+
+puts ""
+
+# ── 3. Record types ──────────────────────────────────────────────────────────
+puts "── 3. Record Types ──"
+
+record Point(x, y)
+record Color(r, g, b)
+record Employee(name, dept, salary)
+
+# Construct like a function call
+origin = Point(0, 0)
+p1     = Point(3, 4)
+red    = Color(255, 0, 0)
+
+puts origin    # Point(x: 0, y: 0)
+puts p1        # Point(x: 3, y: 4)
+puts red       # Color(r: 255, g: 0, b: 0)
+
+# Records are hashes — all hash methods work
+puts p1["x"]             # 3
+puts p1.has_key?("y")    # true
+puts p1.keys             # [__type__, x, y]
+
+# Records in vectors + iterators
+employees = [
+  Employee("Alice",  "Engineering", 95000),
+  Employee("Bob",    "Design",      82000),
+  Employee("Carol",  "Engineering", 105000),
+  Employee("Dave",   "Design",      78000),
+  Employee("Eve",    "Management",  120000)
+]
+
+# group_by department
+by_dept = employees.group_by do |e| e["dept"] end
+by_dept.each do |dept, team|
+  avg = mean(team.map do |e| e["salary"] end)
+  puts "  #{dept}: #{team.length} people, avg salary #{avg}"
+end
+
+# find highest earner
+top = employees.sort_by do |e| -e["salary"] end.first
+puts "  Top earner: #{top["name"]} (#{top["salary"]})"
+
+# Records with dig
+company = {
+  ceo: Employee("Frank", "Leadership", 200000),
+  teams: {
+    eng: {lead: Employee("Alice", "Engineering", 95000)}
+  }
+}
+puts company.dig("teams", "eng", "lead")   # Employee(name: Alice, ...)
+puts company.dig("ceo", "name")            # Frank (dig into record fields too)
+
+puts ""
+
+# ── 4. frankiec fmt — auto-formatter ─────────────────────────────────────────
+puts "── 4. frankiec fmt ──"
+puts "  Run: frankiec fmt myfile.fk"
+puts "  Run: frankiec fmt --write myfile.fk   (reformat in-place)"
+puts "  Run: frankiec fmt --check myfile.fk   (CI mode — exit 1 if not formatted)"
+puts "  The formatter uses the AST, so output is always syntactically valid."
+puts ""
+
+# ── 5. readline + history in REPL ────────────────────────────────────────────
+puts "── 5. REPL Improvements ──"
+puts "  Arrow keys (↑↓) for history navigation"
+puts "  Ctrl+R to reverse-search history"
+puts "  Tab completion for keywords and methods"
+puts "  History persisted to ~/.frankie_history across sessions"
+puts ""
+
+# ── 6. frankiec docs ─────────────────────────────────────────────────────────
+puts "── 6. frankiec docs ──"
+puts "  Add ## doc-comments above def / record:"
+puts "    ## Calculate the distance between two points."
+puts "    ## @param p1  First point (record Point)"
+puts "    ## @param p2  Second point (record Point)"
+puts "    ## @return    Float distance"
+puts "    def distance(p1, p2)"
+puts "      ..."
+puts "    end"
+puts "  Run: frankiec docs myfile.fk          (Markdown to stdout)"
+puts "  Run: frankiec docs --output api.md myfile.fk"
+puts ""
+
+# ── 7. .env auto-loading ─────────────────────────────────────────────────────
+puts "── 7. .env Auto-Loading ──"
+puts "  Create a .env file in your project:"
+puts "    DB_PATH=data/myapp.db"
+puts "    API_KEY=secret123"
+puts "    DEBUG=true"
+puts "  frankiec run / frankiec repl loads it automatically."
+puts "  Access with env():"
+db = env("DB_PATH", "data/default.db")
+puts "  DB_PATH = #{db}"
+puts "  Values not in .env fall back to the default argument."
+puts ""
+
+puts "v1.9 is alive! 🧟⚡"

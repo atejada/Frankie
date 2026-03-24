@@ -7,7 +7,7 @@
  |  _|| | | (_| | | | |   <| |  __/
  |_|  |_|  \__,_|_| |_|_|\_\_|\___|
 
- The Frankie Language v1.8
+ The Frankie Language v1.9
  Stitched together from Ruby • Python • R • Fortran
 ```
 
@@ -96,40 +96,43 @@ end
 
 ---
 
-## v1.8 Highlights
+## v1.9 Highlights
 
 ```ruby
-# Lambdas — store and pass functions as values
-double = ->(x) { x * 2 }
-puts double.call(5)      # 10
+# Record types — lightweight named data objects
+record Point(x, y)
+record Employee(name, dept, salary)
 
-add = ->(a, b) { a + b }
-puts add.call(3, 7)      # 10
+p1  = Point(3, 4)
+emp = Employee("Alice", "Engineering", 95000)
+puts p1     # Point(x: 3, y: 4)
+puts emp["name"]   # Alice
 
-def apply(fn, val)        # higher-order functions
-  return fn.call(val)
-end
-puts apply(double, 9)    # 18
+# Hash .dig — safe nested access (returns nil, never crashes)
+config = {db: {host: "localhost", port: 5432}}
+puts config.dig("db", "host")       # localhost
+puts config.dig("db", "missing")    # nil  (no crash)
+puts config.dig("nope", "host")     # nil  (no crash)
 
-# Hash merge operator  |
-defaults = {color: "blue", size: "medium"}
-overrides = {color: "red"}
-puts defaults | overrides  # {color: red, size: medium}
-
-# group_by — bucket a vector by a key
-people = [{name: "Alice", dept: "Eng"}, {name: "Bob", dept: "Design"}, {name: "Carol", dept: "Eng"}]
-by_dept = people.group_by do |p| p["dept"] end
-puts by_dept["Eng"].length   # 2
-
-# each_slice — iterate in fixed-size chunks
-[1,2,3,4,5,6].each_slice(2) do |s|
-  puts s       # [1,2]  [3,4]  [5,6]
+# Standalone zip() — R-style function form
+names  = ["Alice", "Bob", "Carol"]
+scores = [95, 87, 92]
+zip(names, scores).each do |pair|
+  puts "#{pair[0]}: #{pair[1]}"
 end
 
-# each_cons — sliding window iteration
-[10, 13, 11, 15].each_cons(2) do |w|
-  puts w[1] - w[0]    # 3  -2  4
-end
+# frankiec fmt — auto-format any .fk file
+# frankiec fmt --write myfile.fk     (reformat in-place)
+# frankiec fmt --check myfile.fk     (CI mode)
+
+# frankiec docs — extract ## doc-comments to Markdown
+# frankiec docs --output api.md lib/utils.fk
+
+# .env auto-loaded by frankiec run and frankiec repl
+# DB_PATH=data/myapp.db  →  env("DB_PATH")
+
+# REPL: arrow keys, Ctrl+R history search, tab completion,
+# history persisted to ~/.frankie_history
 ```
 
 ---
@@ -204,6 +207,8 @@ frankiec run   <file.fk>    # run a program
 frankiec build <file.fk>    # compile to Python source
 frankiec check <file.fk>    # syntax check only
 frankiec test  [file.fk]    # run test suite (default: test.fk)
+frankiec fmt   [--write] [--check] <file.fk>   # auto-format
+frankiec docs  [--output out.md] <file.fk>     # generate docs
 frankiec repl               # interactive REPL
 frankiec version            # show version
 ```
@@ -221,11 +226,12 @@ Full documentation lives in the `docs/` folder:
 | `docs/03_collections.md` | Vectors, hashes, all iterators |
 | `docs/04_stdlib.md` | Math, stats, randomness, strings, regex, file I/O, file system, JSON, CSV, DateTime, HTTP, testing |
 | `docs/05_examples.md` | All example programs explained |
-| `docs/06_changelog.md` | v1.0 – v1.8 release notes |
+| `docs/06_changelog.md` | v1.0 – v1.9 release notes |
 | `docs/07_database.md` | SQLite database access — full API reference |
 | `docs/08_v17_features.md` | v1.4–v1.7 feature reference: nil safety, templates, file system, typed asserts, web server, randomness, constants, compound assignment |
 | `docs/09_web.md` | Web server — routes, requests, responses, filters |
 | `docs/10_v18_features.md` | v1.8 feature reference: lambdas, hash merge `\|`, group_by, each_slice, each_cons |
+| `docs/11_v19_features.md` | v1.9 feature reference: records, dig, zip, fmt, docs, readline REPL, .env loader |
 
 The formal language grammar lives in `SPEC.md`.
 

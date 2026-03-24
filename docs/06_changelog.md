@@ -1,6 +1,79 @@
 # Changelog
 
+## v1.9.0 (2026)
+
+### New Features
+
+**Language — Record Types (`record`)**
+- `record Point(x, y)` defines a lightweight named data object
+- Constructor function generated automatically: `p = Point(3, 4)`
+- Prints as `Point(x: 3, y: 4)` — clean, readable output
+- Records are hashes under the hood — all hash methods, iterators, `dig`, `|`, and `.merge` work on them
+- New lexer token `RECORD`, new AST node `RecordDef`, new `gen_record_def` in codegen
+- `_fk_to_str` updated to detect `__type__` and display record notation
+
+```ruby
+record Employee(name, dept, salary)
+emp = Employee("Alice", "Engineering", 95000)
+puts emp               # Employee(name: Alice, dept: Engineering, salary: 95000)
+puts emp["dept"]       # Engineering
+by_dept = employees.group_by do |e| e["dept"] end
+```
+
+**Standard Library — `hash.dig(key, ...)`**
+- Safe nested access: returns `nil` at the first missing key, never crashes
+- Works on hashes (string/symbol keys) and vectors (integer indices)
+- Chains correctly with `&.` for nil-safe navigation
+
+```ruby
+config = {db: {host: "localhost", pool: {max: 10}}}
+puts config.dig("db", "pool", "max")   # 10
+puts config.dig("db", "missing")       # nil  (no crash)
+```
+
+**Standard Library — Standalone `zip(*vecs)`**
+- `zip(a, b)` function form alongside the existing `.zip` method
+- Accepts two or more vectors; stops at the shortest
+- Consistent with Frankie's R-inspired functional style
+
+```ruby
+zip(["Alice", "Bob"], [95, 87])   # [["Alice", 95], ["Bob", 87]]
+```
+
+**Tooling — `frankiec fmt` (Auto-Formatter)**
+- New command: `frankiec fmt <file.fk>` — print canonically formatted source
+- `--write` flag: reformat in-place
+- `--check` flag: exit 1 if not already formatted (CI-friendly)
+- Implemented in `frankie_fmt.py` — walks the AST, zero new dependencies
+- Canonical style: 2-space indent, single-expr blocks inlined, blank line after top-level `def`
+
+**Tooling — `frankiec docs` (Documentation Generator)**
+- New command: `frankiec docs <file.fk>` — extract `##` doc-comments to Markdown
+- `--output <file.md>` flag: write to file instead of stdout
+- Supports `@param`, `@return`, `@example` tags
+- Works on directories: `frankiec docs lib/` generates docs for every `.fk` file
+- Implemented in `frankie_docs.py` — pure Python, zero new dependencies
+
+**REPL — readline, Tab Completion, History Persistence**
+- Arrow key navigation (`↑`/`↓`) and Ctrl+R reverse-search via Python's built-in `readline`
+- Tab completion for Frankie keywords, stdlib functions, and common method names
+- History saved to `~/.frankie_history` on exit; restored at next startup (max 1000 entries)
+- `.env` auto-loaded from the current working directory at REPL startup
+
+**Runtime — `.env` Auto-Loader**
+- `frankiec run` and `frankiec repl` automatically load `.env` from the current directory
+- Keys already set in the shell environment take precedence
+- Values accessible via the existing `env(key, default)` stdlib function
+- No crash if `.env` is absent
+
+### Bug Fixes
+- `record` added as a reserved keyword — programs that used `record` as a variable name must rename it (the existing `.fk` examples in the repo have been updated)
+- `scaffold.py` version string updated from `v1.3` to `v1.9`
+
+---
+
 ## v1.8.0 (2026)
+
 
 ### New Features
 

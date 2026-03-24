@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """
-frankiec — The Frankie Language Compiler & Interpreter v1.8
+frankiec — The Frankie Language Compiler & Interpreter v1.9
 Usage:
     frankiec new    <project>      Scaffold a new Frankie project
     frankiec run    <file.fk>      Run a Frankie program
     frankiec build  <file.fk>      Compile to Python source
     frankiec check  <file.fk>      Syntax check only
     frankiec test   [file.fk]      Run test suite (default: test.fk)
+    frankiec fmt    [--write] [--check] <file.fk>  Auto-format source
+    frankiec docs   [--output <out.md>] <file.fk>  Generate documentation
     frankiec repl                  Start the interactive REPL
     frankiec version               Show version info
 """
@@ -23,17 +25,37 @@ from compiler.lexer import Lexer, LexError
 from compiler.parser import Parser, ParseError
 from compiler.codegen import CodeGen, CodeGenError
 
-FRANKIE_VERSION = "1.8.0"
+FRANKIE_VERSION = "1.9.0"
 FRANKIE_BANNER = r"""
-  _____                 _    _        
- |  ___| __ __ _ _ __ | | _(_) ___   
- | |_ | '__/ _` | '_ \| |/ / |/ _ \  
- |  _|| | | (_| | | | |   <| |  __/  
- |_|  |_|  \__,_|_| |_|_|\_\_|\___|  
+  _____                 _    _
+ |  ___| __ __ _ _ __ | | _(_) ___
+ | |_ | '__/ _` | '_ \| |/ / |/ _ \
+ |  _|| | | (_| | | | |   <| |  __/
+ |_|  |_|  \__,_|_| |_|_|\_\_|\___|
 
  The Frankie Language Compiler v{version}
  Stitched together from Ruby • Python • R • Fortran
 """
+
+
+def _load_dotenv():
+    """Auto-load .env from the current working directory into os.environ."""
+    env_path = os.path.join(os.getcwd(), '.env')
+    if not os.path.exists(env_path):
+        return
+    try:
+        with open(env_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith('#') or '=' not in line:
+                    continue
+                key, _, val = line.partition('=')
+                key = key.strip()
+                val = val.strip().strip('"').strip("'")
+                if key and key not in os.environ:
+                    os.environ[key] = val
+    except OSError:
+        pass
 
 
 def compile_source(source: str, filename: str = "<stdin>") -> str:
@@ -48,6 +70,9 @@ def run_file(fk_file: str):
     if not os.path.exists(fk_file):
         print(f"[Frankie] Error: File not found: {fk_file}", file=sys.stderr)
         sys.exit(1)
+
+    # Auto-load .env before running
+    _load_dotenv()
 
     with open(fk_file, 'r', encoding='utf-8') as f:
         source = f.read()
@@ -313,6 +338,43 @@ def main():
     elif cmd == 'test':
         fk_file = sys.argv[2] if len(sys.argv) > 2 else None
         run_tests(fk_file)
+
+    elif cmd == 'fmt':
+        from frankie_fmt import fmt_file
+        args = sys.argv[2:]
+        write = '--write' in args
+        check = '--check' in args
+        files = [a for a in args if not a.startswith('--')]
+        if not files:
+            print("[Frankie] Usage: frankiec fmt [--write] [--check] <file.fk>", file=sys.stderr)
+            sys.exit(1)
+        ok = True
+        for f in files:
+            ok = fmt_file(f, write=write, check=check) and ok
+        if not ok:
+            sys.exit(1)
+
+    elif cmd == 'docs':
+        from frankie_docs import docs_file, docs_directory
+        args = sys.argv[2:]
+        output = None
+        if '--output' in args:
+            idx = args.index('--output')
+            output = args[idx + 1]
+            args = [a for i, a in enumerate(args) if i != idx and i != idx + 1]
+        targets = [a for a in args if not a.startswith('--')]
+        if not targets:
+            print("[Frankie] Usage: frankiec docs [--output <file.md>] <file.fk|dir>", file=sys.stderr)
+            sys.exit(1)
+        ok = True
+        for t in targets:
+            if os.path.isdir(t):
+                from frankie_docs import docs_directory
+                ok = docs_directory(t, output) and ok
+            else:
+                ok = docs_file(t, output) and ok
+        if not ok:
+            sys.exit(1)
 
     else:
         print(f"[Frankie] Unknown command: {cmd!r}", file=sys.stderr)

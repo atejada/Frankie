@@ -117,6 +117,8 @@ class CodeGen:
             self.gen_break(node)
         elif isinstance(node, ConstAssign):
             self.gen_const_assign(node)
+        elif isinstance(node, RecordDef):
+            self.gen_record_def(node)
         else:
             # Expression used as statement
             expr = self.gen_expr(node)
@@ -385,6 +387,7 @@ class CodeGen:
             'to_str': '_fk_to_str',
             'puts': 'print',
             'print': 'print',
+            'zip': 'zip',
         }
         py_name = stdlib_map.get(node.name, node.name)
         if node.name == 'print':
@@ -672,6 +675,9 @@ class CodeGen:
             return f"(_fk_hash_merge_bang({recv}, {arg}))"
         if node.method in ('size', 'count'):
             return f"len({recv})"
+        if node.method == 'dig':
+            keys = ", ".join(self.gen_expr(a) for a in node.args)
+            return f"_fk_dig({recv}, {keys})"
         if node.method == 'to_a':
             return f"list({recv}.items())"
         if node.method == 'each_pair':
@@ -1225,6 +1231,26 @@ class CodeGen:
         names = ", ".join(node.names)
         # Use Python iterable unpacking
         self.emit(f"{names} = _fk_unpack({value}, {len(node.names)})")
+
+    def gen_record_def(self, node: RecordDef):
+        """Generate a record type — a constructor function + hash-based instances.
+
+        record Point(x, y)  generates:
+          def Point(x, y):
+              return {"__type__": "Point", "x": x, "y": y}
+
+        Plus a structural equality helper and pretty __repr__ in _fk_to_str (handled by
+        the existing hash-printing path — __type__ is displayed as the record name).
+        """
+        fields = node.fields
+        params = ", ".join(fields)
+        # Constructor
+        self.emit(f"def {node.name}({params}):")
+        self.indent()
+        pairs = ", ".join(f'"{f}": {f}' for f in fields)
+        self.emit(f'return {{"__type__": "{node.name}", {pairs}}}')
+        self.dedent()
+        self.emit()
 
     def gen_lambda(self, node: 'LambdaLiteral') -> str:
         """Generate a Python lambda or named inner function for a Frankie lambda literal.

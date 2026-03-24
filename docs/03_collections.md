@@ -181,6 +181,7 @@ person[:age] = 31       # write / add
 | `.delete(k)` | Remove key |
 | `.merge(other)` | Return merged hash (method form) |
 | `h1 \| h2` | Merge operator — right wins on conflict *(v1.8)* |
+| `.dig(k1, k2, ...)` | Safe nested access — returns nil instead of crashing *(v1.9)* |
 | `.to_a` | Convert to vector of pairs |
 
 ### Hash Iteration
