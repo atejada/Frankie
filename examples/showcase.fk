@@ -1,7 +1,7 @@
 # showcase.fk — Everything Frankie can do in one program
 
 puts "╔══════════════════════════════════════╗"
-puts "║     Frankie v1.9 — Full Showcase     ║"
+puts "║     Frankie v1.10 — Full Showcase     ║"
 puts "╚══════════════════════════════════════╝"
 puts ""
 
@@ -389,3 +389,38 @@ row_record = zip(keys, vals).reduce({}) do |acc, pair|
   acc
 end
 puts row_record    # {name: Alice, age: 30, city: Lima}
+
+# ── 23. String & Vector * repetition (v1.10) ──────────────────────────────
+puts ""
+puts "── 23. String & Vector * Repetition (v1.10) ──"
+puts "=" * 30
+puts [0] * 4
+puts [1, 2] * 3
+title = "RESULT"
+puts " " * 5 + title + " " * 5
+
+# ── 24. Heredoc <<~TEXT (v1.10) ────────────────────────────────────────────
+puts ""
+puts "── 24. Heredoc <<~TEXT (v1.10) ──"
+lang = "Frankie"
+msg = <<~MSG
+  Hello from #{lang}!
+  Zero dependencies.
+MSG
+puts msg
+
+# ── 25. times() standalone + flatten(depth) + map_with_index (v1.10) ──────
+puts "── 25. times / flatten / map_with_index (v1.10) ──"
+times(3) do |i|
+  puts "  tick #{i}"
+end
+puts [[1,[2]],[3,[4,[5]]]].flatten
+puts [[1,[2]],[3,[4,[5]]]].flatten(1)
+puts ["a","b","c"].map_with_index do |v, i| "#{i}=#{v}" end
+
+# ── 26. pp + encode/decode (v1.10) ─────────────────────────────────────────
+puts ""
+puts "── 26. pp + encode/decode (v1.10) ──"
+pp({lang: "Frankie", version: "1.10"})
+puts "ok".encode
+puts [104, 105].decode

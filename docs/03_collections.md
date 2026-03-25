@@ -37,7 +37,9 @@ v + [1, 2, 3, 4, 5]     # [11, 22, 33, 44, 55]
 | `.reverse` | Reversed copy |
 | `.sort` | Sorted copy |
 | `.uniq` | Deduplicated copy |
-| `.flatten` | Flatten one level of nesting |
+| `.flatten` | Full deep flatten *(changed in v1.10 — was one-level in v1.9)* |
+| `.flatten(n)` | Flatten exactly n levels; `.flatten(1)` = old v1.9 behaviour *(v1.10)* |
+| `.map_with_index { \|x, i\| }` | Map with element index available *(v1.10)* |
 | `.compact` | Remove nil values |
 | `.push(x)` | Append element |
 | `.pop()` | Remove and return last element |

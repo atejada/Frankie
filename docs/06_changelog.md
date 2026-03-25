@@ -1,6 +1,70 @@
 # Changelog
 
+## v1.10.0 (2026)
+
+### New Features
+
+**Language — String & Vector `*` Repetition**
+- `"ha" * 3` → `"hahaha"` — string repetition
+- `[0] * 5` → `[0, 0, 0, 0, 0]` — vector fill
+- `[1, 2] * 3` → `[1, 2, 1, 2, 1, 2]` — pattern repeat
+- Integer on either side works: `3 * "hi"` → `"hihihi"`
+- Implemented in `_fk_arith` — zero new syntax
+
+**Language — Heredoc `<<~TEXT`**
+- `<<~DELIM ... DELIM` multiline string with automatic indent-stripping
+- `<<DELIM` variant (no strip) also supported
+- Full `#{}` interpolation inside heredoc bodies
+- Pure lexer change — no new tokens or AST nodes
+- The codegen `gen_string` rewritten to use `repr()` + concatenation for multiline interpolated strings, eliminating triple-quote/backslash edge cases entirely
+
+**Language — Named Rescue Without Variable**
+- `rescue TypeError` is now valid without a binding variable
+- `rescue TypeError e` still works when the message is needed
+- Parser fix: variable binding is now truly optional after a typed rescue
+
+**Standard Library — `times(n) do |i|` standalone**
+- `times(n) do |i| ... end` functional form added alongside `n.times do`
+- `times(n)` with no block returns `[0..n-1]` as a list
+- `FuncCall` AST node gains an optional `block` field; parser attaches trailing `do...end` blocks to function calls; codegen emits a `for` loop for `times`
+
+**Standard Library — `flatten(depth)`**
+- `.flatten` with no argument now does **full deep** flatten (breaking change from v1.9's one-level-only behaviour)
+- `.flatten(n)` flattens exactly `n` levels; `.flatten(0)` is a no-op
+- Backed by new `_fk_flatten_deep(iterable, depth)` in stdlib
+
+**Standard Library — `map_with_index`**
+- `.map_with_index do |x, i| ... end` — index available in map block
+- Single-expression blocks compile to a list comprehension; multi-statement blocks use a helper function
+
+**Standard Library — `pp(value)` pretty-print**
+- Indented multiline output for hashes, vectors, and records
+- Records printed as `RecordName(\n  field: value,\n  ...)`
+- Flat vectors printed on one line; nested structures indented recursively
+
+**Standard Library — `encode` / `decode`**
+- `"hello".encode` → `[104, 101, 108, 108, 111]` (UTF-8 bytes as vector)
+- `"hello".encode("ascii")` — explicit encoding
+- `[104, 105].decode` → `"hi"`
+- `[104, 105].decode("utf-8")` — explicit encoding
+
+**Runtime — Exit Code Propagation**
+- `exit(42)` in Frankie code now propagates the exact code to the shell
+- `frankiec run` catches `SystemExit` and calls `sys.exit(e.code)` instead of re-raising
+
+**CLI — `--help` Flag**
+- `frankiec --help` prints the full usage docstring
+- `frankiec <cmd> --help` prints a short description for that specific command
+- All commands covered: `run`, `repl`, `test`, `fmt`, `docs`, `build`, `check`, `new`, `version`
+
+### Bug Fixes
+- `gen_string` multiline interpolation: single-line f-strings were emitted with literal embedded newlines (invalid Python syntax). Fixed by using `repr()` + string concatenation for all multiline interpolated strings.
+- `flatten` semantics changed to full-deep by default; use `.flatten(1)` for the old one-level behaviour.
+
+---
+
 ## v1.9.0 (2026)
+
 
 ### New Features
 

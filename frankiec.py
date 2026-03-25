@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-frankiec — The Frankie Language Compiler & Interpreter v1.9
+frankiec — The Frankie Language Compiler & Interpreter v1.10
 Usage:
     frankiec new    <project>      Scaffold a new Frankie project
     frankiec run    <file.fk>      Run a Frankie program
@@ -25,7 +25,7 @@ from compiler.lexer import Lexer, LexError
 from compiler.parser import Parser, ParseError
 from compiler.codegen import CodeGen, CodeGenError
 
-FRANKIE_VERSION = "1.9.0"
+FRANKIE_VERSION = "1.10.0"
 FRANKIE_BANNER = r"""
   _____                 _    _
  |  ___| __ __ _ _ __ | | _(_) ___
@@ -106,8 +106,9 @@ def run_file(fk_file: str):
     try:
         exec_globals = {**stdlib_globals, '__name__': '__main__', '__file__': fk_file}
         exec(compile(py_source, fk_file, 'exec'), exec_globals)
-    except SystemExit:
-        raise
+    except SystemExit as e:
+        # Propagate the exact exit code from exit(n) calls in Frankie code
+        sys.exit(e.code if e.code is not None else 0)
     except Exception as e:
         _print_runtime_error(e, fk_file, source)
         sys.exit(1)
@@ -294,6 +295,19 @@ def run_tests(fk_file: str = None):
         sys.exit(1)
 
 
+HELP_TEXT = {
+    'run':     "frankiec run <file.fk>\n  Compile and execute a Frankie program.\n  Exit code is propagated from exit(n) calls in Frankie code.",
+    'repl':    "frankiec repl\n  Start the interactive REPL with readline, tab completion, and\n  persistent history at ~/.frankie_history.",
+    'test':    "frankiec test [file.fk]\n  Run a Frankie test suite. Defaults to test.fk in the current directory.\n  Uses assert_eq, assert_true, assert_raises, assert_raises_typed.",
+    'fmt':     "frankiec fmt [--write] [--check] <file.fk>\n  Auto-format Frankie source using the AST.\n  --write   Reformat file in-place.\n  --check   Exit 1 if the file is not already formatted (CI mode).",
+    'docs':    "frankiec docs [--output <out.md>] <file.fk|dir>\n  Extract ## doc-comments from .fk source and render to Markdown.\n  --output  Write to a file instead of stdout.\n  Supports @param, @return, and @example tags.",
+    'build':   "frankiec build <file.fk> [output.py]\n  Compile a .fk file to Python source without executing it.",
+    'check':   "frankiec check <file.fk>\n  Syntax-check a .fk file without executing it. Exit 0 = OK, 1 = error.",
+    'new':     "frankiec new <project_name>\n  Scaffold a new Frankie project with main.fk, test.fk, lib/, data/, .env.example.",
+    'version': "frankiec version\n  Print the Frankie version string.",
+}
+
+
 def main():
     if len(sys.argv) < 2:
         from repl import run_repl
@@ -301,6 +315,19 @@ def main():
         return
 
     cmd = sys.argv[1]
+
+    # Global help
+    if cmd in ('--help', '-h', 'help'):
+        print(__doc__)
+        return
+
+    # Per-command help
+    if '--help' in sys.argv[2:] or '-h' in sys.argv[2:]:
+        if cmd in HELP_TEXT:
+            print(HELP_TEXT[cmd])
+        else:
+            print(__doc__)
+        return
 
     if cmd == 'version':
         print(f"Frankie v{FRANKIE_VERSION}")

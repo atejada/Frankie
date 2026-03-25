@@ -309,14 +309,16 @@ class Parser:
             # Optional type name: rescue TypeError  rescue RuntimeError  etc.
             error_type = None
             rescue_var = None
-            # A capitalised IDENT that is NOT immediately followed by NEWLINE/EOF
-            # and is a known type hint is treated as the error type
+            # A capitalised IDENT is the error type
             if (self.check(TT.IDENT)
-                    and self.current().value[:1].isupper()
-                    and self.peek(1).type not in (TT.NEWLINE, TT.EOF)):
+                    and self.current().value[:1].isupper()):
                 error_type = self.advance().value
-            # Optional variable binding: rescue [Type] e  or  rescue [Type] => e
-            if self.check(TT.IDENT):
+            # Optional variable binding — only consume as variable if next
+            # token is a lowercase identifier followed by newline/EOF/body
+            # This lets `rescue TypeError` work without requiring a variable.
+            if (self.check(TT.IDENT)
+                    and self.current().value[:1].islower()
+                    and self.peek(1).type in (TT.NEWLINE, TT.EOF)):
                 rescue_var = self.advance().value
             self.skip_newlines()
             clause_body = self.parse_rescue_body()
@@ -584,6 +586,11 @@ class Parser:
 
         # NOTE: Ranges are handled in parse_unary, not here, so that
         # negative starts like -5..-1 work correctly.
+
+        # Attach a trailing do...end block to a bare function call.
+        # e.g.  times(5) do |i| ... end
+        if isinstance(node, FuncCall) and self.check(TT.DO):
+            node.block = self.parse_block()
 
         while True:
             if self.check(TT.DOT):

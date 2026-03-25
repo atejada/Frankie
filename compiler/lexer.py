@@ -361,6 +361,82 @@ class Lexer:
                 self.tokens.append(Token(ttype, value, line, col))
                 continue
 
+            # Heredoc  <<~DELIM ... DELIM  (strip-indent variant)
+            # Also supports <<DELIM (no strip). Must appear as <<~ or << followed
+            # immediately by an identifier on the same line.
+            if ch == '<' and self.peek(1) == '<':
+                # Look ahead: <<~ or << followed by an identifier
+                offset = 2
+                strip_indent = False
+                if self.peek(2) == '~':
+                    strip_indent = True
+                    offset = 3
+                # Collect delimiter name
+                delim_start = self.pos + offset
+                delim_end = delim_start
+                while delim_end < len(self.source) and (
+                        self.source[delim_end].isalnum() or self.source[delim_end] == '_'):
+                    delim_end += 1
+                if delim_end > delim_start:
+                    delimiter = self.source[delim_start:delim_end]
+                    # Consume <<~DELIM (or <<DELIM)
+                    for _ in range(delim_end - self.pos):
+                        self.advance()
+                    # Skip to next line
+                    while self.pos < len(self.source) and self.peek() != '\n':
+                        self.advance()
+                    if self.pos < len(self.source):
+                        self.advance()  # consume the newline
+                    # Collect body lines until a line that is exactly `delimiter`
+                    body_lines = []
+                    while self.pos < len(self.source):
+                        # Read one line
+                        line_start = self.pos
+                        while self.pos < len(self.source) and self.peek() != '\n':
+                            self.advance()
+                        raw_line = self.source[line_start:self.pos]
+                        if self.pos < len(self.source):
+                            self.advance()  # consume newline
+                        if raw_line.strip() == delimiter:
+                            break
+                        body_lines.append(raw_line)
+                    # Strip common leading whitespace for <<~
+                    if strip_indent and body_lines:
+                        non_empty = [l for l in body_lines if l.strip()]
+                        if non_empty:
+                            min_indent = min(len(l) - len(l.lstrip()) for l in non_empty)
+                            body_lines = [l[min_indent:] for l in body_lines]
+                    text = '\n'.join(body_lines) + '\n'
+                    # Parse #{} interpolation segments out of the heredoc body
+                    parts = []
+                    remaining = text
+                    while remaining:
+                        interp_start = remaining.find('#{')
+                        if interp_start == -1:
+                            parts.append(('literal', remaining))
+                            break
+                        if interp_start > 0:
+                            parts.append(('literal', remaining[:interp_start]))
+                        remaining = remaining[interp_start + 2:]  # skip #{
+                        depth = 1
+                        expr_chars = []
+                        while remaining and depth > 0:
+                            c = remaining[0]
+                            remaining = remaining[1:]
+                            if c == '{':
+                                depth += 1
+                                expr_chars.append(c)
+                            elif c == '}':
+                                depth -= 1
+                                if depth > 0:
+                                    expr_chars.append(c)
+                            else:
+                                expr_chars.append(c)
+                        parts.append(('interp', ''.join(expr_chars)))
+                    self.tokens.append(Token(TT.STRING, parts, line, col))
+                    self.add_token(TT.NEWLINE)
+                    continue
+
             # Strings — single/double quoted, with triple-quote multiline support
             if ch in ('"', "'"):
                 self.advance()

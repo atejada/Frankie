@@ -53,7 +53,7 @@ def _fk_to_str(x):
 # ─── Arithmetic (vector-aware) ────────────────────────────────────────────────
 
 def _fk_arith(left_repr, left, right_repr, right, op):
-    """Perform arithmetic, supporting vector (list) operands."""
+    """Perform arithmetic, supporting vector (list) and string operands."""
     def scalar_op(a, b, o):
         if o == '+': return a + b
         if o == '-': return a - b
@@ -63,6 +63,18 @@ def _fk_arith(left_repr, left, right_repr, right, op):
         if o == '%': return a % b
         if o == '**': return a ** b
         raise RuntimeError(f"[Frankie] Unknown operator: {o}")
+
+    # String * n  →  "ha" * 3  →  "hahaha"
+    if op == '*' and isinstance(left, str) and isinstance(right, (int, float)):
+        return left * int(right)
+    if op == '*' and isinstance(right, str) and isinstance(left, (int, float)):
+        return right * int(left)
+
+    # Vector * n  →  [0] * 3  →  [0, 0, 0]
+    if op == '*' and isinstance(left, list) and isinstance(right, (int, float)):
+        return left * int(right)
+    if op == '*' and isinstance(right, list) and isinstance(left, (int, float)):
+        return right * int(left)
 
     if isinstance(left, list) and isinstance(right, list):
         if len(left) != len(right):
@@ -1581,6 +1593,95 @@ def sleep(seconds):
     """Pause execution for the given number of seconds (float ok)."""
     _time.sleep(float(seconds))
     return seconds
+
+
+# ─── v1.10: New helpers ───────────────────────────────────────────────────────
+
+def times(n, fn=None):
+    """Standalone times(n) — call fn(i) for i in 0..n-1, or return list(range(n))."""
+    if fn is None:
+        return list(range(int(n)))
+    for i in range(int(n)):
+        fn(i)
+
+
+def pp(val, _indent=0):
+    """Pretty-print a value with indented multiline output for nested structures."""
+    pad  = "  " * _indent
+    pad2 = "  " * (_indent + 1)
+    if isinstance(val, dict):
+        if not val:
+            print(pad + "{}")
+            return
+        if "__type__" in val:
+            type_name = val["__type__"]
+            fields = {k: v for k, v in val.items() if k != "__type__"}
+            if not fields:
+                print(pad + f"{type_name}()")
+                return
+            print(pad + f"{type_name}(")
+            items = list(fields.items())
+            for i, (k, v) in enumerate(items):
+                comma = "," if i < len(items) - 1 else ""
+                if isinstance(v, (dict, list)) and v:
+                    print(pad2 + f"{k}:")
+                    pp(v, _indent + 2)
+                else:
+                    print(pad2 + f"{k}: {_fk_to_str(v)}{comma}")
+            print(pad + ")")
+        else:
+            print(pad + "{")
+            items = list(val.items())
+            for i, (k, v) in enumerate(items):
+                comma = "," if i < len(items) - 1 else ""
+                if isinstance(v, (dict, list)) and v:
+                    print(pad2 + f"{k}:")
+                    pp(v, _indent + 2)
+                else:
+                    print(pad2 + f"{k}: {_fk_to_str(v)}{comma}")
+            print(pad + "}")
+    elif isinstance(val, list):
+        if not val:
+            print(pad + "[]")
+            return
+        if all(not isinstance(e, (dict, list)) for e in val):
+            print(pad + "[" + ", ".join(_fk_to_str(e) for e in val) + "]")
+        else:
+            print(pad + "[")
+            for e in val:
+                pp(e, _indent + 1)
+            print(pad + "]")
+    else:
+        print(pad + _fk_to_str(val))
+
+
+def _fk_flatten_deep(iterable, depth):
+    """Flatten up to depth levels. depth=None means fully recursive."""
+    result = []
+    for item in iterable:
+        if isinstance(item, list) and depth != 0:
+            next_depth = None if depth is None else depth - 1
+            result.extend(_fk_flatten_deep(item, next_depth))
+        else:
+            result.append(item)
+    return result
+
+
+def _fk_map_with_index(iterable, fn):
+    """Map with index: fn(element, index) → new vector."""
+    return [fn(x, i) for i, x in enumerate(iterable)]
+
+
+def _fk_str_encode(s, encoding='utf-8'):
+    """Encode a string to a vector of byte integers."""
+    return list(s.encode(encoding))
+
+
+def _fk_str_decode(byte_vec, encoding='utf-8'):
+    """Decode a vector of byte integers back to a string."""
+    return bytes(byte_vec).decode(encoding)
+
+
 
 
 # ─── v1.5: Sort helpers ───────────────────────────────────────────────────────

@@ -164,6 +164,7 @@ class FuncDef(Node):
 class FuncCall(Node):
     name: str
     args: List[Node]
+    block: Optional['Block'] = None
 
 @dataclass
 class ReturnStmt(Node):

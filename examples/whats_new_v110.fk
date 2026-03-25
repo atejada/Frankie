@@ -1,0 +1,185 @@
+# whats_new_v110.fk — Frankie v1.10 feature showcase
+
+puts "╔══════════════════════════════════════════╗"
+puts "║       Frankie v1.10 — What's New         ║"
+puts "╚══════════════════════════════════════════╝"
+puts ""
+
+# ── 1. String & Vector * repetition ─────────────────────────────────────────
+puts "── 1. String & Vector * Repetition ──"
+
+puts "ha" * 3           # hahaha
+puts "-" * 40           # ────────────────────────────────────────
+puts "=" * 20           # ====================
+
+header = "[ Frankie v1.10 ]"
+width  = 40
+pad    = " " * ((width - header.length) // 2)
+puts pad + header
+
+# Vector fill patterns
+puts [0] * 5            # [0, 0, 0, 0, 0]
+puts [nil] * 3          # [nil, nil, nil]
+puts [1, 2] * 3         # [1, 2, 1, 2, 1, 2]
+
+# Practical: build a table row separator
+cols = [12, 8, 10]
+sep  = cols.map do |w| "-" * w end.join("+")
+puts sep
+
+puts ""
+
+# ── 2. Heredoc <<~TEXT ───────────────────────────────────────────────────────
+puts "── 2. Heredoc <<~TEXT ──"
+
+# Indentation is stripped — write naturally indented code
+html = <<~HTML
+  <article>
+    <h1>Frankie v1.10</h1>
+    <p>Zero dependencies. Proudly procedural.</p>
+  </article>
+HTML
+puts html
+
+query = <<~SQL
+  SELECT name, dept, salary
+  FROM employees
+  WHERE salary > 80000
+  ORDER BY salary DESC
+SQL
+puts query
+
+# Works with string interpolation
+version = "v1.10"
+banner = <<~BANNER
+  ┌─────────────────────────────┐
+  │   Frankie #{version} is alive!    │
+  └─────────────────────────────┘
+BANNER
+puts banner
+
+# ── 3. times() as standalone function ───────────────────────────────────────
+puts "── 3. times() standalone ──"
+
+# Method form (always worked)
+3.times do |i|
+  puts "  method form: #{i}"
+end
+
+# Standalone function form (new in v1.10)
+times(3) do |i|
+  puts "  function form: #{i}"
+end
+
+# No-block form returns a list
+puts times(5)    # [0, 1, 2, 3, 4]
+
+# Practical: build n copies of something
+rows = times(4).map do |i| {id: i + 1, active: true} end
+rows.each do |r| puts "  row #{r["id"]}" end
+
+puts ""
+
+# ── 4. flatten(depth) ────────────────────────────────────────────────────────
+puts "── 4. flatten(depth) ──"
+
+nested = [1, [2, 3], [4, [5, [6, 7]]]]
+puts nested.flatten        # [1, 2, 3, 4, 5, 6, 7]  — full deep
+puts nested.flatten(1)     # [1, 2, 3, 4, [5, [6, 7]]]  — one level
+puts nested.flatten(2)     # [1, 2, 3, 4, 5, [6, 7]]    — two levels
+
+# Practical: flatten pages of results
+pages = [[1, 2, 3], [4, 5], [6, 7, 8, 9]]
+all_ids = pages.flatten
+puts "Total: #{all_ids.length} items"
+
+puts ""
+
+# ── 5. map_with_index ────────────────────────────────────────────────────────
+puts "── 5. map_with_index ──"
+
+langs = ["Ruby", "Python", "R", "Fortran"]
+numbered = langs.map_with_index do |lang, i|
+  "#{i + 1}. #{lang}"
+end
+numbered.each do |line| puts "  #{line}" end
+
+# Build a hash from a vector
+record Config(key, value)
+keys = ["host", "port", "debug"]
+vals = ["localhost", "3000", "false"]
+pairs = keys.map_with_index do |k, i|
+  Config(k, vals[i])
+end
+pairs.each do |p| puts "  #{p["key"]} = #{p["value"]}" end
+
+puts ""
+
+# ── 6. pp — pretty-print ─────────────────────────────────────────────────────
+puts "── 6. pp (pretty-print) ──"
+
+data = {
+  server: {host: "localhost", port: 3000},
+  db:     {path: "app.db", pool: 5},
+  flags:  ["debug", "verbose"]
+}
+pp(data)
+
+record Employee(name, dept, salary)
+team = [
+  Employee("Alice", "Engineering", 95000),
+  Employee("Bob",   "Design",      82000)
+]
+team.each do |e| pp(e) end
+
+puts ""
+
+# ── 7. Named rescue without variable ─────────────────────────────────────────
+puts "── 7. Named rescue without variable ──"
+
+# Before v1.10: rescue ZeroDivisionError e  (required variable)
+# After  v1.10: rescue ZeroDivisionError    (variable optional)
+begin
+  x = 1 // 0
+rescue ZeroDivisionError
+  puts "  Caught ZeroDivisionError (no variable needed)"
+end
+
+begin
+  raise "deliberate error"
+rescue RuntimeError
+  puts "  Caught RuntimeError silently"
+end
+
+puts ""
+
+# ── 8. encode / decode ───────────────────────────────────────────────────────
+puts "── 8. String encode / decode ──"
+
+s = "hello"
+b = s.encode
+puts b                   # [104, 101, 108, 108, 111]
+puts b.decode            # hello
+puts "hi".encode("utf-8")          # [104, 105]
+puts [70, 114, 97, 110, 107, 105, 101].decode   # Frankie
+
+puts ""
+
+# ── 9. exit codes ────────────────────────────────────────────────────────────
+puts "── 9. Exit codes ──"
+puts "  exit(0)  — success"
+puts "  exit(1)  — general failure"
+puts "  exit(42) — custom code, propagated to the shell"
+puts "  echo $?  — check it after frankiec run script.fk"
+
+puts ""
+
+# ── 10. --help flag ──────────────────────────────────────────────────────────
+puts "── 10. --help ──"
+puts "  frankiec --help          # full usage"
+puts "  frankiec run --help      # command-specific help"
+puts "  frankiec fmt --help"
+puts "  frankiec docs --help"
+
+puts ""
+puts "v1.10 is alive! 🧟⚡"

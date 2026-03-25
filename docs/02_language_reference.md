@@ -499,3 +499,33 @@ puts p1["__type__"]     # Point
 
 Records support all hash methods (`.keys`, `.values`, `.has_key?`, `.dig`,
 `.merge`, `|`, etc.) and all iterators (`.each`, `.map`, `.group_by`, etc.).
+
+---
+
+## Heredoc Strings *(v1.10)*
+
+Multiline strings without escaping. `<<~` strips common leading indentation.
+
+```ruby
+query = <<~SQL
+  SELECT name
+  FROM users
+  WHERE active = 1
+SQL
+puts query.strip    # SELECT name\nFROM users\nWHERE active = 1
+
+# Interpolation works inside heredocs
+user = "Alice"
+msg = <<~MSG
+  Hello, #{user}!
+  Welcome to Frankie.
+MSG
+```
+
+## String & Vector `*` Repetition *(v1.10)*
+
+```ruby
+puts "ab" * 3       # ababab
+puts [0]  * 4       # [0, 0, 0, 0]
+puts [1,2] * 2      # [1, 2, 1, 2]
+```

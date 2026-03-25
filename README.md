@@ -1,13 +1,13 @@
 # 🧟 Frankie Programming Language
 
 ```
-  _____                _    _
+  _____                 _    _
  |  ___| __ __ _ _ __ | | _(_) ___
  | |_ | '__/ _` | '_ \| |/ / |/ _ \
  |  _|| | | (_| | | | |   <| |  __/
  |_|  |_|  \__,_|_| |_|_|\_\_|\___|
 
- The Frankie Language v1.9
+ The Frankie Language v1.10
  Stitched together from Ruby • Python • R • Fortran
 ```
 
@@ -17,8 +17,6 @@
 ---
 
 ## What is Frankie?
-
-![Frankie - The Programming Language](https://github.com/atejada/Frankie/blob/main/The%20Frankie%20Programming%20Language.png)
 
 Frankie is a **procedural, expressive, terminal-native programming language** named after Frankenstein — lovingly stitched together from the best parts of four legendary languages:
 
@@ -96,45 +94,49 @@ end
 
 ---
 
-## v1.9 Highlights
+## v1.10 Highlights
 
 ```ruby
-# Record types — lightweight named data objects
-record Point(x, y)
-record Employee(name, dept, salary)
+# String & vector * repetition
+puts "ha" * 3           # hahaha
+puts [0] * 5            # [0, 0, 0, 0, 0]
 
-p1  = Point(3, 4)
-emp = Employee("Alice", "Engineering", 95000)
-puts p1     # Point(x: 3, y: 4)
-puts emp["name"]   # Alice
+# Heredoc — multiline strings with indent-stripping and interpolation
+version = "1.10"
+msg = <<~SQL
+  SELECT * FROM users WHERE version = '#{version}'
+SQL
+puts msg
 
-# Hash .dig — safe nested access (returns nil, never crashes)
-config = {db: {host: "localhost", port: 5432}}
-puts config.dig("db", "host")       # localhost
-puts config.dig("db", "missing")    # nil  (no crash)
-puts config.dig("nope", "host")     # nil  (no crash)
-
-# Standalone zip() — R-style function form
-names  = ["Alice", "Bob", "Carol"]
-scores = [95, 87, 92]
-zip(names, scores).each do |pair|
-  puts "#{pair[0]}: #{pair[1]}"
+# times() as a standalone function
+times(3) do |i|
+  puts "tick #{i}"
 end
 
-# frankiec fmt — auto-format any .fk file
-# frankiec fmt --write myfile.fk     (reformat in-place)
-# frankiec fmt --check myfile.fk     (CI mode)
+# flatten(depth)
+puts [[1,[2]],[3,[4,[5]]]].flatten     # [1,2,3,4,5]
+puts [[1,[2]],[3,[4,[5]]]].flatten(1)  # [1,[2],3,[4,[5]]]
 
-# frankiec docs — extract ## doc-comments to Markdown
-# frankiec docs --output api.md lib/utils.fk
+# map_with_index
+puts ["a","b","c"].map_with_index do |v,i| "#{i}:#{v}" end
 
-# .env auto-loaded by frankiec run and frankiec repl
-# DB_PATH=data/myapp.db  →  env("DB_PATH")
+# pp — pretty-print nested structures and records
+pp({server: {host: "localhost", port: 3000}})
 
-# REPL: arrow keys, Ctrl+R history search, tab completion,
-# history persisted to ~/.frankie_history
+# Named rescue without variable
+begin
+  x = 1 // 0
+rescue ZeroDivisionError
+  puts "caught"
+end
+
+# encode / decode
+puts "hi".encode       # [104, 105]
+puts [104, 105].decode  # hi
+
+# exit(42) now propagates exact code to the shell
+# frankiec --help  /  frankiec run --help
 ```
-
 ---
 
 ## Testing
@@ -211,6 +213,8 @@ frankiec fmt   [--write] [--check] <file.fk>   # auto-format
 frankiec docs  [--output out.md] <file.fk>     # generate docs
 frankiec repl               # interactive REPL
 frankiec version            # show version
+frankiec --help             # full usage
+frankiec <cmd> --help       # per-command help
 ```
 
 ---
@@ -226,12 +230,13 @@ Full documentation lives in the `docs/` folder:
 | `docs/03_collections.md` | Vectors, hashes, all iterators |
 | `docs/04_stdlib.md` | Math, stats, randomness, strings, regex, file I/O, file system, JSON, CSV, DateTime, HTTP, testing |
 | `docs/05_examples.md` | All example programs explained |
-| `docs/06_changelog.md` | v1.0 – v1.9 release notes |
+| `docs/06_changelog.md` | v1.0 – v1.10 release notes |
 | `docs/07_database.md` | SQLite database access — full API reference |
 | `docs/08_v17_features.md` | v1.4–v1.7 feature reference: nil safety, templates, file system, typed asserts, web server, randomness, constants, compound assignment |
 | `docs/09_web.md` | Web server — routes, requests, responses, filters |
 | `docs/10_v18_features.md` | v1.8 feature reference: lambdas, hash merge `\|`, group_by, each_slice, each_cons |
 | `docs/11_v19_features.md` | v1.9 feature reference: records, dig, zip, fmt, docs, readline REPL, .env loader |
+| `docs/12_v110_features.md` | v1.10 feature reference: string/vector *, heredoc, times(), flatten(depth), map_with_index, pp, encode/decode |
 
 The formal language grammar lives in `SPEC.md`.
 
