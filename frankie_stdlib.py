@@ -1867,3 +1867,30 @@ def assert_raises_typed(fn, error_type, msg=None):
 
 def _fk_run_tests():
     return _fk_test_suite.report()
+
+# ─── v1.11 stdlib additions ───────────────────────────────────────────────────
+
+def _fk_str_sub(s, old, new):
+    """String .replace(old, new) — replace first occurrence (alias for sub)."""
+    if not isinstance(s, str):
+        raise TypeError(f"[Frankie] replace: expected a string, got {type(s).__name__}")
+    return s.replace(str(old), str(new), 1)
+
+def _fk_str_format(s, values):
+    """String .format(hash) — replace {key} placeholders with hash values.
+    Delegates to template() using {{key}} syntax after converting {key} → {{key}}.
+    """
+    if not isinstance(values, dict):
+        raise TypeError("[Frankie] format: argument must be a hash")
+    import re as _re_fmt
+    def _replacer(m):
+        key = m.group(1).strip()
+        if key not in values:
+            raise KeyError(f"[Frankie] format: key '{key}' not found in hash")
+        return str(values[key])
+    return _re_fmt.sub(r'\{(\w+)\}', _replacer, s)
+
+def _fk_zip_with(a, b, fn):
+    """Pair-wise transform: zip two vectors and apply fn(a, b) to each pair."""
+    return [fn(x, y) for x, y in zip(a, b)]
+

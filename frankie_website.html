@@ -89,7 +89,7 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
 <body>
 
 <nav>
-  <a href="#" class="nav-logo">🧟 Frankie <span>v1.10</span></a>
+  <a href="#" class="nav-logo">🧟 Frankie <span>v1.11</span></a>
   <ul>
     <li><a href="#features">Features</a></li>
     <li><a href="#syntax">Syntax</a></li>
@@ -101,12 +101,11 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
 
 <div class="hero">
   <p class="eyebrow">⚡ It's alive!</p>
-  <pre class="ascii">
- _____                _    _
-     |  ___| __ __ _ _ __ | | _(_) ___
-     | |_ | '__/ _` | '_ \| |/ / |/ _ \
-     |  _|| | | (_| | | | |   &lt;| |  __/
-     |_|  |_|  \__,_|_| |_|_|\_\_|\___| </pre>
+  <pre class="ascii">  _____                 _    _
+ |  ___| __ __ _ _ __ | | _(_) ___
+ | |_ | '__/ _` | '_ \| |/ / |/ _ \
+ |  _|| | | (_| | | | |   &lt;| |  __/
+ |_|  |_|  \__,_|_| |_|_|\_\_|\___| </pre>
   <h1>The <em>Frankie</em> Language</h1>
   <p class="sub">A procedural programming language lovingly stitched together from Ruby, Python, R, and Fortran. Zero dependencies. Proudly monstrous.</p>
   <div class="tags">
@@ -117,7 +116,7 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
   </div>
   <div class="ctas">
     <a href="#install" class="btn btn-p">Get Started →</a>
-    <a href="https://github.com/atejada/Frankie/releases" class="btn btn-s">Download v1.10</a>
+    <a href="https://github.com/atejada/Frankie/releases" class="btn btn-s">Download v1.11</a>
     <a href="https://github.com/atejada/Frankie" class="btn btn-s">★ Star on GitHub</a>
   </div>
   <p class="scroll">▼ scroll</p>
@@ -130,9 +129,12 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
   <h2>Everything you need.<br>Nothing you don't.</h2>
   <p style="color:var(--muted);max-width:560px;font-size:.97rem">Proudly procedural — functions, data, loops, logic. No classes, no <code>self</code>, no inheritance. Runs on Python 3.10+ with zero external dependencies.</p>
   <div class="grid">
-    <div class="card"><div class="card-icon">✳️</div><h3>String &amp; Vector <code>*</code> <span class="new-badge">v1.10</span></h3><p><code>"ha" * 3</code> → <code>"hahaha"</code>. <code>[0] * 5</code> → <code>[0,0,0,0,0]</code>. The missing arithmetic case — zero new syntax, works in both directions.</p></div>
-    <div class="card"><div class="card-icon">📜</div><h3>Heredoc <code>&lt;&lt;~TEXT</code> <span class="new-badge">v1.10</span></h3><p>Multiline strings with automatic indent-stripping and full <code>#{}</code> interpolation. Essential for SQL, HTML, and test fixtures — no escaping, no concatenation.</p></div>
-    <div class="card"><div class="card-icon">🔁</div><h3><code>times()</code> standalone + polish <span class="new-badge">v1.10</span></h3><p><code>times(5) do |i|</code> alongside <code>5.times do</code>. <code>flatten(n)</code> with depth control. <code>map_with_index</code>, <code>pp</code>, <code>encode</code>/<code>decode</code>, exit codes, <code>--help</code>.</p></div>
+    <div class="card"><div class="card-icon">↩️</div><h3>Implicit Return <span class="new-badge">v1.11</span></h3><p>The last expression in a function is automatically returned — <code>return</code> is now optional. Matches Ruby's feel. Zero breaking changes.</p></div>
+    <div class="card"><div class="card-icon">🔀</div><h3>Inline <code>if</code> Expression <span class="new-badge">v1.11</span></h3><p><code>grade = if score >= 90 then "A" else "B" end</code> — <code>if</code> is now usable as an expression. No <code>?:</code> operator needed.</p></div>
+    <div class="card"><div class="card-icon">🔁</div><h3><code>.replace()</code>, <code>.format()</code>, <code>.zip_with</code> <span class="new-badge">v1.11</span></h3><p><code>"hello".replace("l","r")</code>, <code>"{name}".format({name:"Alice"})</code>, pair-wise vector transform. The methods everyone reaches for first.</p></div>
+    <div class="card"><div class="card-icon">✳️</div><h3>String &amp; Vector <code>*</code> <span class="badge bs">v1.10</span></h3><p><code>"ha" * 3</code> → <code>"hahaha"</code>. <code>[0] * 5</code> → <code>[0,0,0,0,0]</code>. The missing arithmetic case — zero new syntax, works in both directions.</p></div>
+    <div class="card"><div class="card-icon">📜</div><h3>Heredoc <code>&lt;&lt;~TEXT</code> <span class="badge bs">v1.10</span></h3><p>Multiline strings with automatic indent-stripping and full <code>#{}</code> interpolation. Essential for SQL, HTML, and test fixtures — no escaping, no concatenation.</p></div>
+    <div class="card"><div class="card-icon">🔁</div><h3><code>times()</code> standalone + polish <span class="badge bs">v1.10</span></h3><p><code>times(5) do |i|</code> alongside <code>5.times do</code>. <code>flatten(n)</code> with depth control. <code>map_with_index</code>, <code>pp</code>, <code>encode</code>/<code>decode</code>, exit codes, <code>--help</code>.</p></div>
     <div class="card"><div class="card-icon">📋</div><h3>Record Types <span class="badge bs">v1.9</span></h3><p><code>record Point(x, y)</code> — lightweight named data objects. Prints as <code>Point(x: 3, y: 4)</code>. Built on hashes, so every iterator, <code>dig</code>, <code>|</code>, and <code>group_by</code> works on them instantly.</p></div>
     <div class="card"><div class="card-icon">🔍</div><h3>Hash <code>.dig</code> <span class="badge bs">v1.9</span></h3><p><code>config.dig("db", "host")</code> — safe nested access. Returns <code>nil</code> instead of crashing. Works on hashes and vectors. Chains with <code>&amp;.</code>.</p></div>
     <div class="card"><div class="card-icon">✨</div><h3><code>frankiec fmt</code> + <code>docs</code> <span class="badge bs">v1.9</span></h3><p>AST-based auto-formatter (<code>--write</code>, <code>--check</code>) and Markdown doc generator from <code>##</code> comments. Both zero-dependency, both CI-friendly.</p></div>
@@ -160,15 +162,9 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
       <pre><span class="cm"># &amp;. — nil-safe navigation operator</span>
 <span class="vr">user</span>    = {name: <span class="str">"Alice"</span>, age: <span class="num">30</span>}
 <span class="vr">missing</span> = <span class="kw">nil</span>
-
-<span class="cm"># Safe: returns nil instead of crashing</span>
-<span class="fn">puts</span> <span class="vr">user</span>[<span class="str">"name"</span>]&amp;.<span class="fn">upcase</span>    <span class="cm"># ALICE</span>
-<span class="fn">puts</span> <span class="vr">missing</span>&amp;.<span class="fn">upcase</span>         <span class="cm"># nil</span>
-
-<span class="cm"># Chains short-circuit at first nil</span>
+<span class="fn">puts</span> <span class="vr">user</span>[<span class="str">"name"</span>]&amp;.<span class="fn">upcase</span>      <span class="cm"># ALICE</span>
+<span class="fn">puts</span> <span class="vr">missing</span>&amp;.<span class="fn">upcase</span>           <span class="cm"># nil</span>
 <span class="fn">puts</span> <span class="vr">missing</span>&amp;.<span class="fn">upcase</span>&amp;.<span class="fn">reverse</span>  <span class="cm"># nil</span>
-
-<span class="cm"># No more defensive nil checks</span>
 <span class="kw">def</span> <span class="fn">greet</span>(<span class="vr">name</span>)
   <span class="vr">display</span> = <span class="vr">name</span>&amp;.<span class="fn">upcase</span>
   <span class="kw">if</span> <span class="vr">display</span> == <span class="kw">nil</span>
@@ -177,275 +173,145 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
     <span class="fn">puts</span> <span class="str">"Hello, #{display}!"</span>
   <span class="kw">end</span>
 <span class="kw">end</span>
-
 <span class="fn">greet</span>(<span class="str">"bob"</span>)  <span class="cm"># Hello, BOB!</span>
 <span class="fn">greet</span>(<span class="kw">nil</span>)   <span class="cm"># Hello, stranger!</span></pre>
-    </div>
-
-    <div class="cp">
-      <div class="cp-head"><span class="cp-title">template.fk <span class="badge bs">v1.7</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
-      <pre><span class="cm"># template() — {{key}} placeholder substitution</span>
-<span class="vr">msg</span> = <span class="fn">template</span>(<span class="str">"Hello, {{name}}! Age: {{age}}."</span>,
-               {name: <span class="str">"Alice"</span>, age: <span class="num">30</span>})
-<span class="fn">puts</span> <span class="vr">msg</span>
-<span class="cm"># Hello, Alice! Age: 30.</span>
-
-<span class="vr">html</span> = <span class="fn">template</span>(<span class="str">"&lt;h1&gt;{{title}}&lt;/h1&gt;&lt;p&gt;{{body}}&lt;/p&gt;"</span>, {
-  title: <span class="str">"Frankie v1.7"</span>,
-  body:  <span class="str">"nil safety + templates!"</span>
-})
-<span class="fn">puts</span> <span class="vr">html</span>
-
-<span class="cm"># Great with loops</span>
-<span class="vr">people</span> = [
-  {name: <span class="str">"Alice"</span>, role: <span class="str">"Engineer"</span>},
-  {name: <span class="str">"Bob"</span>,   role: <span class="str">"Designer"</span>}
-]
-<span class="vr">people</span>.<span class="fn">each</span> <span class="kw">do</span> |<span class="vr">p</span>|
-  <span class="fn">puts</span> <span class="fn">template</span>(<span class="str">"  {{name}} — {{role}}"</span>, <span class="vr">p</span>)
-<span class="kw">end</span>
-<span class="cm"># Alice — Engineer</span>
-<span class="cm"># Bob   — Designer</span></pre>
-    </div>
-
-    <div class="cp">
-      <div class="cp-head"><span class="cp-title">filesystem.fk <span class="badge bs">v1.7</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
-      <pre><span class="cm"># File system — zero dependencies</span>
-<span class="fn">file_mkdir</span>(<span class="str">"/tmp/myapp/data"</span>)
-<span class="fn">puts</span> <span class="fn">dir_exists</span>(<span class="str">"/tmp/myapp/data"</span>)   <span class="cm"># true</span>
-<span class="fn">puts</span> <span class="fn">dir_exists</span>(<span class="str">"/tmp/ghost"</span>)        <span class="cm"># false</span>
-
-<span class="fn">file_write</span>(<span class="str">"/tmp/myapp/data/a.txt"</span>, <span class="str">"hello"</span>)
-<span class="fn">file_copy</span>(<span class="str">"/tmp/myapp/data/a.txt"</span>,
-          <span class="str">"/tmp/myapp/data/b.txt"</span>)
-<span class="fn">file_rename</span>(<span class="str">"/tmp/myapp/data/b.txt"</span>,
-            <span class="str">"/tmp/myapp/data/c.txt"</span>)
-
-<span class="vr">entries</span> = <span class="fn">dir_list</span>(<span class="str">"/tmp/myapp/data"</span>)
-<span class="fn">puts</span> <span class="vr">entries</span>   <span class="cm"># [a.txt, c.txt]</span>
-
-<span class="cm"># Nested dirs (like mkdir -p)</span>
-<span class="fn">file_mkdir</span>(<span class="str">"/tmp/myapp/a/b/c"</span>)
-<span class="fn">puts</span> <span class="fn">dir_exists</span>(<span class="str">"/tmp/myapp/a/b/c"</span>)  <span class="cm"># true</span>
-
-<span class="cm"># dir_list defaults to current dir</span>
-<span class="vr">here</span> = <span class="fn">dir_list</span>()
-<span class="fn">puts</span> <span class="vr">here</span>.<span class="fn">length</span>   <span class="cm"># file count</span></pre>
-    </div>
-
-    <div class="cp">
-      <div class="cp-head"><span class="cp-title">test_typed.fk <span class="badge bs">v1.7</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
-      <pre><span class="cm"># assert_raises_typed — precise error testing</span>
-<span class="cm"># Run: frankiec test</span>
-
-<span class="cm"># Typed: pass only for exact error type</span>
-<span class="fn">assert_raises_typed</span>(<span class="kw">def</span>()
-  <span class="vr">x</span> = <span class="num">1</span> // <span class="num">0</span>
-<span class="kw">end</span>, <span class="str">"ZeroDivisionError"</span>, <span class="str">"catches ZeroDivisionError"</span>)
-
-<span class="fn">assert_raises_typed</span>(<span class="kw">def</span>()
-  <span class="fn">file_read</span>(<span class="str">"/no/such/file.txt"</span>)
-<span class="kw">end</span>, <span class="str">"RuntimeError"</span>, <span class="str">"file_read raises RuntimeError"</span>)
-
-<span class="cm"># Nil safety assertions</span>
-<span class="fn">assert_eq</span>(<span class="kw">nil</span>&amp;.<span class="fn">upcase</span>, <span class="kw">nil</span>, <span class="str">"nil&amp;.method = nil"</span>)
-<span class="fn">assert_eq</span>(<span class="str">"hi"</span>&amp;.<span class="fn">upcase</span>, <span class="str">"HI"</span>, <span class="str">"safe nav works"</span>)
-
-<span class="cm"># Template assertions</span>
-<span class="fn">assert_eq</span>(
-  <span class="fn">template</span>(<span class="str">"{{a}}+{{b}}"</span>, {a: <span class="str">"x"</span>, b: <span class="str">"y"</span>}),
-  <span class="str">"x+y"</span>, <span class="str">"template substitution"</span>
-)
-
-<span class="cm"># ✓  catches ZeroDivisionError</span>
-<span class="cm"># ✓  file_read raises RuntimeError</span>
-<span class="cm"># ✓  nil&amp;.method = nil</span>
-<span class="cm"># ✓  safe nav works</span>
-<span class="cm"># ✓  template substitution</span>
-<span class="cm"># ✓  All 5 test(s) passed  (2.1ms)</span></pre>
-    </div>
-
-    <div class="cp">
-      <div class="cp-head"><span class="cp-title">lambdas.fk <span class="badge bs">v1.8</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
-      <pre><span class="cm"># Lambdas — functions as first-class values</span>
-<span class="vr">double</span> = <span class="fn">-&gt;</span>(<span class="vr">x</span>) { <span class="vr">x</span> * <span class="num">2</span> }
-<span class="vr">add</span>    = <span class="fn">-&gt;</span>(<span class="vr">a</span>, <span class="vr">b</span>) { <span class="vr">a</span> + <span class="vr">b</span> }
-<span class="fn">puts</span> <span class="vr">double</span>.<span class="fn">call</span>(<span class="num">7</span>)      <span class="cm"># 14</span>
-<span class="fn">puts</span> <span class="vr">add</span>.<span class="fn">call</span>(<span class="num">3</span>, <span class="num">4</span>)      <span class="cm"># 7</span>
-<span class="cm"># Higher-order functions</span>
-<span class="kw">def</span> <span class="fn">apply</span>(<span class="vr">fn</span>, <span class="vr">val</span>)
-  <span class="kw">return</span> <span class="vr">fn</span>.<span class="fn">call</span>(<span class="vr">val</span>)
-<span class="kw">end</span>
-<span class="fn">puts</span> <span class="fn">apply</span>(<span class="vr">double</span>, <span class="num">9</span>)    <span class="cm"># 18</span>
-<span class="cm"># Hash merge operator |</span>
-<span class="vr">cfg</span> = {color: <span class="str">"blue"</span>} | {color: <span class="str">"red"</span>, size: <span class="str">"md"</span>}
-<span class="fn">puts</span> <span class="vr">cfg</span>[<span class="str">"color"</span>]        <span class="cm"># red</span>
-<span class="fn">puts</span> <span class="vr">cfg</span>[<span class="str">"size"</span>]          <span class="cm"># md</span></pre>
-    </div>
-
-    <div class="cp">
-    <div class="cp">
-      <div class="cp-head"><span class="cp-title">string_repeat.fk <span class="new-badge">v1.10</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
-      <pre><span class="cm"># String &amp; vector * repetition</span>
-<span class="fn">puts</span> <span class="str">"ha"</span> * <span class="num">3</span>          <span class="cm"># hahaha</span>
-<span class="fn">puts</span> <span class="str">"-"</span> * <span class="num">30</span>          <span class="cm"># ------------------------------</span>
-<span class="fn">puts</span> [<span class="num">0</span>] * <span class="num">5</span>           <span class="cm"># [0, 0, 0, 0, 0]</span>
-<span class="fn">puts</span> [<span class="num">1</span>, <span class="num">2</span>] * <span class="num">3</span>        <span class="cm"># [1, 2, 1, 2, 1, 2]</span>
-
-<span class="cm"># Heredoc &lt;&lt;~ strips indent, supports #{}</span>
-<span class="vr">v</span> = <span class="str">"1.10"</span>
-<span class="vr">sql</span> = <span class="kw">&lt;&lt;~SQL</span>
-  SELECT * FROM users
-  WHERE version = <span class="str">'#{v}'</span>
-<span class="kw">SQL</span>
-<span class="fn">puts</span> <span class="vr">sql</span>
-
-<span class="cm"># times() as standalone function</span>
-<span class="fn">times</span>(<span class="num">3</span>) <span class="kw">do</span> |<span class="vr">i</span>|
-  <span class="fn">puts</span> <span class="str">"tick #{i}"</span>
-<span class="kw">end</span>
-<span class="fn">puts</span> <span class="fn">times</span>(<span class="num">4</span>)           <span class="cm"># [0, 1, 2, 3]</span></pre>
-    </div>
-
-    <div class="cp">
-      <div class="cp-head"><span class="cp-title">polish.fk <span class="new-badge">v1.10</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
-      <pre><span class="cm"># flatten(depth) — full deep by default</span>
-<span class="vr">n</span> = [<span class="num">1</span>, [<span class="num">2</span>, [<span class="num">3</span>, [<span class="num">4</span>]]]]
-<span class="fn">puts</span> <span class="vr">n</span>.<span class="fn">flatten</span>          <span class="cm"># [1, 2, 3, 4]</span>
-<span class="fn">puts</span> <span class="vr">n</span>.<span class="fn">flatten</span>(<span class="num">1</span>)       <span class="cm"># [1, 2, [3, [4]]]</span>
-
-<span class="cm"># map_with_index</span>
-[<span class="str">"a"</span>, <span class="str">"b"</span>, <span class="str">"c"</span>].<span class="fn">map_with_index</span> <span class="kw">do</span> |<span class="vr">v</span>, <span class="vr">i</span>|
-  <span class="str">"#{i}:#{v}"</span>
-<span class="kw">end</span>
-
-<span class="cm"># pp — indented pretty-print</span>
-<span class="fn">pp</span>({server: {host: <span class="str">"localhost"</span>}})
-
-<span class="cm"># encode / decode</span>
-<span class="fn">puts</span> <span class="str">"hi"</span>.<span class="fn">encode</span>        <span class="cm"># [104, 105]</span>
-<span class="fn">puts</span> [<span class="num">104</span>, <span class="num">105</span>].<span class="fn">decode</span> <span class="cm"># hi</span>
-
-<span class="cm"># Named rescue without variable</span>
-<span class="kw">begin</span>
-  <span class="fn">risky</span>()
-<span class="kw">rescue</span> <span class="fn">RuntimeError</span>
-  <span class="fn">puts</span> <span class="str">"caught"</span>
-<span class="kw">end</span></pre>
-    </div>
-
-      <div class="cp-head"><span class="cp-title">records.fk <span class="badge bs">v1.9</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
-      <pre><span class="cm"># record — lightweight named data objects</span>
-<span class="kw">record</span> <span class="fn">Point</span>(<span class="vr">x</span>, <span class="vr">y</span>)
-<span class="kw">record</span> <span class="fn">Employee</span>(<span class="vr">name</span>, <span class="vr">dept</span>, <span class="vr">salary</span>)
-
-<span class="vr">p1</span>  = <span class="fn">Point</span>(<span class="num">3</span>, <span class="num">4</span>)
-<span class="vr">emp</span> = <span class="fn">Employee</span>(<span class="str">"Alice"</span>, <span class="str">"Eng"</span>, <span class="num">95000</span>)
-
-<span class="fn">puts</span> <span class="vr">p1</span>    <span class="cm"># Point(x: 3, y: 4)</span>
-<span class="fn">puts</span> <span class="vr">emp</span>   <span class="cm"># Employee(name: Alice, ...)</span>
-
-<span class="cm"># Records are hashes — all methods work</span>
-<span class="fn">puts</span> <span class="vr">p1</span>[<span class="str">"x"</span>]              <span class="cm"># 3</span>
-<span class="fn">puts</span> <span class="vr">emp</span>.<span class="fn">has_key?</span>(<span class="str">"dept"</span>) <span class="cm"># true</span>
-
-<span class="cm"># dig — safe nested access</span>
-<span class="vr">cfg</span> = {db: {host: <span class="str">"localhost"</span>, port: <span class="num">5432</span>}}
-<span class="fn">puts</span> <span class="vr">cfg</span>.<span class="fn">dig</span>(<span class="str">"db"</span>, <span class="str">"host"</span>)     <span class="cm"># localhost</span>
-<span class="fn">puts</span> <span class="vr">cfg</span>.<span class="fn">dig</span>(<span class="str">"db"</span>, <span class="str">"missing"</span>)  <span class="cm"># nil</span>
-
-<span class="cm"># zip() as a standalone function</span>
-<span class="vr">names</span>  = [<span class="str">"Alice"</span>, <span class="str">"Bob"</span>]
-<span class="vr">scores</span> = [<span class="num">95</span>, <span class="num">87</span>]
-<span class="fn">zip</span>(<span class="vr">names</span>, <span class="vr">scores</span>).<span class="fn">each</span> <span class="kw">do</span> |<span class="vr">p</span>|
-  <span class="fn">puts</span> <span class="str">"#{p[0]}: #{p[1]}"</span>
-<span class="kw">end</span></pre>
-    </div>
-
-    <div class="cp">
-      <div class="cp-head"><span class="cp-title">tooling.fk <span class="badge bs">v1.9</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
-      <pre><span class="cm"># frankiec fmt — auto-format source</span>
-<span class="cm"># frankiec fmt --write myfile.fk</span>
-<span class="cm"># frankiec fmt --check myfile.fk  (CI)</span>
-
-<span class="cm"># frankiec docs — generate Markdown docs</span>
-<span class="cm">## Calculate distance between two points.</span>
-<span class="cm">## @param p1  A Point record</span>
-<span class="cm">## @param p2  A Point record</span>
-<span class="cm">## @return    Float distance</span>
-<span class="kw">def</span> <span class="fn">distance</span>(<span class="vr">p1</span>, <span class="vr">p2</span>)
-  <span class="vr">dx</span> = <span class="vr">p1</span>[<span class="str">"x"</span>] - <span class="vr">p2</span>[<span class="str">"x"</span>]
-  <span class="vr">dy</span> = <span class="vr">p1</span>[<span class="str">"y"</span>] - <span class="vr">p2</span>[<span class="str">"y"</span>]
-  <span class="kw">return</span> <span class="fn">sqrt</span>(<span class="vr">dx</span> * <span class="vr">dx</span> + <span class="vr">dy</span> * <span class="vr">dy</span>)
-<span class="kw">end</span>
-
-<span class="cm"># .env auto-loaded — access any key</span>
-<span class="vr">db_path</span> = <span class="fn">env</span>(<span class="str">"DB_PATH"</span>, <span class="str">"data/app.db"</span>)
-<span class="vr">debug</span>   = <span class="fn">env</span>(<span class="str">"DEBUG"</span>, <span class="str">"false"</span>) == <span class="str">"true"</span>
-
-<span class="cm"># REPL: arrow keys, Ctrl+R, tab, ~/.frankie_history</span>
-<span class="cm"># frankiec repl</span></pre>
-    </div>
-
-    <div class="cp">
-      <div class="cp-head"><span class="cp-title">data_processing.fk <span class="badge bs">v1.8</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
-      <pre><span class="cm"># group_by — bucket a vector by key</span>
-<span class="vr">people</span> = [
-  {name: <span class="str">"Alice"</span>, dept: <span class="str">"Eng"</span>},
-  {name: <span class="str">"Bob"</span>,   dept: <span class="str">"Design"</span>},
-  {name: <span class="str">"Carol"</span>, dept: <span class="str">"Eng"</span>}
-]
-<span class="vr">by_dept</span> = <span class="vr">people</span>.<span class="fn">group_by</span> <span class="kw">do</span> |<span class="vr">p</span>|
-  <span class="vr">p</span>[<span class="str">"dept"</span>]
-<span class="kw">end</span>
-<span class="fn">puts</span> <span class="vr">by_dept</span>[<span class="str">"Eng"</span>].<span class="fn">length</span>   <span class="cm"># 2</span>
-
-<span class="cm"># each_slice — fixed chunks</span>
-[<span class="num">1</span>,<span class="num">2</span>,<span class="num">3</span>,<span class="num">4</span>,<span class="num">5</span>,<span class="num">6</span>].<span class="fn">each_slice</span>(<span class="num">2</span>) <span class="kw">do</span> |<span class="vr">s</span>|
-  <span class="fn">puts</span> <span class="vr">s</span>   <span class="cm"># [1,2]  [3,4]  [5,6]</span>
-<span class="kw">end</span>
-
-<span class="cm"># each_cons — sliding window</span>
-[<span class="num">10</span>,<span class="num">13</span>,<span class="num">11</span>,<span class="num">15</span>].<span class="fn">each_cons</span>(<span class="num">2</span>) <span class="kw">do</span> |<span class="vr">w</span>|
-  <span class="fn">puts</span> <span class="vr">w</span>[<span class="num">1</span>] - <span class="vr">w</span>[<span class="num">0</span>]   <span class="cm"># 3  -2  4</span>
-<span class="kw">end</span></pre>
     </div>
 
     <div class="cp">
       <div class="cp-head"><span class="cp-title">stats.fk</span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
       <pre><span class="cm"># R-style stats + pipe operator</span>
 <span class="vr">data</span> = [<span class="num">23</span>, <span class="num">45</span>, <span class="num">12</span>, <span class="num">67</span>, <span class="num">34</span>, <span class="num">89</span>]
-
 <span class="fn">puts</span> <span class="fn">mean</span>(<span class="vr">data</span>)    <span class="cm"># 45.0</span>
 <span class="fn">puts</span> <span class="fn">stdev</span>(<span class="vr">data</span>)   <span class="cm"># 27.9</span>
 <span class="fn">puts</span> <span class="fn">median</span>(<span class="vr">data</span>)  <span class="cm"># 39.5</span>
-
 <span class="vr">data</span> |&gt; <span class="fn">sum</span> |&gt; <span class="fn">puts</span>  <span class="cm"># 270</span>
-
-<span class="vr">top3</span> = <span class="vr">data</span>.<span class="fn">sort_by</span> <span class="kw">do</span> |<span class="vr">x</span>|
-  -<span class="vr">x</span>
-<span class="kw">end</span>.<span class="fn">take</span>(<span class="num">3</span>)
-<span class="fn">puts</span> <span class="vr">top3</span>  <span class="cm"># [89, 67, 45]</span></pre>
-    </div>
-
-    <div class="cp">
-      <div class="cp-head"><span class="cp-title">iterators.fk</span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
-      <pre><span class="vr">words</span> = [<span class="str">"banana"</span>, <span class="str">"fig"</span>, <span class="str">"cherry"</span>]
-
-<span class="vr">long</span> = <span class="vr">words</span>.<span class="fn">select</span> <span class="kw">do</span> |<span class="vr">w</span>|
-  <span class="vr">w</span>.length &gt; <span class="num">4</span>
-<span class="kw">end</span>  <span class="cm"># [banana, cherry]</span>
-
-<span class="cm"># next / break</span>
+<span class="vr">top3</span> = <span class="vr">data</span>.<span class="fn">sort_by</span> <span class="kw">do</span> |<span class="vr">x</span>| -<span class="vr">x</span> <span class="kw">end</span>.<span class="fn">take</span>(<span class="num">3</span>)
+<span class="fn">puts</span> <span class="vr">top3</span>  <span class="cm"># [89, 67, 45]</span>
+<span class="cm"># Iterators</span>
+<span class="vr">words</span> = [<span class="str">"banana"</span>, <span class="str">"fig"</span>, <span class="str">"cherry"</span>]
+<span class="vr">long</span> = <span class="vr">words</span>.<span class="fn">select</span> <span class="kw">do</span> |<span class="vr">w</span>| <span class="vr">w</span>.length &gt; <span class="num">4</span> <span class="kw">end</span>
+<span class="fn">puts</span> <span class="vr">long</span>  <span class="cm"># [banana, cherry]</span>
 [<span class="num">1</span>,<span class="num">2</span>,<span class="num">3</span>,<span class="num">4</span>,<span class="num">5</span>,<span class="num">6</span>].<span class="fn">each</span> <span class="kw">do</span> |<span class="vr">n</span>|
   <span class="kw">next</span> <span class="kw">if</span> <span class="vr">n</span> % <span class="num">2</span> == <span class="num">0</span>
   <span class="kw">break</span> <span class="kw">if</span> <span class="vr">n</span> &gt; <span class="num">5</span>
   <span class="fn">puts</span> <span class="vr">n</span>  <span class="cm"># 1 3 5</span>
-<span class="kw">end</span>
+<span class="kw">end</span></pre>
+    </div>
 
-<span class="cm"># Constants</span>
-<span class="vr">MAX_SIZE</span> = <span class="num">100</span>
-<span class="vr">PI</span>       = <span class="num">3.14159</span></pre>
+    <div class="cp">
+      <div class="cp-head"><span class="cp-title">lambdas.fk <span class="badge bs">v1.8</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
+      <pre><span class="cm"># Lambdas — first-class functions</span>
+<span class="vr">double</span> = <span class="fn">-&gt;</span>(<span class="vr">x</span>) { <span class="vr">x</span> * <span class="num">2</span> }
+<span class="vr">add</span>    = <span class="fn">-&gt;</span>(<span class="vr">a</span>, <span class="vr">b</span>) { <span class="vr">a</span> + <span class="vr">b</span> }
+<span class="fn">puts</span> <span class="vr">double</span>.<span class="fn">call</span>(<span class="num">7</span>)      <span class="cm"># 14</span>
+<span class="fn">puts</span> <span class="vr">add</span>.<span class="fn">call</span>(<span class="num">3</span>, <span class="num">4</span>)      <span class="cm"># 7</span>
+<span class="kw">def</span> <span class="fn">apply</span>(<span class="vr">fn</span>, <span class="vr">val</span>)
+  <span class="kw">return</span> <span class="vr">fn</span>.<span class="fn">call</span>(<span class="vr">val</span>)
+<span class="kw">end</span>
+<span class="fn">puts</span> <span class="fn">apply</span>(<span class="vr">double</span>, <span class="num">9</span>)    <span class="cm"># 18</span>
+<span class="cm"># Hash merge | and group_by</span>
+<span class="vr">cfg</span> = {color: <span class="str">"blue"</span>} | {color: <span class="str">"red"</span>, size: <span class="str">"md"</span>}
+<span class="fn">puts</span> <span class="vr">cfg</span>[<span class="str">"color"</span>]        <span class="cm"># red</span>
+<span class="vr">nums</span> = [<span class="num">1</span>,<span class="num">2</span>,<span class="num">3</span>,<span class="num">4</span>,<span class="num">5</span>,<span class="num">6</span>]
+<span class="vr">by_p</span> = <span class="vr">nums</span>.<span class="fn">group_by</span> <span class="kw">do</span> |<span class="vr">n</span>|
+  <span class="vr">n</span> % <span class="num">2</span> == <span class="num">0</span> ? <span class="str">"even"</span> : <span class="str">"odd"</span>
+<span class="kw">end</span>
+<span class="fn">puts</span> <span class="vr">by_p</span>[<span class="str">"even"</span>]        <span class="cm"># [2, 4, 6]</span>
+[<span class="num">1</span>,<span class="num">2</span>,<span class="num">3</span>,<span class="num">4</span>].<span class="fn">each_slice</span>(<span class="num">2</span>) <span class="kw">do</span> |<span class="vr">s</span>| <span class="fn">puts</span> <span class="vr">s</span> <span class="kw">end</span></pre>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head"><span class="cp-title">records.fk <span class="badge bs">v1.9</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
+      <pre><span class="cm"># record — lightweight named data objects</span>
+<span class="kw">record</span> <span class="fn">Point</span>(<span class="vr">x</span>, <span class="vr">y</span>)
+<span class="kw">record</span> <span class="fn">Employee</span>(<span class="vr">name</span>, <span class="vr">dept</span>, <span class="vr">salary</span>)
+<span class="vr">p1</span>  = <span class="fn">Point</span>(<span class="num">3</span>, <span class="num">4</span>)
+<span class="vr">emp</span> = <span class="fn">Employee</span>(<span class="str">"Alice"</span>, <span class="str">"Eng"</span>, <span class="num">95000</span>)
+<span class="fn">puts</span> <span class="vr">p1</span>           <span class="cm"># Point(x: 3, y: 4)</span>
+<span class="fn">puts</span> <span class="vr">emp</span>[<span class="str">"dept"</span>]   <span class="cm"># Eng</span>
+<span class="cm"># dig — safe nested access</span>
+<span class="vr">cfg</span> = {db: {host: <span class="str">"localhost"</span>, port: <span class="num">5432</span>}}
+<span class="fn">puts</span> <span class="vr">cfg</span>.<span class="fn">dig</span>(<span class="str">"db"</span>, <span class="str">"host"</span>)    <span class="cm"># localhost</span>
+<span class="fn">puts</span> <span class="vr">cfg</span>.<span class="fn">dig</span>(<span class="str">"db"</span>, <span class="str">"missing"</span>) <span class="cm"># nil</span>
+<span class="cm"># zip() standalone + .env auto-load</span>
+<span class="fn">zip</span>([<span class="str">"a"</span>,<span class="str">"b"</span>], [<span class="num">1</span>,<span class="num">2</span>]).<span class="fn">each</span> <span class="kw">do</span> |<span class="vr">p</span>|
+  <span class="fn">puts</span> <span class="str">"#{p[0]}:#{p[1]}"</span>
+<span class="kw">end</span>
+<span class="cm"># frankiec fmt / docs / readline REPL</span>
+<span class="vr">db</span> = <span class="fn">env</span>(<span class="str">"DB_PATH"</span>, <span class="str">"app.db"</span>)
+<span class="fn">puts</span> <span class="vr">db</span></pre>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head"><span class="cp-title">v1.11.fk <span class="new-badge">v1.11</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
+      <pre><span class="cm"># Implicit return — no 'return' needed</span>
+<span class="kw">def</span> <span class="fn">double</span>(<span class="vr">x</span>)
+  <span class="vr">x</span> * <span class="num">2</span>
+<span class="kw">end</span>
+<span class="fn">puts</span> <span class="fn">double</span>(<span class="num">7</span>)   <span class="cm"># 14</span>
+
+<span class="cm"># Inline if expression</span>
+<span class="vr">grade</span> = <span class="kw">if</span> <span class="vr">score</span> &gt;= <span class="num">90</span> <span class="kw">then</span> <span class="str">"A"</span> <span class="kw">else</span> <span class="str">"B"</span> <span class="kw">end</span>
+
+<span class="cm"># String .replace() and .format(hash)</span>
+<span class="fn">puts</span> <span class="str">"hello world"</span>.<span class="fn">replace</span>(<span class="str">"world"</span>, <span class="str">"Frankie"</span>)
+<span class="fn">puts</span> <span class="str">"Hi, {name}!"</span>.<span class="fn">format</span>({name: <span class="str">"Alice"</span>})
+
+<span class="cm"># .zip_with — pair-wise transform</span>
+<span class="fn">puts</span> [<span class="num">1</span>,<span class="num">2</span>,<span class="num">3</span>].<span class="fn">zip_with</span>([<span class="num">10</span>,<span class="num">20</span>,<span class="num">30</span>]) <span class="kw">do</span> |<span class="vr">a</span>, <span class="vr">b</span>|
+  <span class="vr">a</span> + <span class="vr">b</span>
+<span class="kw">end</span>   <span class="cm"># [11, 22, 33]</span>
+
+<span class="cm"># Multiple return values</span>
+<span class="kw">def</span> <span class="fn">minmax</span>(<span class="vr">v</span>)
+  [<span class="fn">min</span>(<span class="vr">v</span>), <span class="fn">max</span>(<span class="vr">v</span>)]
+<span class="kw">end</span>
+<span class="vr">lo</span>, <span class="vr">hi</span> = <span class="fn">minmax</span>([<span class="num">3</span>,<span class="num">1</span>,<span class="num">4</span>,<span class="num">1</span>,<span class="num">5</span>,<span class="num">9</span>])</pre>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head"><span class="cp-title">v1.10.fk <span class="badge bs">v1.10</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
+      <pre><span class="cm"># String &amp; vector * repetition</span>
+<span class="fn">puts</span> <span class="str">"ha"</span> * <span class="num">3</span>           <span class="cm"># hahaha</span>
+<span class="fn">puts</span> [<span class="num">0</span>] * <span class="num">5</span>            <span class="cm"># [0, 0, 0, 0, 0]</span>
+<span class="cm"># Heredoc &lt;&lt;~ strips indent + interpolates</span>
+<span class="vr">v</span> = <span class="str">"1.10"</span>
+<span class="vr">sql</span> = <span class="kw">&lt;&lt;~SQL</span>
+  SELECT * FROM users
+  WHERE version = <span class="str">'#{v}'</span>
+<span class="kw">SQL</span>
+<span class="fn">puts</span> <span class="vr">sql</span>
+<span class="cm"># times() standalone + map_with_index</span>
+<span class="fn">times</span>(<span class="num">3</span>) <span class="kw">do</span> |<span class="vr">i</span>| <span class="fn">puts</span> <span class="str">"tick #{i}"</span> <span class="kw">end</span>
+<span class="fn">puts</span> [<span class="str">"a"</span>,<span class="str">"b"</span>,<span class="str">"c"</span>].<span class="fn">map_with_index</span> <span class="kw">do</span> |<span class="vr">v</span>, <span class="vr">i</span>|
+  <span class="str">"#{i}:#{v}"</span>
+<span class="kw">end</span>
+<span class="cm"># pp + encode/decode</span>
+<span class="fn">pp</span>({host: <span class="str">"localhost"</span>, port: <span class="num">3000</span>})
+<span class="fn">puts</span> <span class="str">"hi"</span>.<span class="fn">encode</span>  <span class="cm"># [104, 105]</span></pre>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head"><span class="cp-title">tooling.fk <span class="badge bs">v1.9</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
+      <pre><span class="cm">## Distance between two points.</span>
+<span class="cm">## @param p1  A Point record</span>
+<span class="cm">## @param p2  A Point record</span>
+<span class="cm">## @return    Float distance</span>
+<span class="kw">def</span> <span class="fn">distance</span>(<span class="vr">p1</span>, <span class="vr">p2</span>)
+  <span class="vr">dx</span> = <span class="vr">p1</span>[<span class="str">"x"</span>] - <span class="vr">p2</span>[<span class="str">"x"</span>]
+  <span class="vr">dy</span> = <span class="vr">p1</span>[<span class="str">"y"</span>] - <span class="vr">p2</span>[<span class="str">"y"</span>]
+  <span class="kw">return</span> <span class="fn">sqrt</span>(<span class="vr">dx</span>*<span class="vr">dx</span> + <span class="vr">dy</span>*<span class="vr">dy</span>)
+<span class="kw">end</span>
+<span class="cm"># frankiec docs generates Markdown</span>
+<span class="cm"># frankiec fmt --write myfile.fk</span>
+<span class="cm"># frankiec fmt --check  (CI mode)</span>
+<span class="cm"># frankiec --help / frankiec run --help</span>
+<span class="cm"># Named rescue without variable:</span>
+<span class="kw">begin</span>
+  <span class="vr">x</span> = <span class="num">1</span> // <span class="num">0</span>
+<span class="kw">rescue</span> <span class="fn">ZeroDivisionError</span>
+  <span class="fn">puts</span> <span class="str">"caught"</span>
+<span class="kw">end</span></pre>
     </div>
 
   </div>
@@ -535,8 +401,9 @@ frankiec test</pre></div>
   <table>
     <thead><tr><th>Version</th><th>Highlights</th><th>Status</th></tr></thead>
     <tbody>
-      <tr><td><strong>v1.10</strong></td><td>String/vector *, heredoc &lt;&lt;~, times(), flatten(depth), map_with_index, pp, encode/decode, exit codes, --help</td><td><span class="badge bl">Latest</span></td></tr>
-      <tr><td>v1.9</td><td>Records, dig, zip(), frankiec fmt, frankiec docs, readline REPL, .env loader</td><td><span class="badge bs">Stable</span></td></tr>
+      <tr><td><strong>v1.11</strong></td><td>Implicit return, inline if expression, .replace(), .format(hash), .zip_with, multi-line REPL history, boxed check errors</td><td><span class="badge bl">Latest</span></td></tr>
+      <tr><td>v1.10</td><td>String/vector *, heredoc &lt;&lt;~, times(), flatten(depth), map_with_index, pp, encode/decode, exit codes, --help</td><td><span class="badge bs">Stable</span></td></tr>
+      <tr><td>v1.9</td><td>Records, dig, zip(), frankiec fmt, frankiec docs, readline REPL, .env loader</td><td><span class="badge bo">Old</span></td></tr>
       <tr><td>v1.8</td><td>Lambdas <code>-&gt;(x) { }</code>, hash merge <code>|</code>, group_by, each_slice, each_cons</td><td><span class="badge bs">Stable</span></td></tr>
       <tr><td>v1.7</td><td>Nil safety <code>&amp;.</code>, string templates, file system ops, assert_raises_typed</td><td><span class="badge bo">Old</span></td></tr>
       <tr><td>v1.6</td><td>Compound assign +=/-=/*= etc., typed rescue, .find/.detect, frankiec test</td><td><span class="badge bo">Old</span></td></tr>

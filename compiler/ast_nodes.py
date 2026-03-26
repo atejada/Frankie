@@ -344,3 +344,10 @@ class RecordDef(Node):
     """record Point(x, y) — lightweight named data object / struct"""
     name: str
     fields: List[str]
+
+@dataclass
+class IfExpr(Node):
+    """Inline if expression: x = if cond then a else b end"""
+    condition: Node
+    then_expr: Node
+    else_expr: Optional[Node]

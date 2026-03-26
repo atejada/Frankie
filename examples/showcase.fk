@@ -1,7 +1,7 @@
 # showcase.fk — Everything Frankie can do in one program
 
 puts "╔══════════════════════════════════════╗"
-puts "║     Frankie v1.10 — Full Showcase     ║"
+puts "║     Frankie v1.11 — Full Showcase     ║"
 puts "╚══════════════════════════════════════╝"
 puts ""
 
@@ -424,3 +424,117 @@ puts "── 26. pp + encode/decode (v1.10) ──"
 pp({lang: "Frankie", version: "1.10"})
 puts "ok".encode
 puts [104, 105].decode
+
+# ── 27. Implicit Return (v1.11) ─────────────────────────────────────────────
+puts ""
+puts "── 27. Implicit Return (v1.11) ──"
+
+def double(x)
+  x * 2
+end
+
+def greet(name)
+  "Hello, #{name}!"
+end
+
+def max_of(a, b)
+  if a > b
+    a
+  else
+    b
+  end
+end
+
+def safe_div(a, b)
+  return "division by zero" if b == 0
+  a / b
+end
+
+puts double(7)            # 14
+puts greet("Frankie")     # Hello, Frankie!
+puts max_of(3, 9)         # 9
+puts safe_div(10, 2)      # 5.0
+puts safe_div(10, 0)      # division by zero
+
+# ── 28. Inline if Expression (v1.11) ────────────────────────────────────────
+puts ""
+puts "── 28. Inline if Expression (v1.11) ──"
+
+x = 7
+label = if x > 5 then "big" else "small" end
+puts label    # big
+
+score = 95
+grade = if score >= 90 then "A" elsif score >= 80 then "B" else "C" end
+puts grade    # A
+
+# if-expression in function argument
+puts if 3 > 2 then "three beats two" else "math is broken" end
+
+# ── 29. String .replace() (v1.11) ────────────────────────────────────────────
+puts ""
+puts "── 29. String .replace() (v1.11) ──"
+
+puts "hello world".replace("world", "Frankie")   # hello Frankie
+puts "aabbcc".replace("b", "X")                  # aaXbcc (first only)
+
+emails = ["alice@old.com", "bob@old.com", "carol@old.com"]
+updated = emails.map do |e| e.replace("old.com", "new.io") end
+puts updated
+
+# ── 30. String .format(hash) (v1.11) ─────────────────────────────────────────
+puts ""
+puts "── 30. String .format(hash) (v1.11) ──"
+
+puts "Hello, {name}! You are {age}.".format({name: "Alice", age: 30})
+
+tmpl = "{item} x{qty} — ${price}"
+puts tmpl.format({item: "Coffee", qty: 2, price: "4.50"})
+
+people = [
+  {name: "Alice", role: "Engineer"},
+  {name: "Bob",   role: "Designer"}
+]
+people.each do |p|
+  puts "{name} is a {role}.".format(p)
+end
+
+# ── 31. .zip_with (v1.11) ────────────────────────────────────────────────────
+puts ""
+puts "── 31. .zip_with (v1.11) ──"
+
+a = [1, 2, 3, 4, 5]
+b = [10, 20, 30, 40, 50]
+
+puts a.zip_with(b) do |x, y| x + y end     # [11, 22, 33, 44, 55]
+puts a.zip_with(b) do |x, y| x * y end     # [10, 40, 90, 160, 250]
+
+names  = ["Alice", "Bob", "Carol"]
+scores = [95, 87, 92]
+rows = names.zip_with(scores) do |n, s| "#{n}: #{s}" end
+rows.each do |r| puts r end
+
+# ── 32. Multiple Return Values (v1.11) ──────────────────────────────────────
+puts ""
+puts "── 32. Multiple Return Values (v1.11) ──"
+
+def minmax(v)
+  [min(v), max(v)]
+end
+
+def stats(v)
+  [mean(v), median(v), stdev(v)]
+end
+
+data = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3]
+
+lo, hi = minmax(data)
+puts "min=#{lo}, max=#{hi}"
+
+avg, med, sd = stats(data)
+puts "mean=#{avg}"
+puts "median=#{med}"
+puts "stdev=#{sd}"
+
+puts ""
+puts "Frankie v1.11 is alive and kicking! 🧟⚡"

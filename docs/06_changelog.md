@@ -1,5 +1,67 @@
 # Changelog
 
+## v1.11.0 (2026)
+
+### New Features
+
+**Language — Implicit Return**
+- The last expression in a function body is now automatically returned — `return` is optional
+- Early `return` statements are still fully supported for mid-function exits
+- Applies to all function bodies including nested functions
+- Only expressions trigger implicit return; assignments, loops, and `puts` at the end still return `nil`
+- Zero breaking change risk: all existing programs using explicit `return` continue to work identically
+
+**Language — Inline `if` Expression**
+- `x = if cond then a else b end` — `if` is now usable as an expression, not just a statement
+- `then` keyword is optional; a newline after the condition also works
+- `elsif` clauses are supported: `if a then x elsif b then y else z end`
+- Missing `else` clause evaluates to `nil`
+- New `THEN` token type added to the lexer; new `IfExpr` AST node added
+- Avoids introducing a `?:` ternary operator that clashes with Frankie's readable style
+
+**Standard Library — String `.replace(old, new)`**
+- `"hello world".replace("world", "Frankie")` → `"hello Frankie"`
+- Replaces the first occurrence — an alias for `sub()`
+- The method name new users always reach for before remembering `sub`/`gsub`
+- `sub()`, `gsub()` continue to work as before
+
+**Standard Library — String `.format(hash)`**
+- `"Hello, {name}!".format({name: "Alice"})` — named `{key}` placeholder replacement
+- Method form of the existing `template()` function
+- Uses `{key}` syntax (vs `template()`'s `{{key}}` syntax)
+- Runtime dispatches on argument type: dict → string format; non-dict → datetime format
+
+**Standard Library — `.zip_with do |a, b|`**
+- `[1,2,3].zip_with([10,20,30]) do |a, b| a + b end` → `[11, 22, 33]`
+- Pair-wise transform two vectors in a single pass
+- Completes the R-style vector pipeline alongside `.zip`, `.map`, `.select`
+- Stops at the shorter vector, matching `.zip` behaviour
+
+**Tooling — `frankiec check` Boxed Error Output**
+- Parse and lex errors from `frankiec check` now use the same boxed format as runtime errors
+- Includes file path, line number, and source context with `──▶` pointer
+- Essential for editor integration — output is now machine-parseable and visually consistent
+- Exit codes unchanged: 0 = clean, 1 = error
+
+**Tooling — REPL Multi-line History Recall**
+- `↑` now recalls a complete `def...end` block as a single history entry
+- Previously, each line of a multi-line block was stored separately
+- Implementation: per-line readline entries are removed and replaced with a single joined entry
+- History file (`~/.frankie_history`) updated on block submission, not just on exit
+- Gracefully degrades on readline bindings that don't support `remove_history_item`
+
+**Tooling — `frankiec fmt` Heredoc Support**
+- Heredoc string bodies are now preserved verbatim during formatting
+- Multiline string literals are re-emitted as `<<~HEREDOC` blocks
+- Fixes a v1.10 regression where heredoc content could be mangled by the formatter
+
+### Documentation
+- New `docs/13_v111_features.md` with full feature reference and examples
+- Multiple return values via destructuring documented as an official pattern
+- String `.delete(chars)` promoted from hidden stdlib to documented method
+
+---
+
 ## v1.10.0 (2026)
 
 ### New Features

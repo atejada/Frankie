@@ -114,6 +114,7 @@ class TT(Enum):
     NEXT         = auto()  # next
     BREAK        = auto()  # break
     RECORD       = auto()  # record
+    THEN         = auto()  # then  (inline if expression)
 
 
 KEYWORDS = {
@@ -155,6 +156,7 @@ KEYWORDS = {
     'next':             TT.NEXT,
     'break':            TT.BREAK,
     'record':           TT.RECORD,
+    'then':             TT.THEN,
 }
 
 

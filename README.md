@@ -7,7 +7,7 @@
  |  _|| | | (_| | | | |   <| |  __/
  |_|  |_|  \__,_|_| |_|_|\_\_|\___|
 
- The Frankie Language v1.10
+ The Frankie Language v1.11
  Stitched together from Ruby • Python • R • Fortran
 ```
 
@@ -94,6 +94,40 @@ rescue e
 end
 ```
 
+---
+
+## v1.11 Highlights
+
+```ruby
+# Implicit return — last expression is the return value
+def double(x)
+  x * 2
+end
+puts double(7)   # 14
+
+# Inline if expression
+grade = if score >= 90 then "A" elsif score >= 80 then "B" else "C" end
+
+# String .replace()
+puts "hello world".replace("world", "Frankie")   # hello Frankie
+
+# String .format(hash)
+puts "Hello, {name}! Age: {age}.".format({name: "Alice", age: 30})
+
+# .zip_with — pair-wise transform
+puts [1,2,3].zip_with([10,20,30]) do |a, b| a + b end   # [11, 22, 33]
+
+# Multiple return values via destructuring
+def minmax(v)
+  [min(v), max(v)]
+end
+lo, hi = minmax([3, 1, 4, 1, 5, 9])
+puts "#{lo}..#{hi}"   # 1..9
+
+# frankiec check now uses boxed error output
+# REPL: ↑ recalls full multi-line blocks
+# frankiec fmt: heredoc bodies preserved verbatim
+```
 ---
 
 ## v1.10 Highlights
@@ -232,13 +266,14 @@ Full documentation lives in the `docs/` folder:
 | `docs/03_collections.md` | Vectors, hashes, all iterators |
 | `docs/04_stdlib.md` | Math, stats, randomness, strings, regex, file I/O, file system, JSON, CSV, DateTime, HTTP, testing |
 | `docs/05_examples.md` | All example programs explained |
-| `docs/06_changelog.md` | v1.0 – v1.10 release notes |
+| `docs/06_changelog.md` | v1.0 – v1.11 release notes |
 | `docs/07_database.md` | SQLite database access — full API reference |
 | `docs/08_v17_features.md` | v1.4–v1.7 feature reference: nil safety, templates, file system, typed asserts, web server, randomness, constants, compound assignment |
 | `docs/09_web.md` | Web server — routes, requests, responses, filters |
 | `docs/10_v18_features.md` | v1.8 feature reference: lambdas, hash merge `\|`, group_by, each_slice, each_cons |
 | `docs/11_v19_features.md` | v1.9 feature reference: records, dig, zip, fmt, docs, readline REPL, .env loader |
 | `docs/12_v110_features.md` | v1.10 feature reference: string/vector *, heredoc, times(), flatten(depth), map_with_index, pp, encode/decode |
+| `docs/13_v111_features.md` | v1.11 feature reference: implicit return, inline if, .replace(), .format(hash), .zip_with, multiple return values |
 
 The formal language grammar lives in `SPEC.md`.
 

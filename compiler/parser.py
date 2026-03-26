@@ -91,7 +91,7 @@ class Parser:
         if t.type == TT.DO:
             return self.parse_do_while()
         if t.type == TT.RETURN:
-            return self.parse_return()
+            return self._maybe_postfix(self.parse_return())
         if t.type in (TT.PRINT, TT.PUTS):
             stmt = self.parse_print()
             return self._maybe_postfix(stmt)
@@ -729,6 +729,10 @@ class Parser:
             self.expect(TT.RPAREN)
             return expr
 
+        # Inline if expression: if cond then a else b end
+        if t.type == TT.IF:
+            return self.parse_if_expr()
+
         if t.type == TT.LBRACKET:
             return self.parse_vector()
 
@@ -834,6 +838,41 @@ class Parser:
         return LambdaLiteral(params=params, defaults=defaults, body=body)
 
 
+
+    def parse_if_expr(self) -> 'IfExpr':
+        """Parse inline if expression: if cond then a elsif cond then b else c end"""
+        self.expect(TT.IF)
+        cond = self.parse_expr()
+        if self.check(TT.THEN):
+            self.advance()
+        self.skip_newlines()
+        then_expr = self.parse_expr()
+        self.skip_newlines()
+
+        # Build elsif chain as nested IfExpr
+        elsif_clauses = []
+        while self.check(TT.ELSIF):
+            self.advance()
+            ec = self.parse_expr()
+            if self.check(TT.THEN):
+                self.advance()
+            self.skip_newlines()
+            eb = self.parse_expr()
+            self.skip_newlines()
+            elsif_clauses.append((ec, eb))
+
+        else_expr = None
+        if self.match(TT.ELSE):
+            self.skip_newlines()
+            else_expr = self.parse_expr()
+            self.skip_newlines()
+        self.expect(TT.END, "Expected 'end' to close inline 'if' expression")
+
+        # Build right-nested IfExpr from elsif chain
+        result_else = else_expr
+        for ec, eb in reversed(elsif_clauses):
+            result_else = IfExpr(condition=ec, then_expr=eb, else_expr=result_else)
+        return IfExpr(condition=cond, then_expr=then_expr, else_expr=result_else)
 
     def parse_vector(self) -> VectorLiteral:
         self.expect(TT.LBRACKET)

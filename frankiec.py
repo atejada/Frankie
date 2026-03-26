@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-frankiec — The Frankie Language Compiler & Interpreter v1.10
+frankiec — The Frankie Language Compiler & Interpreter v1.11
 Usage:
     frankiec new    <project>      Scaffold a new Frankie project
     frankiec run    <file.fk>      Run a Frankie program
@@ -25,7 +25,7 @@ from compiler.lexer import Lexer, LexError
 from compiler.parser import Parser, ParseError
 from compiler.codegen import CodeGen, CodeGenError
 
-FRANKIE_VERSION = "1.10.0"
+FRANKIE_VERSION = "1.11.0"
 FRANKIE_BANNER = r"""
   _____                 _    _
  |  ___| __ __ _ _ __ | | _(_) ___
@@ -216,8 +216,11 @@ def check_file(fk_file: str):
         tokens = Lexer(source).tokenize()
         Parser(tokens).parse()
         print(f"[Frankie] ✓ {fk_file} — No syntax errors.")
-    except (LexError, ParseError) as e:
-        print(str(e), file=sys.stderr)
+    except LexError as e:
+        _print_compile_error(str(e), e.line, source, fk_file)
+        sys.exit(1)
+    except ParseError as e:
+        _print_compile_error(str(e), e.token.line, source, fk_file)
         sys.exit(1)
 
 

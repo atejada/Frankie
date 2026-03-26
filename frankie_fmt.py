@@ -260,15 +260,52 @@ class Formatter:
         if isinstance(node, NamedArg):      return f"{node.name}: {self._fmt_expr(node.value)}"
         if isinstance(node, LambdaLiteral): return self._fmt_lambda(node)
         if isinstance(node, RegexLiteral):  return f"/{node.pattern}/{node.flags}"
+        if isinstance(node, IfExpr):
+            cond = self._fmt_expr(node.condition)
+            then = self._fmt_expr(node.then_expr)
+            els  = self._fmt_expr(node.else_expr) if node.else_expr is not None else "nil"
+            return f"if {cond} then {then} else {els} end"
         # Fallback for statement nodes used as expressions
         return "nil"
 
     def _fmt_string(self, node: StringLiteral) -> str:
+        # Check if this originated from a heredoc (multi-line literal with leading newline pattern)
         has_interp = any(k == 'interp' for k, _ in node.parts)
+        raw_text = "".join(v for k, v in node.parts if k == 'literal')
+
+        # Heredoc detection: literal content contains newlines and was indented
+        # We preserve the body verbatim and re-emit as <<~HEREDOC
+        if '\n' in raw_text and not has_interp:
+            # Emit as a plain heredoc with indent-stripping form
+            delim = "HEREDOC"
+            lines = raw_text.split('\n')
+            # Strip trailing empty line from heredoc body
+            while lines and lines[-1] == '':
+                lines.pop()
+            body = '\n'.join('  ' + l for l in lines)
+            return f"<<~{delim}\n{body}\n{delim}"
+
         if not has_interp:
             s = "".join(v for _, v in node.parts)
-            # Use double quotes canonically
             return '"' + s.replace('\\', '\\\\').replace('"', '\\"') + '"'
+
+        # Interpolated: check for multiline
+        if '\n' in raw_text:
+            # Preserve as heredoc with interpolation
+            delim = "HEREDOC"
+            result_parts = []
+            for kind, val in node.parts:
+                if kind == 'literal':
+                    result_parts.append(val)
+                else:
+                    result_parts.append('#{' + val.strip() + '}')
+            body_raw = "".join(result_parts)
+            lines = body_raw.split('\n')
+            while lines and lines[-1] == '':
+                lines.pop()
+            body = '\n'.join('  ' + l for l in lines)
+            return f"<<~{delim}\n{body}\n{delim}"
+
         result = '"'
         for kind, val in node.parts:
             if kind == 'literal':
