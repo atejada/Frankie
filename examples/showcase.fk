@@ -536,5 +536,80 @@ puts "mean=#{avg}"
 puts "median=#{med}"
 puts "stdev=#{sd}"
 
+# ── 33. String .gsub with Block (v1.12) ──────────────────────────────────────
 puts ""
-puts "Frankie v1.11 is alive and kicking! 🧟⚡"
+puts "── 33. String .gsub with Block (v1.12) ──"
+
+puts "hello world".gsub("[aeiou]") do |m| m.upcase end   # hEllO wOrld
+
+masked = "Card: 4111-1111-1111-1111".gsub("\\d") do |m| "*" end
+puts masked   # Card: ****-****-****-****
+
+sizes = "one two three".gsub("\\w+") do |m| m.length.to_s end
+puts sizes   # 3 3 5
+
+# ── 34. Hash .map_hash (v1.12) ───────────────────────────────────────────────
+puts ""
+puts "── 34. Hash .map_hash (v1.12) ──"
+
+prices = {apple: 1.20, banana: 0.50, cherry: 3.00}
+puts prices.map_hash do |k, v| [k, v * 2] end
+puts prices.map_hash do |k, v|
+  label = if v > 1.0 then "expensive" else "cheap" end
+  [k, label]
+end
+puts {a: 1, b: 2, c: 3}.map_hash do |k, v| [v, k.to_s] end
+
+# ── 35. round(x, n) (v1.12) ─────────────────────────────────────────────────
+puts ""
+puts "── 35. round(x, n) (v1.12) ──"
+
+puts round(3.14159, 2)   # 3.14
+puts round(2.71828, 4)   # 2.7183
+puts round(1.5)          # 2
+
+scores = [87.333, 92.666, 78.999]
+puts scores.map do |s| round(s, 1) end   # [87.3, 92.7, 79.0]
+
+# ── 36. Vector .product(other) (v1.12) ───────────────────────────────────────
+puts ""
+puts "── 36. Vector .product(other) (v1.12) ──"
+
+puts [1, 2].product([3, 4])   # [[1,3],[1,4],[2,3],[2,4]]
+
+suits  = ["♠", "♥", "♦", "♣"]
+values = ["A", "K", "Q", "J"]
+puts suits.product(values).length   # 16
+
+xs = [0, 1, 2]
+puts xs.product(xs).length   # 9
+
+# ── 37. String .chars first-class (v1.12) ────────────────────────────────────
+puts ""
+puts "── 37. String .chars (v1.12) ──"
+
+puts "hello world".chars.select do |c| "aeiou".include?(c) end   # ["e","o","o"]
+puts "mississippi".chars.uniq.length                              # 4
+puts "Frankie".chars.reverse.join("")                             # eiknarF
+
+freq = "abracadabra".chars.each_with_object({}) do |c, h|
+  current = h[c]
+  h[c] = (if current == nil then 0 else current end) + 1
+end
+puts freq   # {"a": 5, "b": 2, "r": 2, "c": 1, "d": 1}
+
+# ── 38. FileNotFoundError rescue (v1.12) ─────────────────────────────────────
+puts ""
+puts "── 38. FileNotFoundError rescue (v1.12) ──"
+
+begin
+  file_read("no_such_file.txt")
+rescue FileNotFoundError e
+  puts "Caught cleanly: #{e}"
+end
+
+puts file_exists("no_such_file.txt")   # false
+puts file_delete("no_such_file.txt")   # false
+
+puts ""
+puts "Frankie v1.12 is alive and kicking! 🧟⚡"

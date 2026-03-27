@@ -53,6 +53,7 @@ v + [1, 2, 3, 4, 5]     # [11, 22, 33, 44, 55]
 | `.tally` | Count occurrences → Hash |
 | `.chunk(n)` | Split into sub-vectors of size n |
 | `.zip(other)` | Zip two vectors together |
+| `.product(other)` | Cartesian product → vector of pairs *(v1.12)* |
 | `.flatten` | Flatten one level |
 | `.empty?` | True if empty |
 | `.group_by { \|x\| key }` | Bucket into hash of arrays by key *(v1.8)* |
@@ -185,6 +186,7 @@ person[:age] = 31       # write / add
 | `h1 \| h2` | Merge operator — right wins on conflict *(v1.8)* |
 | `.dig(k1, k2, ...)` | Safe nested access — returns nil instead of crashing *(v1.9)* |
 | `.to_a` | Convert to vector of pairs |
+| `.map_hash do \|k, v\|` | Transform each pair → new hash; block must return `[new_k, new_v]` *(v1.12)* |
 
 ### Hash Iteration
 

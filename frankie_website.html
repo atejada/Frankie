@@ -79,6 +79,26 @@ tr:hover td{background:var(--panel)}
 .bs{background:transparent;border:1px solid var(--green);color:var(--green)}
 .bo{background:transparent;border:1px solid var(--border);color:var(--muted)}
 .hbox{background:rgba(57,255,138,.03);border:1px solid rgba(57,255,138,.12);border-radius:3px;padding:1.1rem 1.6rem;margin-top:1.4rem;font-size:.88rem}
+.lang-tabs{display:flex;gap:0;margin-top:2.8rem;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.lang-tab{font-family:'Share Tech Mono',monospace;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;padding:.65rem 1.4rem;cursor:pointer;color:var(--muted);border:1px solid transparent;border-bottom:none;margin-bottom:-1px;transition:all .15s;user-select:none;background:none}
+.lang-tab:hover{color:var(--text)}
+.lang-tab.active{color:var(--green);border-color:var(--border);border-bottom-color:var(--panel);background:var(--panel)}
+.lang-tab .lang-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:.5rem;vertical-align:middle}
+.ld-frankie{background:var(--green)}
+.ld-ruby{background:#cc342d}
+.ld-python{background:#4584b6}
+.ld-r{background:#2066b0}
+.ld-fortran{background:var(--amber)}
+.lang-panel{display:none;background:var(--panel);border:1px solid var(--border);border-top:none;border-radius:0 0 3px 3px;overflow:hidden}
+.lang-panel.active{display:block}
+.lang-panel-head{display:flex;align-items:center;justify-content:space-between;padding:.6rem 1.1rem;border-bottom:1px solid var(--border);background:var(--dark)}
+.lang-panel-title{font-family:'Share Tech Mono',monospace;font-size:.65rem;letter-spacing:.1em;color:var(--muted);text-transform:uppercase}
+.lang-annotation{font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--muted);margin-top:1.2rem;padding:.5rem 1.3rem;background:rgba(57,255,138,.03);border-top:1px solid var(--border);line-height:2}
+.lang-annotation span{color:var(--green)}
+.lang-annotation.ruby-ann span{color:#cc342d}
+.lang-annotation.python-ann span{color:#4584b6}
+.lang-annotation.r-ann span{color:#2066b0}
+.lang-annotation.fortran-ann span{color:var(--amber)}
 footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;max-width:1100px;margin:0 auto}
 .fc{font-size:.83rem;color:var(--muted)}
 .fc strong{color:var(--text)}
@@ -89,11 +109,12 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
 <body>
 
 <nav>
-  <a href="#" class="nav-logo">🧟 Frankie <span>v1.11</span></a>
+  <a href="#" class="nav-logo">🧟 Frankie <span>v1.12</span></a>
   <ul>
     <li><a href="#features">Features</a></li>
     <li><a href="#syntax">Syntax</a></li>
     <li><a href="#web">Web</a></li>
+    <li><a href="#compare">Compare</a></li>
     <li><a href="#install">Install</a></li>
     <li><a href="https://github.com/atejada/Frankie">GitHub</a></li>
   </ul>
@@ -116,7 +137,7 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
   </div>
   <div class="ctas">
     <a href="#install" class="btn btn-p">Get Started →</a>
-    <a href="https://github.com/atejada/Frankie/releases" class="btn btn-s">Download v1.11</a>
+    <a href="https://github.com/atejada/Frankie/releases" class="btn btn-s">Download v1.12</a>
     <a href="https://github.com/atejada/Frankie" class="btn btn-s">★ Star on GitHub</a>
   </div>
   <p class="scroll">▼ scroll</p>
@@ -129,9 +150,12 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
   <h2>Everything you need.<br>Nothing you don't.</h2>
   <p style="color:var(--muted);max-width:560px;font-size:.97rem">Proudly procedural — functions, data, loops, logic. No classes, no <code>self</code>, no inheritance. Runs on Python 3.10+ with zero external dependencies.</p>
   <div class="grid">
-    <div class="card"><div class="card-icon">↩️</div><h3>Implicit Return <span class="new-badge">v1.11</span></h3><p>The last expression in a function is automatically returned — <code>return</code> is now optional. Matches Ruby's feel. Zero breaking changes.</p></div>
-    <div class="card"><div class="card-icon">🔀</div><h3>Inline <code>if</code> Expression <span class="new-badge">v1.11</span></h3><p><code>grade = if score >= 90 then "A" else "B" end</code> — <code>if</code> is now usable as an expression. No <code>?:</code> operator needed.</p></div>
-    <div class="card"><div class="card-icon">🔁</div><h3><code>.replace()</code>, <code>.format()</code>, <code>.zip_with</code> <span class="new-badge">v1.11</span></h3><p><code>"hello".replace("l","r")</code>, <code>"{name}".format({name:"Alice"})</code>, pair-wise vector transform. The methods everyone reaches for first.</p></div>
+    <div class="card"><div class="card-icon">🔄</div><h3><code>.gsub</code> with Block <span class="new-badge">v1.12</span></h3><p><code>"hello".gsub(/[aeiou]/) do |m| m.upcase end</code> → <code>"hEllO"</code>. Transform each regex match with a block instead of a fixed string. The form you reach for first.</p></div>
+    <div class="card"><div class="card-icon">🗺️</div><h3><code>.map_hash</code> + <code>round()</code> + <code>.product</code> <span class="new-badge">v1.12</span></h3><p>Transform a hash into a new hash in one step. Round to N decimal places — finally. Cartesian product for vectors. Three long-overdue additions.</p></div>
+    <div class="card"><div class="card-icon">🛠️</div><h3><code>watch</code>, <code>--no-banner</code>, friendlier errors <span class="new-badge">v1.12</span></h3><p><code>frankiec watch main.fk</code> re-runs on save. <code>repl --no-banner</code> for scripts. <code>rescue FileNotFoundError</code> now works. Type errors say "Integer and String", not Python internals.</p></div>
+    <div class="card"><div class="card-icon">↩️</div><h3>Implicit Return <span class="badge bs">v1.11</span></h3><p>The last expression in a function is automatically returned — <code>return</code> is now optional. Matches Ruby's feel. Zero breaking changes.</p></div>
+    <div class="card"><div class="card-icon">🔀</div><h3>Inline <code>if</code> Expression <span class="badge bs">v1.11</span></h3><p><code>grade = if score >= 90 then "A" else "B" end</code> — <code>if</code> is now usable as an expression. No <code>?:</code> operator needed.</p></div>
+    <div class="card"><div class="card-icon">🔁</div><h3><code>.replace()</code>, <code>.format()</code>, <code>.zip_with</code> <span class="badge bs">v1.11</span></h3><p><code>"hello".replace("l","r")</code>, <code>"{name}".format({name:"Alice"})</code>, pair-wise vector transform. The methods everyone reaches for first.</p></div>
     <div class="card"><div class="card-icon">✳️</div><h3>String &amp; Vector <code>*</code> <span class="badge bs">v1.10</span></h3><p><code>"ha" * 3</code> → <code>"hahaha"</code>. <code>[0] * 5</code> → <code>[0,0,0,0,0]</code>. The missing arithmetic case — zero new syntax, works in both directions.</p></div>
     <div class="card"><div class="card-icon">📜</div><h3>Heredoc <code>&lt;&lt;~TEXT</code> <span class="badge bs">v1.10</span></h3><p>Multiline strings with automatic indent-stripping and full <code>#{}</code> interpolation. Essential for SQL, HTML, and test fixtures — no escaping, no concatenation.</p></div>
     <div class="card"><div class="card-icon">🔁</div><h3><code>times()</code> standalone + polish <span class="badge bs">v1.10</span></h3><p><code>times(5) do |i|</code> alongside <code>5.times do</code>. <code>flatten(n)</code> with depth control. <code>map_with_index</code>, <code>pp</code>, <code>encode</code>/<code>decode</code>, exit codes, <code>--help</code>.</p></div>
@@ -243,7 +267,34 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
     </div>
 
     <div class="cp">
-      <div class="cp-head"><span class="cp-title">v1.11.fk <span class="new-badge">v1.11</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
+      <div class="cp-head"><span class="cp-title">v1.12.fk <span class="new-badge">v1.12</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
+      <pre><span class="cm"># .gsub with block — transform each match</span>
+<span class="fn">puts</span> <span class="str">"hello world"</span>.<span class="fn">gsub</span>(<span class="str">/[aeiou]/</span>) <span class="kw">do</span> |<span class="vr">m</span>| <span class="vr">m</span>.<span class="fn">upcase</span> <span class="kw">end</span>
+<span class="cm"># hEllO wOrld</span>
+
+<span class="cm"># .map_hash — transform a hash into a new hash</span>
+<span class="vr">prices</span> = {<span class="vr">apple</span>: <span class="num">1.20</span>, <span class="vr">banana</span>: <span class="num">0.50</span>}
+<span class="fn">puts</span> <span class="vr">prices</span>.<span class="fn">map_hash</span> <span class="kw">do</span> |<span class="vr">k</span>, <span class="vr">v</span>| [<span class="vr">k</span>, <span class="vr">v</span> * <span class="num">2</span>] <span class="kw">end</span>
+
+<span class="cm"># round(x, n) — finally</span>
+<span class="fn">puts</span> <span class="fn">round</span>(<span class="num">3.14159</span>, <span class="num">2</span>)   <span class="cm"># 3.14</span>
+
+<span class="cm"># .product — cartesian product</span>
+<span class="fn">puts</span> [<span class="num">1</span>,<span class="num">2</span>].<span class="fn">product</span>([<span class="num">3</span>,<span class="num">4</span>])   <span class="cm"># [[1,3],[1,4],[2,3],[2,4]]</span>
+
+<span class="cm"># rescue FileNotFoundError now actually works</span>
+<span class="kw">begin</span>
+  <span class="fn">file_read</span>(<span class="str">"missing.txt"</span>)
+<span class="kw">rescue</span> <span class="vr">FileNotFoundError</span> <span class="vr">e</span>
+  <span class="fn">puts</span> <span class="str">"Caught: #{e}"</span>
+<span class="kw">end</span>
+
+<span class="cm"># frankiec watch main.fk   ← re-run on save</span>
+<span class="cm"># frankiec repl --no-banner ← headless REPL</span></pre>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head"><span class="cp-title">v1.11.fk <span class="badge bs">v1.11</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
       <pre><span class="cm"># Implicit return — no 'return' needed</span>
 <span class="kw">def</span> <span class="fn">double</span>(<span class="vr">x</span>)
   <span class="vr">x</span> * <span class="num">2</span>
@@ -370,6 +421,250 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
 
 <div class="divider"></div>
 
+<section id="compare">
+  <p class="lbl">The family resemblance</p>
+  <h2>One program,<br>five languages.</h2>
+  <p style="color:var(--muted);max-width:600px;font-size:.97rem">The same program — read a list of numbers, compute stats, find outliers, print a report — written in Frankie and each of its four donor languages. Spot what Frankie borrows from each one.</p>
+
+  <div class="lang-tabs">
+    <div class="lang-tab active" onclick="switchLang('frankie')"><span class="lang-dot ld-frankie"></span>Frankie</div>
+    <div class="lang-tab" onclick="switchLang('ruby')"><span class="lang-dot ld-ruby"></span>Ruby</div>
+    <div class="lang-tab" onclick="switchLang('python')"><span class="lang-dot ld-python"></span>Python</div>
+    <div class="lang-tab" onclick="switchLang('r')"><span class="lang-dot ld-r"></span>R</div>
+    <div class="lang-tab" onclick="switchLang('fortran')"><span class="lang-dot ld-fortran"></span>Fortran</div>
+  </div>
+
+  <!-- Frankie -->
+  <div class="lang-panel active" id="panel-frankie">
+    <div class="lang-panel-head">
+      <span class="lang-panel-title">stats_report.fk</span>
+      <div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div>
+    </div>
+    <pre><span class="cm"># Frankie — stats report</span>
+<span class="cm"># Syntax from Ruby · semantics from Python · stats from R · // from Fortran</span>
+
+<span class="vr">data</span> = [<span class="num">12</span>, <span class="num">45</span>, <span class="num">7</span>, <span class="num">83</span>, <span class="num">29</span>, <span class="num">56</span>, <span class="num">14</span>, <span class="num">91</span>, <span class="num">38</span>, <span class="num">62</span>]
+
+<span class="vr">avg</span>    = <span class="fn">mean</span>(<span class="vr">data</span>)
+<span class="vr">sd</span>     = <span class="fn">stdev</span>(<span class="vr">data</span>)
+<span class="vr">lo</span>, <span class="vr">hi</span> = <span class="fn">min</span>(<span class="vr">data</span>), <span class="fn">max</span>(<span class="vr">data</span>)
+
+<span class="fn">puts</span> <span class="str">"── Stats Report ──────────────────"</span>
+<span class="fn">puts</span> <span class="str">"Count : #{data.length}"</span>
+<span class="fn">puts</span> <span class="str">"Mean  : #{round(avg, 2)}"</span>
+<span class="fn">puts</span> <span class="str">"Stdev : #{round(sd, 2)}"</span>
+<span class="fn">puts</span> <span class="str">"Range : #{lo} – #{hi}"</span>
+<span class="fn">puts</span> <span class="str">""</span>
+
+<span class="cm"># Outliers: more than 1 stdev from mean (Ruby-style block · R-style stdev)</span>
+<span class="vr">outliers</span> = <span class="vr">data</span>.<span class="fn">select</span> <span class="kw">do</span> |<span class="vr">x</span>|
+  <span class="fn">abs</span>(<span class="vr">x</span> - <span class="vr">avg</span>) > <span class="vr">sd</span>
+<span class="kw">end</span>
+
+<span class="fn">puts</span> <span class="str">"Outliers (±1σ): #{outliers}"</span>
+<span class="fn">puts</span> <span class="str">""</span>
+
+<span class="cm"># Histogram buckets using integer division (Fortran heritage: //)</span>
+<span class="vr">buckets</span> = <span class="vr">data</span>.<span class="fn">each_with_object</span>({}) <span class="kw">do</span> |<span class="vr">x</span>, <span class="vr">h</span>|
+  <span class="vr">key</span> = ((<span class="vr">x</span> // <span class="num">20</span>) * <span class="num">20</span>).<span class="fn">to_s</span> + <span class="str">"s"</span>
+  <span class="vr">cur</span> = <span class="vr">h</span>[<span class="vr">key</span>]
+  <span class="vr">h</span>[<span class="vr">key</span>] = (<span class="kw">if</span> <span class="vr">cur</span> == <span class="kw">nil</span> <span class="kw">then</span> <span class="num">0</span> <span class="kw">else</span> <span class="vr">cur</span> <span class="kw">end</span>) + <span class="num">1</span>
+<span class="kw">end</span>
+
+<span class="vr">buckets</span>.<span class="fn">each</span> <span class="kw">do</span> |<span class="vr">k</span>, <span class="vr">v</span>|
+  <span class="fn">puts</span> <span class="str">"  #{k.rjust(4)} │ #{"█" * v} #{v}"</span>
+<span class="kw">end</span></pre>
+    <div class="lang-annotation">
+      <span>do…end blocks</span> from Ruby ·
+      <span>mean / stdev / abs</span> from R ·
+      <span>// integer division</span> from Fortran ·
+      <span>hash as dict</span> from Python ·
+      <span>#{} interpolation</span> from Ruby ·
+      <span>select / each_with_object</span> from Ruby
+    </div>
+  </div>
+
+  <!-- Ruby -->
+  <div class="lang-panel" id="panel-ruby">
+    <div class="lang-panel-head">
+      <span class="lang-panel-title">stats_report.rb</span>
+      <div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div>
+    </div>
+    <pre><span class="cm"># Ruby — stats report</span>
+
+<span class="vr">data</span> = [<span class="num">12</span>, <span class="num">45</span>, <span class="num">7</span>, <span class="num">83</span>, <span class="num">29</span>, <span class="num">56</span>, <span class="num">14</span>, <span class="num">91</span>, <span class="num">38</span>, <span class="num">62</span>]
+
+<span class="vr">avg</span> = <span class="vr">data</span>.sum.<span class="fn">to_f</span> / <span class="vr">data</span>.length
+<span class="vr">sd</span>  = <span class="fn">Math</span>.sqrt(<span class="vr">data</span>.sum { |<span class="vr">x</span>| (<span class="vr">x</span> - <span class="vr">avg</span>) ** <span class="num">2</span> } / <span class="vr">data</span>.length)
+<span class="vr">lo</span>, <span class="vr">hi</span> = <span class="vr">data</span>.min, <span class="vr">data</span>.max
+
+<span class="fn">puts</span> <span class="str">"── Stats Report ──────────────────"</span>
+<span class="fn">puts</span> <span class="str">"Count : #{data.length}"</span>
+<span class="fn">puts</span> <span class="str">"Mean  : #{avg.round(2)}"</span>
+<span class="fn">puts</span> <span class="str">"Stdev : #{sd.round(2)}"</span>
+<span class="fn">puts</span> <span class="str">"Range : #{lo} – #{hi}"</span>
+<span class="fn">puts</span> <span class="str">""</span>
+
+<span class="cm"># Outliers: more than 1 stdev from mean</span>
+<span class="vr">outliers</span> = <span class="vr">data</span>.select { |<span class="vr">x</span>| (<span class="vr">x</span> - <span class="vr">avg</span>).abs > <span class="vr">sd</span> }
+
+<span class="fn">puts</span> <span class="str">"Outliers (±1σ): #{outliers}"</span>
+<span class="fn">puts</span> <span class="str">""</span>
+
+<span class="cm"># Histogram buckets</span>
+<span class="vr">buckets</span> = <span class="vr">data</span>.each_with_object(<span class="fn">Hash</span>.new(<span class="num">0</span>)) <span class="kw">do</span> |<span class="vr">x</span>, <span class="vr">h</span>|
+  <span class="vr">key</span> = <span class="str">"#{(x / 20) * 20}s"</span>
+  <span class="vr">h</span>[<span class="vr">key</span>] += <span class="num">1</span>
+<span class="kw">end</span>
+
+<span class="vr">buckets</span>.each <span class="kw">do</span> |<span class="vr">k</span>, <span class="vr">v</span>|
+  <span class="fn">puts</span> <span class="str">"  #{k.rjust(4)} │ #{"█" * v} #{v}"</span>
+<span class="kw">end</span></pre>
+    <div class="lang-annotation ruby-ann">
+      Frankie borrows from Ruby: <span>do…end blocks</span> · <span>#{} interpolation</span> ·
+      <span>select / each_with_object</span> · <span>.min / .max / .sum</span> ·
+      <span>destructuring assignment</span> · <span>puts</span>
+    </div>
+  </div>
+
+  <!-- Python -->
+  <div class="lang-panel" id="panel-python">
+    <div class="lang-panel-head">
+      <span class="lang-panel-title">stats_report.py</span>
+      <div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div>
+    </div>
+    <pre><span class="cm"># Python — stats report</span>
+<span class="kw">import</span> math
+
+<span class="vr">data</span> = [<span class="num">12</span>, <span class="num">45</span>, <span class="num">7</span>, <span class="num">83</span>, <span class="num">29</span>, <span class="num">56</span>, <span class="num">14</span>, <span class="num">91</span>, <span class="num">38</span>, <span class="num">62</span>]
+
+<span class="vr">avg</span> = <span class="fn">sum</span>(<span class="vr">data</span>) / <span class="fn">len</span>(<span class="vr">data</span>)
+<span class="vr">sd</span>  = math.<span class="fn">sqrt</span>(<span class="fn">sum</span>((<span class="vr">x</span> - <span class="vr">avg</span>) ** <span class="num">2</span> <span class="kw">for</span> <span class="vr">x</span> <span class="kw">in</span> <span class="vr">data</span>) / <span class="fn">len</span>(<span class="vr">data</span>))
+<span class="vr">lo</span>, <span class="vr">hi</span> = <span class="fn">min</span>(<span class="vr">data</span>), <span class="fn">max</span>(<span class="vr">data</span>)
+
+<span class="fn">print</span>(<span class="str">"── Stats Report ──────────────────"</span>)
+<span class="fn">print</span>(<span class="str">f"Count : {len(data)}"</span>)
+<span class="fn">print</span>(<span class="str">f"Mean  : {round(avg, 2)}"</span>)
+<span class="fn">print</span>(<span class="str">f"Stdev : {round(sd, 2)}"</span>)
+<span class="fn">print</span>(<span class="str">f"Range : {lo} – {hi}"</span>)
+<span class="fn">print</span>(<span class="str">""</span>)
+
+<span class="cm"># Outliers: more than 1 stdev from mean</span>
+<span class="vr">outliers</span> = [<span class="vr">x</span> <span class="kw">for</span> <span class="vr">x</span> <span class="kw">in</span> <span class="vr">data</span> <span class="kw">if</span> <span class="fn">abs</span>(<span class="vr">x</span> - <span class="vr">avg</span>) > <span class="vr">sd</span>]
+
+<span class="fn">print</span>(<span class="str">f"Outliers (±1σ): {outliers}"</span>)
+<span class="fn">print</span>(<span class="str">""</span>)
+
+<span class="cm"># Histogram buckets</span>
+<span class="vr">buckets</span> = {}
+<span class="kw">for</span> <span class="vr">x</span> <span class="kw">in</span> <span class="vr">data</span>:
+    <span class="vr">key</span> = <span class="str">f"{(x // 20) * 20}s"</span>
+    <span class="vr">buckets</span>[<span class="vr">key</span>] = <span class="vr">buckets</span>.<span class="fn">get</span>(<span class="vr">key</span>, <span class="num">0</span>) + <span class="num">1</span>
+
+<span class="kw">for</span> <span class="vr">k</span>, <span class="vr">v</span> <span class="kw">in</span> <span class="vr">buckets</span>.<span class="fn">items</span>():
+    <span class="fn">print</span>(<span class="str">f"  {k:>4} │ {'█' * v} {v}"</span>)</pre>
+    <div class="lang-annotation python-ann">
+      Frankie borrows from Python: <span>clean execution model</span> · <span>dict as hash</span> ·
+      <span>list as vector</span> · <span>zero-dependency philosophy</span> ·
+      <span>round() / abs() / min() / max()</span> · <span>f-string → #{} interpolation</span>
+    </div>
+  </div>
+
+  <!-- R -->
+  <div class="lang-panel" id="panel-r">
+    <div class="lang-panel-head">
+      <span class="lang-panel-title">stats_report.R</span>
+      <div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div>
+    </div>
+    <pre><span class="cm"># R — stats report</span>
+
+<span class="vr">data</span> &lt;- <span class="fn">c</span>(<span class="num">12</span>, <span class="num">45</span>, <span class="num">7</span>, <span class="num">83</span>, <span class="num">29</span>, <span class="num">56</span>, <span class="num">14</span>, <span class="num">91</span>, <span class="num">38</span>, <span class="num">62</span>)
+
+<span class="vr">avg</span> &lt;- <span class="fn">mean</span>(<span class="vr">data</span>)
+<span class="vr">sd</span>  &lt;- <span class="fn">sd</span>(<span class="vr">data</span>)
+<span class="vr">lo</span>  &lt;- <span class="fn">min</span>(<span class="vr">data</span>)
+<span class="vr">hi</span>  &lt;- <span class="fn">max</span>(<span class="vr">data</span>)
+
+<span class="fn">cat</span>(<span class="str">"── Stats Report ──────────────────\n"</span>)
+<span class="fn">cat</span>(<span class="fn">sprintf</span>(<span class="str">"Count : %d\n"</span>, <span class="fn">length</span>(<span class="vr">data</span>)))
+<span class="fn">cat</span>(<span class="fn">sprintf</span>(<span class="str">"Mean  : %.2f\n"</span>, <span class="vr">avg</span>))
+<span class="fn">cat</span>(<span class="fn">sprintf</span>(<span class="str">"Stdev : %.2f\n"</span>, <span class="vr">sd</span>))
+<span class="fn">cat</span>(<span class="fn">sprintf</span>(<span class="str">"Range : %d – %d\n\n"</span>, <span class="vr">lo</span>, <span class="vr">hi</span>))
+
+<span class="cm"># Outliers: more than 1 stdev from mean (vectorised — no loop needed)</span>
+<span class="vr">outliers</span> &lt;- <span class="vr">data</span>[<span class="fn">abs</span>(<span class="vr">data</span> - <span class="vr">avg</span>) > <span class="vr">sd</span>]
+
+<span class="fn">cat</span>(<span class="str">"Outliers (±1σ):"</span>, <span class="vr">outliers</span>, <span class="str">"\n\n"</span>)
+
+<span class="cm"># Histogram buckets using integer division</span>
+<span class="vr">keys</span>    &lt;- <span class="fn">paste0</span>((<span class="vr">data</span> %/% <span class="num">20</span>) * <span class="num">20</span>, <span class="str">"s"</span>)
+<span class="vr">buckets</span> &lt;- <span class="fn">table</span>(<span class="vr">keys</span>)
+
+<span class="kw">for</span> (<span class="vr">k</span> <span class="kw">in</span> <span class="fn">names</span>(<span class="vr">buckets</span>)) {
+  <span class="vr">v</span> &lt;- <span class="vr">buckets</span>[[<span class="vr">k</span>]]
+  <span class="fn">cat</span>(<span class="fn">sprintf</span>(<span class="str">"  %4s │ %s %d\n"</span>, <span class="vr">k</span>, <span class="fn">strrep</span>(<span class="str">"█"</span>, <span class="vr">v</span>), <span class="vr">v</span>))
+}</pre>
+    <div class="lang-annotation r-ann">
+      Frankie borrows from R: <span>mean() / stdev() / min() / max()</span> ·
+      <span>vectors as first-class values</span> · <span>seq() / linspace()</span> ·
+      <span>pipe operator |&gt;</span> · <span>statistical mindset</span> · <span>abs() on collections</span>
+    </div>
+  </div>
+
+  <!-- Fortran -->
+  <div class="lang-panel" id="panel-fortran">
+    <div class="lang-panel-head">
+      <span class="lang-panel-title">stats_report.f90</span>
+      <div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div>
+    </div>
+    <pre><span class="cm">! Fortran 90 — stats report</span>
+<span class="kw">program</span> stats_report
+  <span class="kw">implicit none</span>
+  <span class="kw">integer</span>, <span class="kw">parameter</span> :: n = <span class="num">10</span>
+  <span class="kw">real</span>    :: data(<span class="vr">n</span>) = [<span class="num">12</span>,<span class="num">45</span>,<span class="num">7</span>,<span class="num">83</span>,<span class="num">29</span>,<span class="num">56</span>,<span class="num">14</span>,<span class="num">91</span>,<span class="num">38</span>,<span class="num">62</span>]
+  <span class="kw">real</span>    :: avg, sd, lo, hi, diff
+  <span class="kw">integer</span> :: i, bucket, counts(<span class="num">5</span>)
+
+  <span class="vr">avg</span> = <span class="fn">sum</span>(<span class="vr">data</span>) / <span class="vr">n</span>
+  <span class="vr">sd</span>  = <span class="fn">sqrt</span>(<span class="fn">sum</span>((<span class="vr">data</span> - <span class="vr">avg</span>)**<span class="num">2</span>) / <span class="vr">n</span>)
+  <span class="vr">lo</span>  = <span class="fn">minval</span>(<span class="vr">data</span>)
+  <span class="vr">hi</span>  = <span class="fn">maxval</span>(<span class="vr">data</span>)
+
+  <span class="fn">print</span> *, <span class="str">"── Stats Report ──────────────────"</span>
+  <span class="fn">print</span> <span class="str">'("Count : ",I0)'</span>, <span class="vr">n</span>
+  <span class="fn">print</span> <span class="str">'("Mean  : ",F6.2)'</span>, <span class="vr">avg</span>
+  <span class="fn">print</span> <span class="str">'("Stdev : ",F6.2)'</span>, <span class="vr">sd</span>
+  <span class="fn">print</span> <span class="str">'("Range : ",F0.0," – ",F0.0)'</span>, <span class="vr">lo</span>, <span class="vr">hi</span>
+  <span class="fn">print</span> *, <span class="str">""</span>
+
+  <span class="fn">print</span> *, <span class="str">"Outliers (±1σ):"</span>
+  <span class="kw">do</span> <span class="vr">i</span> = <span class="num">1</span>, <span class="vr">n</span>
+    <span class="vr">diff</span> = <span class="fn">abs</span>(<span class="vr">data</span>(<span class="vr">i</span>) - <span class="vr">avg</span>)
+    <span class="kw">if</span> (<span class="vr">diff</span> > <span class="vr">sd</span>) <span class="fn">print</span> *, <span class="str">"  "</span>, <span class="kw">int</span>(<span class="vr">data</span>(<span class="vr">i</span>))
+  <span class="kw">end do</span>
+  <span class="fn">print</span> *, <span class="str">""</span>
+
+  <span class="cm">! Histogram buckets with integer division (//)</span>
+  <span class="vr">counts</span> = <span class="num">0</span>
+  <span class="kw">do</span> <span class="vr">i</span> = <span class="num">1</span>, <span class="vr">n</span>
+    <span class="vr">bucket</span> = (<span class="kw">int</span>(<span class="vr">data</span>(<span class="vr">i</span>)) / <span class="num">20</span>) + <span class="num">1</span>
+    <span class="kw">if</span> (<span class="vr">bucket</span> &lt;= <span class="num">5</span>) <span class="vr">counts</span>(<span class="vr">bucket</span>) = <span class="vr">counts</span>(<span class="vr">bucket</span>) + <span class="num">1</span>
+  <span class="kw">end do</span>
+  <span class="kw">do</span> <span class="vr">i</span> = <span class="num">1</span>, <span class="num">5</span>
+    <span class="fn">print</span> <span class="str">'("  ",I2,"0s │ ",A," ",I0)'</span>, (<span class="vr">i</span>-<span class="num">1</span>)*<span class="num">2</span>, &amp;
+      <span class="fn">repeat</span>(<span class="str">"█"</span>, <span class="vr">counts</span>(<span class="vr">i</span>)), <span class="vr">counts</span>(<span class="vr">i</span>)
+  <span class="kw">end do</span>
+<span class="kw">end program</span> stats_report</pre>
+    <div class="lang-annotation fortran-ann">
+      Frankie borrows from Fortran: <span>// integer division</span> · <span>** exponentiation</span> ·
+      <span>do…while loop structure</span> · <span>numeric pragmatism</span> ·
+      <span>sum() / sqrt() on arrays</span> · <span>computational heritage</span>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
 <section id="donors">
   <p class="lbl">The donors</p>
   <h2>Stitched from four<br>legendary languages.</h2>
@@ -401,7 +696,8 @@ frankiec test</pre></div>
   <table>
     <thead><tr><th>Version</th><th>Highlights</th><th>Status</th></tr></thead>
     <tbody>
-      <tr><td><strong>v1.11</strong></td><td>Implicit return, inline if expression, .replace(), .format(hash), .zip_with, multi-line REPL history, boxed check errors</td><td><span class="badge bl">Latest</span></td></tr>
+      <tr><td><strong>v1.12</strong></td><td>gsub block, map_hash, round(), .product, .chars docs, FileNotFoundError fix, assert_match/nil, frankiec watch, repl --no-banner, friendlier errors</td><td><span class="badge bl">Latest</span></td></tr>
+      <tr><td>v1.11</td><td>Implicit return, inline if expression, .replace(), .format(hash), .zip_with, multi-line REPL history, boxed check errors</td><td><span class="badge bs">Stable</span></td></tr>
       <tr><td>v1.10</td><td>String/vector *, heredoc &lt;&lt;~, times(), flatten(depth), map_with_index, pp, encode/decode, exit codes, --help</td><td><span class="badge bs">Stable</span></td></tr>
       <tr><td>v1.9</td><td>Records, dig, zip(), frankiec fmt, frankiec docs, readline REPL, .env loader</td><td><span class="badge bo">Old</span></td></tr>
       <tr><td>v1.8</td><td>Lambdas <code>-&gt;(x) { }</code>, hash merge <code>|</code>, group_by, each_slice, each_cons</td><td><span class="badge bs">Stable</span></td></tr>
@@ -424,5 +720,13 @@ frankiec test</pre></div>
   <p class="ft">🧟 "It's alive!" ⚡</p>
 </footer>
 
+<script>
+function switchLang(lang) {
+  document.querySelectorAll('.lang-tab').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('.lang-panel').forEach(function(p) { p.classList.remove('active'); });
+  event.currentTarget.classList.add('active');
+  document.getElementById('panel-' + lang).classList.add('active');
+}
+</script>
 </body>
 </html>

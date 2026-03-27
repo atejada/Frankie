@@ -7,7 +7,7 @@
  |  _|| | | (_| | | | |   <| |  __/
  |_|  |_|  \__,_|_| |_|_|\_\_|\___|
 
- The Frankie Language v1.11
+ The Frankie Language v1.12
  Stitched together from Ruby • Python • R • Fortran
 ```
 
@@ -17,8 +17,6 @@
 ---
 
 ## What is Frankie?
-
-![Frankie - The Programming Language](https://github.com/atejada/Frankie/blob/main/The%20Frankie%20Programming%20Language.png)
 
 Frankie is a **procedural, expressive, terminal-native programming language** named after Frankenstein — lovingly stitched together from the best parts of four legendary languages:
 
@@ -94,6 +92,45 @@ rescue e
 end
 ```
 
+---
+
+## v1.12 Highlights
+
+```ruby
+# String .gsub with block — transform each match
+puts "hello world".gsub("[aeiou]") do |m| m.upcase end   # hEllO wOrld
+puts "Card: 4111".gsub("\\d") do |m| "*" end               # Card: ****
+
+# Hash .map_hash — transform a hash into a new hash
+prices = {apple: 1.20, banana: 0.50}
+puts prices.map_hash do |k, v| [k, v * 2] end   # {apple: 2.4, banana: 1.0}
+
+# round(x, n) — finally!
+puts round(3.14159, 2)   # 3.14
+puts round(1.5)          # 2
+
+# Vector .product — cartesian product
+puts [1, 2].product([3, 4])   # [[1,3],[1,4],[2,3],[2,4]]
+
+# String .chars — now first-class documented
+puts "hello".chars.select do |c| c != "l" end   # ["h","e","o"]
+puts "Frankie".chars.reverse.join("")             # eiknarF
+
+# rescue FileNotFoundError now actually works
+begin
+  file_read("missing.txt")
+rescue FileNotFoundError e
+  puts "Caught: #{e}"
+end
+
+# assert_match and assert_nil in the test runner
+assert_match("hello@example.com", "\\w+@\\w+\\.\\w+", "valid email")
+assert_nil(find_user(999), "missing user returns nil")
+
+# frankiec watch main.fk          — re-run on save
+# frankiec watch test.fk --test   — re-run tests on save
+# frankiec repl --no-banner        — headless REPL
+```
 ---
 
 ## v1.11 Highlights
@@ -266,7 +303,7 @@ Full documentation lives in the `docs/` folder:
 | `docs/03_collections.md` | Vectors, hashes, all iterators |
 | `docs/04_stdlib.md` | Math, stats, randomness, strings, regex, file I/O, file system, JSON, CSV, DateTime, HTTP, testing |
 | `docs/05_examples.md` | All example programs explained |
-| `docs/06_changelog.md` | v1.0 – v1.11 release notes |
+| `docs/06_changelog.md` | v1.0 – v1.12 release notes |
 | `docs/07_database.md` | SQLite database access — full API reference |
 | `docs/08_v17_features.md` | v1.4–v1.7 feature reference: nil safety, templates, file system, typed asserts, web server, randomness, constants, compound assignment |
 | `docs/09_web.md` | Web server — routes, requests, responses, filters |
@@ -274,6 +311,7 @@ Full documentation lives in the `docs/` folder:
 | `docs/11_v19_features.md` | v1.9 feature reference: records, dig, zip, fmt, docs, readline REPL, .env loader |
 | `docs/12_v110_features.md` | v1.10 feature reference: string/vector *, heredoc, times(), flatten(depth), map_with_index, pp, encode/decode |
 | `docs/13_v111_features.md` | v1.11 feature reference: implicit return, inline if, .replace(), .format(hash), .zip_with, multiple return values |
+| `docs/14_v112_features.md` | v1.12 feature reference: gsub block, map_hash, round, product, chars, FileNotFoundError, assert_match/nil, watch, --no-banner |
 
 The formal language grammar lives in `SPEC.md`.
 
@@ -291,7 +329,7 @@ frankie/
 │   ├── ast_nodes.py       ← AST node definitions
 │   └── codegen.py         ← Python code generator
 ├── docs/                  ← full documentation
-├── examples/              ← example .fk programs (incl. webapp.fk, whats_new_v16.fk, whats_new_v17.fk)
+├── examples/              ← example .fk programs (incl. webapp.fk, whats_new_v16.fk … whats_new_v112.fk)
 ├── frankiec.py            ← compiler CLI entry point
 ├── frankie_stdlib.py      ← runtime standard library
 ├── repl.py                ← interactive REPL

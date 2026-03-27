@@ -426,7 +426,7 @@ def file_read(path):
         with open(path, 'r', encoding='utf-8') as f:
             return f.read()
     except FileNotFoundError:
-        raise RuntimeError(f"[Frankie] File not found: {path!r}")
+        raise FileNotFoundError(f"File not found: {path!r} — check the path and try again")
 
 def file_write(path, content):
     """Write string to file (overwrites)."""
@@ -450,7 +450,7 @@ def file_lines(path):
         with open(path, 'r', encoding='utf-8') as f:
             return [line.rstrip('\n') for line in f.readlines()]
     except FileNotFoundError:
-        raise RuntimeError(f"[Frankie] File not found: {path!r}")
+        raise FileNotFoundError(f"File not found: {path!r} — check the path and try again")
 
 def file_delete(path):
     """Delete a file."""
@@ -465,6 +465,8 @@ def file_rename(src, dst):
     try:
         _os.rename(src, dst)
         return True
+    except FileNotFoundError:
+        raise FileNotFoundError(f"File not found: {src!r} — check the path and try again")
     except OSError as e:
         raise RuntimeError(f"[Frankie] file_rename failed: {e}")
 
@@ -474,6 +476,8 @@ def file_copy(src, dst):
     try:
         _shutil.copy2(src, dst)
         return dst
+    except FileNotFoundError:
+        raise FileNotFoundError(f"File not found: {src!r} — check the path and try again")
     except OSError as e:
         raise RuntimeError(f"[Frankie] file_copy failed: {e}")
 
@@ -1793,6 +1797,31 @@ class _FKTestSuite:
             self._errors.append(label)
             print(f"  \033[31m✗\033[0m  {label}")
 
+    def assert_match(self, value, pattern, msg=None):
+        import re as _re_am
+        if isinstance(pattern, str):
+            pattern = _re_am.compile(pattern)
+        ok = bool(pattern.search(str(value)))
+        label = msg or f"{value!r} =~ {pattern.pattern!r}"
+        if ok:
+            self._pass += 1
+            print(f"  \033[32m✓\033[0m  {label}")
+        else:
+            self._fail += 1
+            self._errors.append(label)
+            print(f"  \033[31m✗\033[0m  {label}")
+
+    def assert_nil(self, value, msg=None):
+        ok = value is None
+        label = msg or f"expected nil, got {value!r}"
+        if ok:
+            self._pass += 1
+            print(f"  \033[32m✓\033[0m  {msg or 'value is nil'}")
+        else:
+            self._fail += 1
+            self._errors.append(label)
+            print(f"  \033[31m✗\033[0m  {label}")
+
     def assert_raises(self, fn, msg=None):
         label = msg or "expected an error to be raised"
         try:
@@ -1865,6 +1894,12 @@ def assert_raises(fn, msg=None):
 def assert_raises_typed(fn, error_type, msg=None):
     _fk_test_suite.assert_raises_typed(fn, error_type, msg)
 
+def assert_match(value, pattern, msg=None):
+    _fk_test_suite.assert_match(value, pattern, msg)
+
+def assert_nil(value, msg=None):
+    _fk_test_suite.assert_nil(value, msg)
+
 def _fk_run_tests():
     return _fk_test_suite.report()
 
@@ -1894,3 +1929,31 @@ def _fk_zip_with(a, b, fn):
     """Pair-wise transform: zip two vectors and apply fn(a, b) to each pair."""
     return [fn(x, y) for x, y in zip(a, b)]
 
+
+# ─── v1.12 stdlib additions ───────────────────────────────────────────────────
+
+def _fk_gsub_with_block(string, pattern, block_fn):
+    """String .gsub(pattern) do |m| ... end — transform each match via block."""
+    import re as _re_gsub
+    if isinstance(pattern, str):
+        pattern = _re_gsub.compile(pattern)
+    return pattern.sub(lambda m: str(block_fn(m.group(0))), string)
+
+def _fk_map_hash(h, fn):
+    """Hash .map_hash do |k, v| [new_k, new_v] end — transform a hash into a new hash."""
+    result = {}
+    for k, v in h.items():
+        pair = fn(k, v)
+        if isinstance(pair, list) and len(pair) == 2:
+            result[pair[0]] = pair[1]
+        else:
+            raise RuntimeError(f"[Frankie] map_hash: block must return a two-element vector, got {pair!r}")
+    return result
+
+def fk_round(x, n=0):
+    """round(x, n) — round x to n decimal places (default 0)."""
+    return round(float(x), int(n))
+
+def _fk_cartesian_product(a, b):
+    """Vector .product(other) — cartesian product as a vector of pairs."""
+    return [[x, y] for x in a for y in b]

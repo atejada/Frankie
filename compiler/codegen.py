@@ -9,7 +9,7 @@ from .ast_nodes import *
 BUILTINS = {
     'sum', 'mean', 'min', 'max', 'abs', 'sqrt', 'floor', 'ceil',
     'length', 'vec', 'to_int', 'to_float', 'to_str', 'range_vec',
-    'print_val', 'puts_val',
+    'print_val', 'puts_val', 'round',
 }
 
 INDENT = "    "
@@ -542,6 +542,7 @@ class CodeGen:
             'sqrt': '_fk_sqrt',
             'floor': '_fk_floor',
             'ceil': '_fk_ceil',
+            'round': 'fk_round',
             'length': '_fk_length',
             'vec': '_fk_vec',
             'to_int': '_fk_to_int',
@@ -587,6 +588,19 @@ class CodeGen:
         if node.method == 'each_with_object':
             return self._gen_each_with_object(recv, node)
 
+        # .gsub(pattern) do |m| ... end — block form transforms each match
+        if node.method == 'gsub':
+            if node.block:
+                return self._gen_gsub_with_block(recv, node)
+            # No block: plain gsub(pattern, replacement) — fallthrough to generic
+            pat = self.gen_expr(node.args[0]) if node.args else '""'
+            rep = self.gen_expr(node.args[1]) if len(node.args) > 1 else '""'
+            return f"gsub({recv}, {pat}, {rep})"
+
+        # .map_hash do |k, v| [new_k, new_v] end — transform hash → hash
+        if node.method == 'map_hash':
+            return self._gen_map_hash(recv, node)
+
         # .any? do |x| ... end
         if node.method == 'any?':
             return self._gen_predicate(recv, node, '_fk_any')
@@ -626,7 +640,8 @@ class CodeGen:
             return self._gen_block_method(recv, node, '_fk_sum_by')
 
         # .find / .detect do |x| ... end  — return first matching element
-        if node.method in ('find', 'detect'):
+        # Only intercept the block form; .find(table, where) is a DB call → generic fallback
+        if node.method in ('find', 'detect') and node.block and not node.args:
             return self._gen_block_method(recv, node, '_fk_find')
 
         # .flat_map do |x| ... end
@@ -695,6 +710,11 @@ class CodeGen:
         if node.method == 'zip':
             arg = self.gen_expr(node.args[0]) if node.args else '[]'
             return f"_fk_zip_vecs({recv}, {arg})"
+
+        # .product(other) — cartesian product → [[x,y], ...]
+        if node.method == 'product':
+            arg = self.gen_expr(node.args[0]) if node.args else '[]'
+            return f"_fk_cartesian_product({recv}, {arg})"
 
         # .flatten  /  .flatten(depth)
         if node.method == 'flatten':
@@ -920,9 +940,10 @@ class CodeGen:
 
         # ── Property accessors (no parens) ─────────────────────────────────────
         # DateTime + HTTP response + FrankieRequest attributes
+        # Only treat as property when called with no args and no block
         if node.method in ('year','month','day','hour','minute','second',
                            'status','body','headers','content_type',
-                           'params','query','form','path','method'):
+                           'params','query','form','path','method') and not node.args and not node.block:
             return f"{recv}.{node.method}"
 
         # .json is a property on FrankieRequest but a method on HTTP responses.
@@ -1298,6 +1319,51 @@ class CodeGen:
         self.dedent()
         return obj_tmp
 
+    def _gen_gsub_with_block(self, recv, node: MethodCall) -> str:
+        """Generate str.gsub(pattern) do |m| ... end — block form."""
+        block = node.block
+        pat = self.gen_expr(node.args[0]) if node.args else '""'
+        m_var = block.params[0] if block.params else '_m'
+        if len(block.body) == 1:
+            body_expr = self.gen_expr(block.body[0])
+            return f"_fk_gsub_with_block({recv}, {pat}, lambda {m_var}: {body_expr})"
+        fn_name = self.temp_var("_gsub_fn")
+        self.emit(f"def {fn_name}({m_var}):")
+        self.indent()
+        for stmt in block.body[:-1]:
+            self.gen_stmt(stmt)
+        last = block.body[-1]
+        if isinstance(last, ReturnStmt):
+            self.gen_stmt(last)
+        else:
+            self.emit(f"return {self.gen_expr(last)}")
+        self.dedent()
+        return f"_fk_gsub_with_block({recv}, {pat}, {fn_name})"
+
+    def _gen_map_hash(self, recv, node: MethodCall) -> str:
+        """Generate hash.map_hash do |k, v| [new_k, new_v] end"""
+        block = node.block
+        if block is None:
+            return f"_fk_map_hash({recv}, lambda k, v: [k, v])"
+        params = block.params if block.params else ['_k', '_v']
+        k_var = params[0] if len(params) > 0 else '_k'
+        v_var = params[1] if len(params) > 1 else '_v'
+        if len(block.body) == 1:
+            body_expr = self.gen_expr(block.body[0])
+            return f"_fk_map_hash({recv}, lambda {k_var}, {v_var}: {body_expr})"
+        fn_name = self.temp_var("_mh_fn")
+        self.emit(f"def {fn_name}({k_var}, {v_var}):")
+        self.indent()
+        for stmt in block.body[:-1]:
+            self.gen_stmt(stmt)
+        last = block.body[-1]
+        if isinstance(last, ReturnStmt):
+            self.gen_stmt(last)
+        else:
+            self.emit(f"return {self.gen_expr(last)}")
+        self.dedent()
+        return f"_fk_map_hash({recv}, {fn_name})"
+
     def gen_break(self, node):
         """break / break value"""
         if node.value is None:
@@ -1351,6 +1417,7 @@ class CodeGen:
                 'max': '_fk_max', 'abs': '_fk_abs', 'sqrt': '_fk_sqrt',
                 'floor': '_fk_floor', 'ceil': '_fk_ceil', 'length': '_fk_length',
                 'to_str': '_fk_to_str', 'to_int': '_fk_to_int',
+                'round': 'fk_round',
                 'puts': 'print', 'print': 'print',
             }
             fn = stdlib_map.get(node.right.name, node.right.name)

@@ -1,5 +1,74 @@
 # Changelog
 
+## v1.12.0 (2026)
+
+### New Features
+
+**Standard Library — String `.gsub` with Block**
+- `"hello".gsub("[aeiou]") do |m| m.upcase end` → `"hEllO"`
+- Block form transforms each match; the block receives the matched substring and returns the replacement
+- The fixed-string form `gsub(pattern, replacement)` continues to work unchanged
+- Uses `re.sub` with a callable internally — no new dependencies
+
+**Standard Library — Hash `.map_hash do |k, v|`**
+- `{a: 1, b: 2}.map_hash do |k, v| [k, v * 2] end` → `{a: 2, b: 4}`
+- Transforms a hash into a new hash in one idiomatic step
+- Block must return a two-element vector `[new_key, new_value]`; any other return raises a clear runtime error
+- Fills the gap between `.map` (returns vector of pairs) and a true hash transform
+
+**Standard Library — `round(x, n)`**
+- `round(3.14159, 2)` → `3.14`
+- Rounds to n decimal places; n defaults to 0
+- Available as a top-level function alongside `floor` and `ceil`
+- Wired to Python's built-in `round()` — no surprises on banker's rounding edge cases
+
+**Standard Library — `Vector .product(other)`**
+- `[1,2].product([3,4])` → `[[1,3],[1,4],[2,3],[2,4]]`
+- Cartesian product — every combination of elements from two vectors
+- Pure nested loop, zero dependencies
+- Natural companion to `.zip` and `.zip_with` — completes the combinatorics trio
+
+**Standard Library — `String .chars` (promoted)**
+- `.chars` was already in the method map but undocumented
+- Now a first-class documented method alongside `.bytes` and `.lines`
+- Chains naturally into iterators: `"hello".chars.select do |c| c != "l" end`
+
+**Standard Library — `Vector .each_with_object` with Hash Accumulator (documented)**
+- Hash accumulators already worked implicitly; now explicitly documented and tested
+- `[1,2,3].each_with_object({}) do |x, h| h[x] = x * x end` → `{1: 1, 2: 4, 3: 9}`
+
+**Tooling — `assert_match` and `assert_nil`**
+- `assert_match(value, pattern, msg)` — checks a regex match; pattern can be a regex or string
+- `assert_nil(value, msg)` — checks for nil; cleaner than `assert_eq(x, nil)`
+- Both available in `frankiec test` with the same output style as existing assertions
+
+**Tooling — `frankiec watch <file.fk>`**
+- Polls file mtime and re-runs automatically on every save
+- `frankiec watch test.fk --test` runs in test mode
+- Zero dependencies — uses `os.stat` and `time.sleep`
+- Ctrl-C to stop; gracefully ignores `exit()` calls in watched files
+
+**Tooling — `frankiec repl --no-banner`**
+- Skips the ASCII art and version header
+- Makes the REPL usable piped into other tools or embedded in scripts
+
+### Bug Fixes & Improvements
+
+**Runtime — `FileNotFoundError` from File I/O**
+- `file_read` and `file_lines` previously raised `RuntimeError`, silently defeating `rescue FileNotFoundError`
+- Now raise a genuine `FileNotFoundError` with a clean message — no `[Frankie]` prefix noise
+- `file_copy` and `file_rename` also raise `FileNotFoundError` when the source is missing
+- `file_delete` and `file_exists` unchanged — returning `false` for missing files is correct for those
+- `rescue FileNotFoundError e` now works as expected for all file I/O
+
+**Runtime — Friendlier Error Messages**
+- `TypeError` now reads as `"Type mismatch — can't use '+' with Integer and String"` instead of the raw Python message
+- `IndexError` now reads as `"Index out of bounds — vector index does not exist"` instead of `"list index out of range"`
+- `FileNotFoundError` strips the raw Python `[Errno 2] No such file or directory:` prefix
+- The friendly dict in `frankiec.py` is now backed by three focused helper functions for easier future extension
+
+---
+
 ## v1.11.0 (2026)
 
 ### New Features

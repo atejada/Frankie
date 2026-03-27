@@ -8,6 +8,7 @@
 | `abs(x)` | Absolute value |
 | `floor(x)` | Round down to integer |
 | `ceil(x)` | Round up to integer |
+| `round(x, n)` | Round to n decimal places (n defaults to 0) |
 | `min(a, b)` or `min(vec)` | Minimum |
 | `max(a, b)` or `max(vec)` | Maximum |
 | `sum(vec)` | Sum of all elements |
@@ -71,7 +72,7 @@ puts sample([10, 20, 30], 2)   # 2 random elements
 | `.rstrip` | Remove trailing whitespace |
 | `.chomp` | Remove trailing newline |
 | `.chop` | Remove last character |
-| `.chars` | Vector of individual characters |
+| `.chars` | Vector of individual characters (chainable into iterators) |
 | `.bytes` | Vector of byte values |
 | `.lines` | Vector of lines |
 | `.ord` | ASCII code of first character |
@@ -86,6 +87,8 @@ puts sample([10, 20, 30], 2)   # 2 random elements
 | `.rjust(w, pad)` | Right-justify in field of width w |
 | `.squeeze` | Remove consecutive duplicate chars |
 | `.tr(from, to)` | Translate characters |
+| `.gsub(pat, rep)` | Replace all matches with a fixed string |
+| `.gsub(pat) do \|m\|` | Replace all matches — block transforms each match |
 | `.each_char do \|c\|` | Iterate over characters |
 | `.each_line do \|l\|` | Iterate over lines |
 | `[i]` | Character at index (negatives ok) |
@@ -107,6 +110,13 @@ puts s[-7..-1]            # Frankie!
 
 puts "aaabbbccc".squeeze  # abc
 puts "Hello".tr("aeiou", "*")  # H*ll*
+
+# .chars chains naturally into iterators
+puts "hello".chars.select do |c| c != "l" end   # ["h", "e", "o"]
+puts "mississippi".chars.uniq.length              # 4
+
+# .gsub with block — transform each match
+puts "hello".gsub("[aeiou]") do |m| m.upcase end  # hEllO
 ```
 
 ---
@@ -407,6 +417,8 @@ Run with `frankiec test [file.fk]`. All functions are available without imports.
 | `assert_true(cond, msg)` | Pass if cond is truthy |
 | `assert_eq(actual, expected, msg)` | Pass if actual == expected |
 | `assert_neq(actual, expected, msg)` | Pass if actual != expected |
+| `assert_match(value, pattern, msg)` | Pass if pattern matches anywhere in value *(v1.12)* |
+| `assert_nil(value, msg)` | Pass if value is nil *(v1.12)* |
 | `assert_raises(fn, msg)` | Pass if calling fn raises any error |
 | `assert_raises_typed(fn, type, msg)` | Pass if fn raises exactly the given error type |
 
@@ -418,6 +430,10 @@ result = [1, 3, 5, 7].find do |n|
   n > 4
 end
 assert_eq(result, 5, ".find returns first match")
+
+# v1.12 — assert_match and assert_nil
+assert_match("hello@example.com", "\\w+@\\w+\\.\\w+", "valid email")
+assert_nil(find_user(999), "missing user returns nil")
 
 assert_raises_typed(def()
   x = 1 // 0

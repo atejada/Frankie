@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-frankiec — The Frankie Language Compiler & Interpreter v1.11
+frankiec — The Frankie Language Compiler & Interpreter v1.12
 Usage:
     frankiec new    <project>      Scaffold a new Frankie project
     frankiec run    <file.fk>      Run a Frankie program
@@ -9,7 +9,8 @@ Usage:
     frankiec test   [file.fk]      Run test suite (default: test.fk)
     frankiec fmt    [--write] [--check] <file.fk>  Auto-format source
     frankiec docs   [--output <out.md>] <file.fk>  Generate documentation
-    frankiec repl                  Start the interactive REPL
+    frankiec repl   [--no-banner]  Start the interactive REPL
+    frankiec watch  <file.fk> [--test]  Re-run on save
     frankiec version               Show version info
 """
 
@@ -25,9 +26,9 @@ from compiler.lexer import Lexer, LexError
 from compiler.parser import Parser, ParseError
 from compiler.codegen import CodeGen, CodeGenError
 
-FRANKIE_VERSION = "1.11.0"
+FRANKIE_VERSION = "1.12.0"
 FRANKIE_BANNER = r"""
-  _____                 _    _
+  _____                _    _
  |  ___| __ __ _ _ __ | | _(_) ___
  | |_ | '__/ _` | '_ \| |/ / |/ _ \
  |  _|| | | (_| | | | |   <| |  __/
@@ -130,6 +131,46 @@ def _print_compile_error(msg, line_no, source, fk_file):
     print(f"╚═══════════════════════════════════════════════════════\n", file=sys.stderr)
 
 
+def _friendly_type_error(e):
+    msg = str(e)
+    # Python: "unsupported operand type(s) for +: 'int' and 'str'"
+    import re as _re
+    m = _re.search(r"unsupported operand type\(s\) for (.+): '(.+)' and '(.+)'", msg)
+    if m:
+        op, left, right = m.group(1), m.group(2), m.group(3)
+        type_names = {'int': 'Integer', 'float': 'Float', 'str': 'String',
+                      'list': 'Vector', 'dict': 'Hash', 'bool': 'Boolean', 'NoneType': 'nil'}
+        l = type_names.get(left, left)
+        r = type_names.get(right, right)
+        return f"Type mismatch — can't use {op!r} with {l} and {r}"
+    m = _re.search(r"'(.+)' object is not (subscriptable|iterable|callable)", msg)
+    if m:
+        t = {'int': 'Integer', 'float': 'Float', 'str': 'String',
+             'NoneType': 'nil'}.get(m.group(1), m.group(1))
+        return f"Type error — {t} is not {m.group(2)}"
+    return f"Type mismatch — {msg}"
+
+def _friendly_index_error(e):
+    msg = str(e)
+    import re as _re
+    m = _re.search(r'list index out of range', msg)
+    if m:
+        return "Index out of bounds — vector index does not exist"
+    return f"Index out of bounds — {msg}"
+
+def _friendly_file_error(e):
+    msg = str(e)
+    # Strip raw Python prefix like "[Errno 2] No such file or directory: 'x'"
+    import re as _re
+    m = _re.search(r"File not found: (.+)", msg)
+    if m:
+        return f"File not found: {m.group(1)}"
+    m = _re.search(r"No such file or directory: '(.+)'", msg)
+    if m:
+        return f"File not found: '{m.group(1)}' — check the path and try again"
+    return f"File not found: {msg}"
+
+
 def _print_runtime_error(e, fk_file, source):
     """Print a friendly runtime error with source context."""
     import traceback as _tb
@@ -147,12 +188,12 @@ def _print_runtime_error(e, fk_file, source):
     friendly = {
         'ZeroDivisionError': 'Division by zero',
         'NameError':         'Undefined variable or function: ' + (str(e).split("'")[1] if "'" in str(e) else str(e)),
-        'TypeError':         'Wrong type for operation',
-        'IndexError':        'Index out of bounds',
+        'TypeError':         _friendly_type_error(e),
+        'IndexError':        _friendly_index_error(e),
         'KeyError':          f"Key not found: {e}",
         'RecursionError':    'Stack overflow (too much recursion)',
         'ValueError':        f"Invalid value: {e}",
-        'FileNotFoundError': f"File not found: {e}",
+        'FileNotFoundError': _friendly_file_error(e),
         'AttributeError':    f"No such method or property: {e}",
         'RuntimeError':      str(e),
     }
@@ -300,15 +341,54 @@ def run_tests(fk_file: str = None):
 
 HELP_TEXT = {
     'run':     "frankiec run <file.fk>\n  Compile and execute a Frankie program.\n  Exit code is propagated from exit(n) calls in Frankie code.",
-    'repl':    "frankiec repl\n  Start the interactive REPL with readline, tab completion, and\n  persistent history at ~/.frankie_history.",
-    'test':    "frankiec test [file.fk]\n  Run a Frankie test suite. Defaults to test.fk in the current directory.\n  Uses assert_eq, assert_true, assert_raises, assert_raises_typed.",
+    'repl':    "frankiec repl [--no-banner]\n  Start the interactive REPL with readline, tab completion, and\n  persistent history at ~/.frankie_history.\n  --no-banner   Skip the ASCII art header (useful when piping or embedding).",
+    'test':    "frankiec test [file.fk]\n  Run a Frankie test suite. Defaults to test.fk in the current directory.\n  Uses assert_eq, assert_true, assert_match, assert_nil, assert_raises, assert_raises_typed.",
     'fmt':     "frankiec fmt [--write] [--check] <file.fk>\n  Auto-format Frankie source using the AST.\n  --write   Reformat file in-place.\n  --check   Exit 1 if the file is not already formatted (CI mode).",
     'docs':    "frankiec docs [--output <out.md>] <file.fk|dir>\n  Extract ## doc-comments from .fk source and render to Markdown.\n  --output  Write to a file instead of stdout.\n  Supports @param, @return, and @example tags.",
     'build':   "frankiec build <file.fk> [output.py]\n  Compile a .fk file to Python source without executing it.",
     'check':   "frankiec check <file.fk>\n  Syntax-check a .fk file without executing it. Exit 0 = OK, 1 = error.",
     'new':     "frankiec new <project_name>\n  Scaffold a new Frankie project with main.fk, test.fk, lib/, data/, .env.example.",
+    'watch':   "frankiec watch <file.fk> [--test]\n  Watch a file for changes and re-run it automatically on save.\n  --test   Run as a test suite (frankiec test) instead of frankiec run.\n  Polls file modification time — zero dependencies, works everywhere.",
     'version': "frankiec version\n  Print the Frankie version string.",
 }
+
+
+def _watch_file(fk_file, test_mode=False):
+    """Poll fk_file for mtime changes and re-run on save. Zero dependencies."""
+    import time as _time
+    if not os.path.exists(fk_file):
+        print(f"[Frankie] watch: file not found: {fk_file!r}", file=sys.stderr)
+        sys.exit(1)
+
+    mode_label = "test" if test_mode else "run"
+    print(f"[Frankie] Watching {fk_file!r} — will re-{mode_label} on save. Ctrl-C to stop.")
+
+    def _run():
+        print(f"\n[Frankie] ── Running {fk_file} ──────────────────────────")
+        if test_mode:
+            run_tests(fk_file)
+        else:
+            run_file(fk_file)
+
+    last_mtime = None
+    try:
+        while True:
+            try:
+                mtime = os.stat(fk_file).st_mtime
+            except FileNotFoundError:
+                _time.sleep(0.5)
+                continue
+
+            if mtime != last_mtime:
+                last_mtime = mtime
+                if last_mtime is not None or True:  # always run on first pass
+                    try:
+                        _run()
+                    except SystemExit:
+                        pass  # don't let exit() kill the watcher
+            _time.sleep(0.4)
+    except KeyboardInterrupt:
+        print("\n[Frankie] watch stopped.")
 
 
 def main():
@@ -344,7 +424,18 @@ def main():
 
     elif cmd == 'repl':
         from repl import run_repl
-        run_repl()
+        no_banner = '--no-banner' in sys.argv[2:]
+        run_repl(no_banner=no_banner)
+
+    elif cmd == 'watch':
+        args = sys.argv[2:]
+        test_mode = '--test' in args
+        files = [a for a in args if not a.startswith('--')]
+        if not files:
+            print("[Frankie] Usage: frankiec watch <file.fk> [--test]", file=sys.stderr)
+            sys.exit(1)
+        fk_file = files[0]
+        _watch_file(fk_file, test_mode=test_mode)
 
     elif cmd == 'run':
         if len(sys.argv) < 3:

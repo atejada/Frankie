@@ -26,7 +26,7 @@ def _load_version():
 _VERSION = _load_version()
 
 BANNER = rf"""
-  _____                 _    _
+  _____                _    _
  |  ___| __ __ _ _ __ | | _(_) ___
  | |_ | '__/ _` | '_ \| |/ / |/ _ \
  |  _|| | | (_| | | | |   <| |  __/
@@ -249,8 +249,9 @@ def _show_vars(exec_globals):
         print("  (none defined yet)")
 
 
-def run_repl():
-    print(BANNER)
+def run_repl(no_banner=False):
+    if not no_banner:
+        print(BANNER)
     readline = _setup_readline()
 
     exec_globals = {'__name__': '__repl__', '__file__': '<repl>'}
