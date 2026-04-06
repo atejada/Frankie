@@ -1,0 +1,161 @@
+# whats_new_v113.fk — Frankie v1.13 feature showcase
+
+puts "╔══════════════════════════════════════════╗"
+puts "║       Frankie v1.13 — What's New         ║"
+puts "╚══════════════════════════════════════════╝"
+puts ""
+
+# ── 1. stitch — the package system ───────────────────────────────────────────
+puts "── 1. stitch ──"
+puts "Drop a .fk file in ./stitches/ and load it by name."
+puts "Resolution order:"
+puts "  1. ./stitches/<n>.fk          (project-local)"
+puts "  2. ~/.frankie/stitches/<n>.fk (user-global)"
+puts ""
+puts "# stitch \"frankieforms\"   ← loads ./stitches/frankieforms.fk"
+puts "# stitch \"myutils\"       ← loads ./stitches/myutils.fk"
+puts ""
+
+# ── 2. frankiforms — form validation ─────────────────────────────────────────
+puts "── 2. frankieforms ──"
+stitch "frankiforms"
+
+form  = {name: "Alice", email: "alice@example.com", age: "25"}
+rules = {
+  name:  [{rule: "required"}, {rule: "min_length", value: 2}],
+  email: [{rule: "required"}, {rule: "email"}],
+  age:   [{rule: "required"}, {rule: "min_value", value: 18}]
+}
+puts valid?(form, rules)   # true
+
+bad = {name: "", email: "not-an-email", age: "15"}
+validate(bad, rules).each do |field, msg|
+  puts "#{field}: #{msg}"
+end
+# name: is required
+# email: must be a valid email address
+# age: must be at least 18
+
+puts ""
+
+# ── 3. frankietable — ASCII tables ────────────────────────────────────────────
+puts "── 3. frankietable ──"
+stitch "frankitable"
+
+rows = [
+  {name: "Alice", dept: "Engineering", salary: 95000},
+  {name: "Bob",   dept: "Marketing",   salary: 72000},
+  {name: "Carol", dept: "Finance",     salary: 88000}
+]
+
+puts table(rows)
+puts ""
+puts table(rows, ["name", "salary"])
+puts ""
+
+# ── 4. frankiecolor — terminal colors ─────────────────────────────────────────
+puts "── 4. frankiecolor ──"
+stitch "frankiecolor"
+
+puts red("Error: connection refused")
+puts green("OK: all systems go")
+puts yellow("Warning: high memory usage")
+puts blue("Info: starting server")
+puts bold("This is bold")
+puts underline("This is underlined")
+puts ""
+puts success("All 42 tests passed")
+puts error("Build failed — 3 errors")
+puts warn("Deprecated: use new_method instead")
+puts info("Listening on port 3000")
+puts ""
+puts colorize("Frankie", "magenta") + " is alive!"
+puts ""
+
+# ── 5. frankiepager — pagination ──────────────────────────────────────────────
+puts "── 5. frankiepager ──"
+stitch "frankipager"
+
+pg = paginate({total: 247, page: 3, per_page: 20})
+puts "Page #{pg["page"]} of #{pg["total_pages"]}"
+puts "Showing items #{pg["from"]}–#{pg["to"]} of #{pg["total"]}"
+puts "Has prev: #{pg["has_prev"]}  Has next: #{pg["has_next"]}"
+puts "Prev page: #{pg["prev_page"]}  Next page: #{pg["next_page"]}"
+puts ""
+
+# Slice a vector to the current page
+items = seq(1, 50)
+puts "Page 2 of seq(1,50) at 10/page:"
+puts page_slice(items, 2, 10)
+puts ""
+
+# Edge cases
+first = paginate({total: 50, page: 1, per_page: 10})
+puts "First page: has_prev=#{first["has_prev"]} has_next=#{first["has_next"]}"
+
+last_pg = paginate({total: 50, page: 5, per_page: 10})
+puts "Last page:  has_prev=#{last_pg["has_prev"]} has_next=#{last_pg["has_next"]}"
+puts ""
+
+# ── 6. frankieconfig — layered config ─────────────────────────────────────────
+puts "── 6. frankieconfig ──"
+stitch "frankieconfig"
+
+config = load_config({
+  defaults: {host: "localhost", port: 3000, debug: false, name: "myapp"}
+})
+puts "host:  #{config["host"]}"
+puts "port:  #{config["port"]}"
+puts "debug: #{config["debug"]}"
+puts "name:  #{config["name"]}"
+puts ""
+
+# Overrides take highest priority
+config2 = load_config({
+  defaults:  {host: "localhost", port: 3000},
+  overrides: {port: 9000, host: "production.example.com"}
+})
+puts "With overrides:"
+puts "host: #{config2["host"]}"
+puts "port: #{config2["port"]}"
+puts ""
+
+# config_get with fallback
+puts config_get(config, "host", "fallback")      # localhost
+puts config_get(config, "missing", "fallback")   # fallback
+puts ""
+
+# ── 7. ? in function names ────────────────────────────────────────────────────
+puts "── 7. ? in function names ──"
+
+def even?(n)
+  n % 2 == 0
+end
+
+def divisible_by?(n, d)
+  n % d == 0
+end
+
+def palindrome?(s)
+  clean = s.downcase.chars.select do |c|
+    c >= "a" and c <= "z"
+  end.join("")
+  clean == clean.chars.reverse.join("")
+end
+
+def blank?(s)
+  s == nil or s.strip == ""
+end
+
+puts even?(4)                              # true
+puts even?(7)                              # false
+puts divisible_by?(15, 5)                 # true
+puts palindrome?("racecar")               # true
+puts palindrome?("Frankie")               # false
+puts palindrome?("A man a plan a canal Panama".gsub(" ", ""))  # true
+puts blank?("")                           # true
+puts blank?("hello")                      # false
+puts ""
+
+puts "── All v1.13 features demonstrated ──"
+puts "Run with: frankiec run examples/whats_new_v113.fk"

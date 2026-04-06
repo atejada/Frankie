@@ -111,6 +111,8 @@ class Parser:
             return self._maybe_postfix(self.parse_raise())
         if t.type == TT.REQUIRE:
             return self.parse_require()
+        if t.type == TT.STITCH:
+            return self.parse_stitch()
         if t.type == TT.CASE:
             return self.parse_case()
         if t.type == TT.RECORD:
@@ -346,6 +348,11 @@ class Parser:
         self.expect(TT.REQUIRE)
         path = self.parse_expr()
         return RequireStmt(path=path)
+
+    def parse_stitch(self) -> StitchStmt:
+        self.expect(TT.STITCH)
+        name = self.parse_expr()
+        return StitchStmt(name=name)
 
     def parse_case(self) -> CaseStmt:
         self.expect(TT.CASE)

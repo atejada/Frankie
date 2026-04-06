@@ -1,0 +1,105 @@
+## frankipager.fk — Pagination helpers
+## Simple pagination math for web apps and CLI tools.
+##
+## Usage:
+##   stitch "frankipager"
+##
+##   pager = paginate({total: 247, page: 3, per_page: 20})
+##   puts pager["total_pages"]   # 13
+##   puts pager["has_next"]      # true
+##   puts pager["from"]          # 41
+##   puts pager["to"]            # 60
+##
+##   items = seq(1, 247)
+##   page_items = page_slice(items, 3, 20)
+
+def _pg_opt(opts, str_key, sym_key, fallback)
+  v = opts[str_key]
+  if v == nil
+    v = opts[sym_key]
+  end
+  if v == nil
+    fallback
+  else
+    v
+  end
+end
+
+def paginate(opts)
+  total    = _pg_opt(opts, "total",    :total,    0).to_i
+  page     = _pg_opt(opts, "page",     :page,     1).to_i
+  per_page = _pg_opt(opts, "per_page", :per_page, 20).to_i
+
+  if per_page > 0
+    total_pages = (total + per_page - 1) // per_page
+  else
+    total_pages = 0
+  end
+
+  if page < 1
+    page = 1
+  end
+  if total_pages > 0 and page > total_pages
+    page = total_pages
+  end
+
+  from_item = (page - 1) * per_page + 1
+  to_item   = from_item + per_page - 1
+
+  if to_item > total
+    to_item = total
+  end
+  if total == 0
+    from_item = 0
+    to_item   = 0
+  end
+
+  if page > 1
+    prev_p = page - 1
+  else
+    prev_p = nil
+  end
+
+  if page < total_pages
+    next_p = page + 1
+  else
+    next_p = nil
+  end
+
+  {
+    page:        page,
+    per_page:    per_page,
+    total:       total,
+    total_pages: total_pages,
+    from:        from_item,
+    to:          to_item,
+    has_prev:    page > 1,
+    has_next:    page < total_pages,
+    prev_page:   prev_p,
+    next_page:   next_p,
+    first_page:  page == 1,
+    last_page:   page == total_pages
+  }
+end
+
+def page_slice(items, page, per_page)
+  start = (page.to_i - 1) * per_page.to_i
+  items.drop(start).take(per_page.to_i)
+end
+
+def page_links(pager, url_template)
+  links = []
+  if pager["has_prev"]
+    prev_url = url_template.replace("{page}", pager["prev_page"].to_s)
+    links.push({label: "← Prev", url: prev_url, active: false})
+  end
+  seq(1, pager["total_pages"]).each do |n|
+    url = url_template.replace("{page}", n.to_s)
+    links.push({label: n.to_s, url: url, active: n == pager["page"]})
+  end
+  if pager["has_next"]
+    next_url = url_template.replace("{page}", pager["next_page"].to_s)
+    links.push({label: "Next →", url: next_url, active: false})
+  end
+  links
+end

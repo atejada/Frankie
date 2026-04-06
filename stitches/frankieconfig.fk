@@ -1,0 +1,90 @@
+## frankiconfig.fk — Layered configuration loading
+## Loads config from multiple sources in priority order:
+##   1. Explicit overrides (highest priority)
+##   2. Environment variables (with prefix)
+##   3. JSON config file
+##   4. Default values (lowest priority)
+##
+## Usage:
+##   stitch "frankiconfig"
+##
+##   config = load_config({
+##     file:       "config.json",
+##     env_prefix: "APP",
+##     defaults:   {host: "localhost", port: 3000, debug: false}
+##   })
+##   puts config["host"]   # APP_HOST env, then config.json, then "localhost"
+##   puts config["port"]   # APP_PORT env, then config.json, then 3000
+
+def _cfg_opt(opts, str_key, sym_key, fallback)
+  v = opts[str_key]
+  if v == nil
+    v = opts[sym_key]
+  end
+  if v == nil
+    fallback
+  else
+    v
+  end
+end
+
+def load_config(opts)
+  file_path  = _cfg_opt(opts, "file",       :file,       nil)
+  env_prefix = _cfg_opt(opts, "env_prefix", :env_prefix, nil)
+  defaults   = _cfg_opt(opts, "defaults",   :defaults,   {})
+  overrides  = _cfg_opt(opts, "overrides",  :overrides,  {})
+
+  result = {}
+  defaults.each do |k, v|
+    result[k.to_s] = v
+  end
+
+  if file_path != nil and file_exists(file_path)
+    begin
+      json_read(file_path).each do |k, v|
+        result[k.to_s] = v
+      end
+    rescue RuntimeError e
+      puts "frankiconfig warning: could not read #{file_path}: #{e}"
+    end
+  end
+
+  if env_prefix != nil
+    result.keys.each do |key|
+      env_val = env("#{env_prefix}_#{key.upcase}")
+      if env_val != nil
+        default_val = defaults[key]
+        if default_val == nil
+          default_val = defaults[key.to_sym]
+        end
+        if is_integer(default_val)
+          result[key] = env_val.to_i
+        elsif is_float(default_val)
+          result[key] = env_val.to_f
+        elsif default_val == true or default_val == false
+          result[key] = env_val.downcase == "true"
+        else
+          result[key] = env_val
+        end
+      end
+    end
+  end
+
+  overrides.each do |k, v|
+    result[k.to_s] = v
+  end
+
+  result
+end
+
+def config_get(config, key, fallback)
+  v = config[key.to_s]
+  if v == nil
+    v = config[key]
+  end
+  if v == nil
+    fallback
+  else
+    v
+  end
+end

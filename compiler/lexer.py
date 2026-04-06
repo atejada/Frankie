@@ -108,6 +108,7 @@ class TT(Enum):
     ENSURE       = auto()  # ensure
     RAISE        = auto()  # raise
     REQUIRE      = auto()  # require
+    STITCH       = auto()  # stitch
     MATCH_OP     = auto()  # =~
     CASE         = auto()  # case
     WHEN         = auto()  # when
@@ -151,6 +152,7 @@ KEYWORDS = {
     'ensure':           TT.ENSURE,
     'raise':            TT.RAISE,
     'require':          TT.REQUIRE,
+    'stitch':           TT.STITCH,
     'case':             TT.CASE,
     'when':             TT.WHEN,
     'next':             TT.NEXT,

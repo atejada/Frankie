@@ -1,0 +1,109 @@
+## frankiforms.fk — Form field validation
+## Returns a hash of {field: error_message} pairs.
+## An empty hash means all fields are valid.
+##
+## Usage:
+##   stitch "frankiforms"
+##
+##   form  = {name: "Alice", email: "alice@example.com", age: "25"}
+##   rules = {
+##     name:  [{rule: "required"}, {rule: "min_length", value: 2}],
+##     email: [{rule: "required"}, {rule: "email"}],
+##     age:   [{rule: "required"}, {rule: "min_value", value: 18}]
+##   }
+##   errors = validate(form, rules)
+##   if errors.empty?
+##     puts "All valid!"
+##   else
+##     errors.each do |field, msg|
+##       puts "#{field}: #{msg}"
+##     end
+##   end
+
+def _fv_check(value, rule_hash)
+  rule = rule_hash["rule"]
+
+  if rule == "required"
+    if value == nil or value.to_s.strip == ""
+      return "is required"
+    end
+  end
+
+  if rule == "min_length"
+    n = rule_hash["value"].to_i
+    if value == nil or value.to_s.length < n
+      return "must be at least #{n} characters"
+    end
+  end
+
+  if rule == "max_length"
+    n = rule_hash["value"].to_i
+    if value != nil and value.to_s.length > n
+      return "must be at most #{n} characters"
+    end
+  end
+
+  if rule == "email"
+    if value == nil or not value.to_s.matches?("\\w+@\\w+\\.\\w+")
+      return "must be a valid email address"
+    end
+  end
+
+  if rule == "min_value"
+    n = rule_hash["value"].to_i
+    if value == nil or value.to_s.to_i < n
+      return "must be at least #{n}"
+    end
+  end
+
+  if rule == "max_value"
+    n = rule_hash["value"].to_i
+    if value != nil and value.to_s.to_i > n
+      return "must be at most #{n}"
+    end
+  end
+
+  if rule == "numeric"
+    if value == nil or not value.to_s.matches?("^-?\\d+(\\.\\d+)?$")
+      return "must be a number"
+    end
+  end
+
+  if rule == "alpha"
+    if value == nil or not value.to_s.matches?("^[a-zA-Z]+$")
+      return "must contain only letters"
+    end
+  end
+
+  if rule == "matches_pattern"
+    pattern = rule_hash["value"]
+    custom_msg = rule_hash["message"]
+    fallback = if custom_msg == nil then "is invalid" else custom_msg end
+    if value == nil or not value.to_s.matches?(pattern)
+      return fallback
+    end
+  end
+
+  nil
+end
+
+def validate(form, rules)
+  errors = {}
+  rules.each do |field, field_rules|
+    str_key = field.to_s
+    raw = form[str_key]
+    value = if raw == nil then form[field] else raw end
+    field_rules.each do |rule_hash|
+      err = _fv_check(value, rule_hash)
+      if err != nil
+        errors[str_key] = err
+        break
+      end
+    end
+  end
+  errors
+end
+
+def valid?(form, rules)
+  validate(form, rules).empty?
+end

@@ -1,0 +1,24 @@
+## frankistring.fk — Extra Strings operations
+## Additional operations on strings
+##
+## Usage:
+##   stitch "frankistrings"
+##
+##   lfill("Frankie", "Oh!", 12)
+##
+##   rfill("Frankie", "Oh!", 12)
+
+def lfill(string, character, length)
+  filled = _fill(string, character, length) 
+  filled + string
+end
+
+def rfill(string, character, length)
+  filled = _fill(string, character, length)
+  string + filled
+end
+
+def _fill(string, character, length)
+  diff = length - string.length
+  character * diff
+end

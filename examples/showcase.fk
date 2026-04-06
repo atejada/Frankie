@@ -613,3 +613,41 @@ puts file_delete("no_such_file.txt")   # false
 
 puts ""
 puts "Frankie v1.12 is alive and kicking! 🧟⚡"
+
+# ── 39. stitch — package system (v1.13) ──────────────────────────────────────
+puts ""
+puts "── 39. stitch (v1.13) ──"
+
+stitch "frankiforms"
+stitch "frankitable"
+stitch "frankipager"
+
+rules = {email: [{rule: "required"}, {rule: "email"}]}
+puts valid?({email: "alice@example.com"}, rules)   # true
+puts valid?({email: "bad"}, rules)                  # false
+
+tbl_rows = [{name: "Alice", score: 95}, {name: "Bob", score: 87}]
+puts table(tbl_rows)
+
+pg = paginate({total: 100, page: 2, per_page: 10})
+puts "#{pg["from"]}–#{pg["to"]} of #{pg["total"]}"
+
+# ── 40. ? in user-defined function names (v1.13) ─────────────────────────────
+puts ""
+puts "── 40. ? in function names (v1.13) ──"
+
+def prime?(n)
+  return false if n < 2
+  i = 2
+  while i * i <= n
+    return false if n % i == 0
+    i += 1
+  end
+  true
+end
+
+primes = seq(1, 20).select do |n| prime?(n) end
+puts primes   # [2, 3, 5, 7, 11, 13, 17, 19]
+
+puts ""
+puts "Frankie v1.13 is alive and kicking! 🧟⚡"

@@ -1,5 +1,52 @@
 # Changelog
 
+## v1.13.0 (2026)
+
+### New Features
+
+**Language — `stitch "name"` keyword**
+- New keyword for loading third-party Frankie packages by name
+- Resolution order: `./stitches/<n>.fk` (project-local) → `~/.frankie/stitches/<n>.fk` (user-global)
+- Friendly error when not found: tells you exactly where to put the file
+- Each stitch is loaded at most once — safe to call multiple times
+- Uses the same underlying `require` machinery — stitch files are plain `.fk` files
+- Establishes a clear convention: `lib/` = your code, `stitches/` = third-party packages
+
+**Language — `?` in user-defined function names**
+- `def even?(n)` and `def palindrome?(s)` now work correctly
+- `?` is compiled to `_q` in generated Python — transparent to the programmer
+- Applies to function definitions, calls, and assignments
+
+**Stitch — `frankiforms`**
+- Form field validation returning a Hash of `{field: error_message}` pairs
+- Rules: `required`, `min_length`, `max_length`, `email`, `min_value`, `max_value`, `numeric`, `alpha`, `matches_pattern`
+- `validate(form, rules)` → error hash · `valid?(form, rules)` → boolean
+
+**Stitch — `frankitable`**
+- ASCII table rendering from a vector of hashes
+- `table(rows)` — all columns · `table(rows, cols)` — specific columns in given order
+- Column widths auto-sized to content
+
+**Stitch — `frankicolor`**
+- ANSI color and style helpers for terminal output
+- Color functions: `red`, `green`, `yellow`, `blue`, `cyan`, `magenta`, `white`, `black`
+- Style functions: `bold`, `dim`, `italic`, `underline`, `inverse`
+- Semantic helpers: `success`, `error`, `warn`, `info`
+- `colorize(str, color)` — generic · `strip_color(str)` — remove ANSI codes
+
+**Stitch — `frankipager`**
+- Pagination math for web apps and CLI tools
+- `paginate(opts)` → full pager hash with page, total_pages, from, to, has_prev, has_next, prev_page, next_page
+- `page_slice(items, page, per_page)` — slice a vector to the current page
+- `page_links(pager, url_template)` — navigation link vector
+
+**Stitch — `frankiconfig`**
+- Layered configuration loading: defaults → JSON file → environment variables → overrides
+- Type coercion from env var strings to match default types (Integer, Float, Boolean)
+- `load_config(opts)` · `config_get(config, key, fallback)`
+
+---
+
 ## v1.12.0 (2026)
 
 ### New Features

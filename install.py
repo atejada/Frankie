@@ -19,14 +19,18 @@ Or run directly without installing:
 import sys
 import os
 import stat
+import shutil
 
 FRANKIE_DIR = os.path.dirname(os.path.abspath(__file__))
 BIN_DIR     = os.path.join(FRANKIE_DIR, "bin")
+STITCH_SRC = os.path.join(FRANKIE_DIR, "stitches")
+USER_STITCH_DIR = os.path.expanduser("~/.frankie/stitches")
 SCRIPT_NAME = "frankiec"
 
 
 def install():
     os.makedirs(BIN_DIR, exist_ok=True)
+    os.makedirs(USER_STITCH_DIR, exist_ok=True)
     target = os.path.join(BIN_DIR, SCRIPT_NAME)
 
     launcher = f"""#!/usr/bin/env python3
@@ -56,6 +60,15 @@ main()
         print("  Or run directly from the frankie directory:")
         print(f"    ./bin/frankiec run examples/hello.fk")
 
+    for f in os.listdir(STITCH_SRC):
+        src_file = os.path.join(STITCH_SRC, f)
+        dst_file = os.path.join(USER_STITCH_DIR, f)
+
+        if os.path.isfile(src_file):
+            shutil.copy(src_file, dst_file)
+
+print(f"Installed stitches to {USER_STITCH_DIR}")
+
 
 def uninstall():
     target = os.path.join(BIN_DIR, SCRIPT_NAME)
@@ -67,7 +80,16 @@ def uninstall():
             print(f"Removed empty dir: {BIN_DIR}")
     else:
         print(f"frankiec not found at {target}")
+        
+    # remove stitches
+    if os.path.exists(USER_STITCH_DIR):
+        shutil.rmtree(USER_STITCH_DIR)
+        print(f"Removed: {USER_STITCH_DIR}")
 
+    # remove ~/.frankie if empty
+    if os.path.exists(USER_FRANKIE_DIR) and not os.listdir(USER_FRANKIE_DIR):
+        os.rmdir(USER_FRANKIE_DIR)
+        print(f"Removed empty dir: {USER_FRANKIE_DIR}")
 
 if __name__ == '__main__':
     if '--uninstall' in sys.argv:

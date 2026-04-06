@@ -522,6 +522,25 @@ msg = <<~MSG
 MSG
 ```
 
+**Known limitation:** heredocs cannot be written inline inside a `do...end` block that is itself passed as an argument to a method call. The parser trips on the heredoc terminator in that context.
+
+```ruby
+# ✗ Does not parse
+server.get("/") do |req|
+  html_response(<<~HTML)
+    <h1>Hello</h1>
+  HTML
+end
+
+# ✓ Workaround — assign first, then pass
+body = <<~HTML
+  <h1>Hello</h1>
+HTML
+server.get("/") do |req|
+  html_response(body)
+end
+```
+
 ## String & Vector `*` Repetition *(v1.10)*
 
 ```ruby

@@ -397,6 +397,61 @@ def _fk_require(path):
     return True
 
 
+def _fk_stitch(name):
+    """Load a stitch (package) by name.
+
+    Resolution order:
+      1. ./stitches/<n>.fk          (project-local)
+      2. ~/.frankie/stitches/<n>.fk (user-global)
+
+    Raises a friendly error if neither exists.
+    Compiles and executes the stitch, then propagates all defined names
+    back to the calling Frankie script scope.
+    """
+    import inspect as _insp
+    filename = f"{name}.fk"
+
+    # 1. Project-local
+    abs_path = _os.path.join(_os.getcwd(), "stitches", filename)
+    if not _os.path.exists(abs_path):
+        # 2. User-global
+        abs_path = _os.path.join(_os.path.expanduser("~"), ".frankie", "stitches", filename)
+        if not _os.path.exists(abs_path):
+            raise RuntimeError(
+                f'[Frankie] Stitch not found: "{name}"\n'
+                f"  Put {filename} in ./stitches/ or ~/.frankie/stitches/"
+            )
+
+    # Already loaded — nothing to do
+    if abs_path in _fk_loaded_files:
+        return False
+    _fk_loaded_files.add(abs_path)
+
+    # Compile and execute the stitch file
+    import sys as _sys
+    _frankie_dir = _os.path.dirname(_os.path.abspath(__file__))
+    if _frankie_dir not in _sys.path:
+        _sys.path.insert(0, _frankie_dir)
+    from compiler.lexer import Lexer
+    from compiler.parser import Parser
+    from compiler.codegen import CodeGen
+    with open(abs_path, 'r', encoding='utf-8') as _f:
+        _src = _f.read()
+    _tokens = Lexer(_src).tokenize()
+    _ast = Parser(_tokens).parse()
+    _py_src = CodeGen().generate(_ast)
+    _g = {k: v for k, v in globals().items()}
+    _g['__file__'] = abs_path
+    exec(compile(_py_src, abs_path, 'exec'), _g)
+
+    # Propagate definitions back to the calling Frankie script
+    _frame = _insp.currentframe().f_back
+    if _frame:
+        _frame.f_globals.update({k: v for k, v in _g.items()
+                                  if not k.startswith('_fk_') and k not in ('__builtins__',)})
+    return True
+
+
 # ─── File I/O ─────────────────────────────────────────────────────────────────
 
 class FrankieFile:
@@ -553,17 +608,29 @@ def env(key, default=None):
 
 # ─── v1.1 Iterator Helpers ────────────────────────────────────────────────────
 
+def _fk_iter(iterable):
+    """Yield items from any iterable. For dicts, yields [key, value] lists."""
+    if isinstance(iterable, dict):
+        for k, v in iterable.items():
+            yield [k, v]
+    else:
+        yield from iterable
+
 def _fk_select(iterable, fn):
-    """Return a new list of elements for which fn returns true."""
+    """Return filtered elements. For dicts, returns a new dict."""
+    if isinstance(iterable, dict):
+        return {k: v for k, v in iterable.items() if fn([k, v])}
     return [x for x in iterable if fn(x)]
 
 def _fk_reject(iterable, fn):
-    """Return a new list of elements for which fn returns false."""
+    """Return elements where fn is false. For dicts, returns a new dict."""
+    if isinstance(iterable, dict):
+        return {k: v for k, v in iterable.items() if not fn([k, v])}
     return [x for x in iterable if not fn(x)]
 
 def _fk_find(iterable, fn):
     """Return the first element for which fn returns true, or None."""
-    for x in iterable:
+    for x in _fk_iter(iterable):
         if fn(x):
             return x
     return None
@@ -592,31 +659,24 @@ def _fk_each_with_object(iterable, obj, fn):
 def _fk_any(iterable, fn=None):
     """Return true if any element satisfies fn (or is truthy if no fn)."""
     if fn is None:
-        return any(iterable)
-    return any(fn(x) for x in iterable)
+        return any(_fk_iter(iterable))
+    return any(fn(x) for x in _fk_iter(iterable))
 
 def _fk_all(iterable, fn=None):
     """Return true if all elements satisfy fn (or are truthy if no fn)."""
     if fn is None:
-        return all(iterable)
-    return all(fn(x) for x in iterable)
+        return all(_fk_iter(iterable))
+    return all(fn(x) for x in _fk_iter(iterable))
 
 def _fk_none(iterable, fn=None):
     """Return true if no elements satisfy fn."""
     if fn is None:
-        return not any(iterable)
-    return not any(fn(x) for x in iterable)
+        return not any(_fk_iter(iterable))
+    return not any(fn(x) for x in _fk_iter(iterable))
 
 def _fk_count_if(iterable, fn):
     """Count elements satisfying fn."""
-    return sum(1 for x in iterable if fn(x))
-
-def _fk_find(iterable, fn):
-    """Return the first element for which fn returns truthy, else None."""
-    for item in (iterable if isinstance(iterable, list) else list(iterable)):
-        if fn(item):
-            return item
-    return None
+    return sum(1 for x in _fk_iter(iterable) if fn(x))
 
 def _fk_flat_map(iterable, fn):
     """Map then flatten one level."""
@@ -671,7 +731,7 @@ def _fk_chunk(iterable, n):
 def _fk_group_by(iterable, key_fn):
     """Group elements by the result of key_fn. Returns a hash of arrays."""
     result = {}
-    for item in iterable:
+    for item in _fk_iter(iterable):
         key = key_fn(item)
         if isinstance(key, bool):
             k = str(key).lower()
@@ -1308,8 +1368,15 @@ def url_decode(s):
 # ─── Web Server ───────────────────────────────────────────────────────────────
 
 import http.server as _http_server
+import mimetypes as _mimetypes
 import re as _re
 import threading as _threading
+
+
+class _HaltException(Exception):
+    """Raised by halt() to short-circuit request processing."""
+    def __init__(self, response):
+        self.response = response
 
 
 class FrankieRequest:
@@ -1328,24 +1395,42 @@ class FrankieRequest:
     form     : parsed application/x-www-form-urlencoded body as a hash
     """
     def __init__(self, method, path, params, query, headers, body):
-        self.method  = method
-        self.path    = path
-        self.params  = params
-        self.query   = query
-        self.headers = headers
-        self.body    = body
+        self.method   = method
+        self.path     = path
+        self.params   = params
+        self.query    = query
+        self.headers  = headers
+        self.body     = body
+        # Eagerly parsed so Frankie can access them as plain attributes
+        self.json     = self._parse_json(body)
+        self.form     = dict(_urllib_parse.parse_qsl(body))
+        self._cookies = self._parse_cookies(headers)
 
-    @property
-    def json(self):
+    def cookies(self):
+        """Return the parsed Cookie header as a hash of {name: value} pairs.
+
+        Called as req.cookies in Frankie (the compiler adds parens for method calls).
+        """
+        return self._cookies
+
+    @staticmethod
+    def _parse_json(body):
         try:
             import json as _j
-            return _j.loads(self.body)
+            return _j.loads(body)
         except Exception:
             return None
 
-    @property
-    def form(self):
-        return dict(_urllib_parse.parse_qsl(self.body))
+    @staticmethod
+    def _parse_cookies(headers):
+        raw = headers.get('Cookie', '') or headers.get('cookie', '') or ''
+        result = {}
+        for part in raw.split(';'):
+            part = part.strip()
+            if '=' in part:
+                k, _, v = part.partition('=')
+                result[k.strip()] = v.strip()
+        return result
 
     def __repr__(self):
         return f"<FrankieRequest {self.method} {self.path}>"
@@ -1368,6 +1453,41 @@ class FrankieResponse:
         self.status       = int(status)
         self.content_type = content_type
         self.headers      = headers or {}
+
+    def set_cookie(self, name, value, opts=None):
+        """Append a Set-Cookie header to this response.
+
+        opts is an optional Frankie hash with keys:
+          path      (default "/")
+          http_only (default true)
+          max_age   (default nil — omitted)
+          same_site (default "Lax")
+        """
+        if opts is None:
+            opts = {}
+        path      = opts.get('path',      opts.get('path',      '/'))
+        http_only = opts.get('http_only', opts.get('http_only', True))
+        max_age   = opts.get('max_age',   opts.get('max_age',   None))
+        same_site = opts.get('same_site', opts.get('same_site', 'Lax'))
+        cookie = f"{name}={value}; Path={path}; SameSite={same_site}"
+        if max_age is not None:
+            cookie += f"; Max-Age={max_age}"
+        if http_only:
+            cookie += "; HttpOnly"
+        # Collect multiple Set-Cookie values as a list
+        existing = self.headers.get('Set-Cookie')
+        if existing is None:
+            self.headers['Set-Cookie'] = cookie
+        elif isinstance(existing, list):
+            existing.append(cookie)
+        else:
+            self.headers['Set-Cookie'] = [existing, cookie]
+        return self
+
+    def set_header(self, name, value):
+        """Set an arbitrary response header."""
+        self.headers[name] = value
+        return self
 
     def __repr__(self):
         return f"<FrankieResponse {self.status}>"
@@ -1396,8 +1516,24 @@ def redirect(location, status=302):
     return FrankieResponse("", status, {"Location": location}, "text/plain")
 
 def halt(status=500, body=""):
-    """Return an error response."""
-    return FrankieResponse(body, status, {}, "text/plain; charset=utf-8")
+    """Short-circuit the current request with an error response.
+
+    When called from a before-filter, immediately stops the request pipeline
+    and sends this response to the client — the route handler is never called.
+    When called from a route handler, terminates the handler early.
+    """
+    raise _HaltException(FrankieResponse(body, status, {}, "text/plain; charset=utf-8"))
+
+
+class FrankieStaticResponse(FrankieResponse):
+    """FrankieResponse variant that carries raw bytes for static file serving."""
+    def __init__(self, data, content_type):
+        super().__init__("", 200, {}, content_type)
+        self._bytes = data
+
+    def raw_bytes(self):
+        """Return the raw bytes of the static file body."""
+        return self._bytes
 
 
 class FrankieApp:
@@ -1430,6 +1566,7 @@ class FrankieApp:
         self._before    = []   # before-filters
         self._after     = []   # after-filters
         self._not_found = None # custom 404 handler
+        self._static    = []   # [(url_prefix, fs_root), ...]
 
     # ── Route registration ──────────────────────────────────────────────────
 
@@ -1456,10 +1593,46 @@ class FrankieApp:
         """Register a custom 404 handler."""
         self._not_found = handler
 
+    def static(self, url_prefix, fs_root):
+        """Serve files from fs_root for any GET request under url_prefix.
+
+        Example: app.static("/assets", "./public")
+          GET /assets/style.css  ->  ./public/style.css
+        """
+        # Normalise: url_prefix must start with /, fs_root is relative to cwd
+        if not url_prefix.startswith('/'):
+            url_prefix = '/' + url_prefix
+        self._static.append((url_prefix.rstrip('/'), _os.path.abspath(fs_root)))
+
     # ── Dispatch ────────────────────────────────────────────────────────────
 
     def _dispatch(self, method, path, query_string, headers, body):
         query = dict(_urllib_parse.parse_qsl(query_string))
+        try:
+            return self._dispatch_inner(method, path, query, headers, body)
+        except _HaltException as _h:
+            return _h.response
+
+    def _dispatch_inner(self, method, path, query, headers, body):
+
+        # Static file serving — checked before dynamic routes
+        if method in ('GET', 'HEAD'):
+            for url_prefix, fs_root in self._static:
+                if path == url_prefix or path.startswith(url_prefix + '/'):
+                    rel      = path[len(url_prefix):].lstrip('/')
+                    abs_path = _os.path.join(fs_root, rel)
+                    abs_path = _os.path.normpath(abs_path)
+                    # Prevent directory traversal
+                    if not abs_path.startswith(fs_root):
+                        return FrankieResponse("403 Forbidden", 403, {}, "text/plain")
+                    if _os.path.isfile(abs_path):
+                        mime, _ = _mimetypes.guess_type(abs_path)
+                        mime    = mime or 'application/octet-stream'
+                        with open(abs_path, 'rb') as _fh:
+                            data = _fh.read()
+                        resp = FrankieStaticResponse(data, mime)
+                        return resp
+                    return FrankieResponse("404 Not Found", 404, {}, "text/plain")
 
         for route_method, regex, param_names, handler in self._routes:
             if route_method != method and not (method == 'HEAD' and route_method == 'GET'):
@@ -1511,12 +1684,16 @@ class FrankieApp:
                 body    = self.rfile.read(length).decode('utf-8', errors='replace') if length else ''
                 resp    = app._dispatch(self.command, parsed.path,
                                         parsed.query, dict(self.headers), body)
-                encoded = resp.body.encode('utf-8')
+                encoded = resp._bytes if isinstance(resp, FrankieStaticResponse) else resp.body.encode('utf-8')
                 self.send_response(resp.status)
                 self.send_header('Content-Type', resp.content_type)
                 self.send_header('Content-Length', str(len(encoded)))
                 for k, v in resp.headers.items():
-                    self.send_header(k, v)
+                    if isinstance(v, list):
+                        for item in v:
+                            self.send_header(k, item)
+                    else:
+                        self.send_header(k, v)
                 self.end_headers()
                 if self.command != 'HEAD':
                     self.wfile.write(encoded)
@@ -1538,8 +1715,45 @@ class FrankieApp:
             server.shutdown()
 
 
+def render(template_path, data=None):
+    """Render a .html file as a template, filling {{key}} placeholders from data.
+
+    Reads the file at template_path, passes it through template() with the
+    supplied hash, and returns an html_response.
+
+    Example:
+        resp = render("views/index.html", {title: "Home", name: "Alice"})
+    """
+    with open(template_path, 'r', encoding='utf-8') as _fh:
+        tmpl = _fh.read()
+    filled = template(tmpl, data or {})
+    return html_response(filled)
+
+
 def web_app():
-    """Create and return a new Frankie web application."""
+    """Create and return a new Frankie web application.
+
+    Features
+    --------
+    Routing       app.get / .post / .put / .delete / .patch(pattern, handler)
+    Middleware    app.before(fn)  — return a FrankieResponse to short-circuit
+                  app.after(fn)  — inspect/mutate the response
+    Static files  app.static(url_prefix, fs_root)
+    Custom 404    app.not_found(fn)
+
+    Request properties
+    ------------------
+    req.method / .path / .params / .query / .headers / .body / .json / .form
+    req.cookies   — parsed Cookie header as a hash
+
+    Response helpers
+    ----------------
+    response(body, status)      html_response(html)
+    json_response(hash)         redirect(location)   halt(status, body)
+    render(path, data)          — fill a .html file with {{key}} placeholders
+    resp.set_cookie(name, val)  — append a Set-Cookie header
+    resp.set_header(name, val)  — set an arbitrary response header
+    """
     return FrankieApp()
 
 
@@ -1692,27 +1906,22 @@ def _fk_str_decode(byte_vec, encoding='utf-8'):
 
 def _fk_sort_by(vec, key_fn):
     """sort_by do |x| ... end — sort by the value the block returns."""
-    if not isinstance(vec, list):
-        raise RuntimeError("[Frankie] sort_by requires a vector")
-    return sorted(vec, key=key_fn)
+    items = list(_fk_iter(vec))
+    return sorted(items, key=key_fn)
 
 def _fk_min_by(vec, key_fn):
     """min_by do |x| ... end — element with the smallest key."""
-    if not isinstance(vec, list):
-        raise RuntimeError("[Frankie] min_by requires a vector")
-    return min(vec, key=key_fn)
+    items = list(_fk_iter(vec))
+    return min(items, key=key_fn)
 
 def _fk_max_by(vec, key_fn):
     """max_by do |x| ... end — element with the largest key."""
-    if not isinstance(vec, list):
-        raise RuntimeError("[Frankie] max_by requires a vector")
-    return max(vec, key=key_fn)
+    items = list(_fk_iter(vec))
+    return max(items, key=key_fn)
 
 def _fk_sum_by(vec, key_fn):
     """sum_by do |x| ... end — sum the values the block returns."""
-    if not isinstance(vec, list):
-        raise RuntimeError("[Frankie] sum_by requires a vector")
-    return sum(key_fn(x) for x in vec)
+    return sum(key_fn(x) for x in _fk_iter(vec))
 
 
 # ─── v1.5: Unzip ─────────────────────────────────────────────────────────────
@@ -1957,3 +2166,16 @@ def fk_round(x, n=0):
 def _fk_cartesian_product(a, b):
     """Vector .product(other) — cartesian product as a vector of pairs."""
     return [[x, y] for x in a for y in b]
+
+def _fk_vec_delete(vec, val):
+    """Vector .delete(val) — remove first occurrence of val, return the modified vector."""
+    try:
+        vec.remove(val)
+    except ValueError:
+        pass
+    return vec
+
+def _fk_hash_delete(h, key):
+    """Hash .delete(key) — remove key, return the modified hash."""
+    h.pop(key, None)
+    return h

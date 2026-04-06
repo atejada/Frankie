@@ -278,6 +278,10 @@ class RaiseStmt(Node):
 class RequireStmt(Node):
     path: Node
 
+@dataclass
+class StitchStmt(Node):
+    name: Node
+
 # ─── Regex ───────────────────────────────────────────────────────────────────
 
 @dataclass

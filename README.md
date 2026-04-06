@@ -1,13 +1,13 @@
 # 🧟 Frankie Programming Language
 
 ```
-  _____                _    _
+  _____                 _    _
  |  ___| __ __ _ _ __ | | _(_) ___
  | |_ | '__/ _` | '_ \| |/ / |/ _ \
  |  _|| | | (_| | | | |   <| |  __/
  |_|  |_|  \__,_|_| |_|_|\_\_|\___|
 
- The Frankie Language v1.12
+ The Frankie Language v1.13
  Stitched together from Ruby • Python • R • Fortran
 ```
 
@@ -92,6 +92,51 @@ rescue e
 end
 ```
 
+---
+
+## v1.13 Highlights
+
+```ruby
+# stitch — zero-dependency package system
+stitch "frankiforms"
+stitch "frankitable"
+stitch "frankicolor"
+stitch "frankipager"
+stitch "frankiconfig"
+
+# Form validation
+rules = {email: [{rule: "required"}, {rule: "email"}]}
+puts valid?({email: "alice@example.com"}, rules)  # true
+validate({email: "bad"}, rules)   # {email: "must be a valid email address"}
+
+# ASCII tables
+puts table([{name: "Alice", score: 95}, {name: "Bob", score: 87}])
+# +-------+-------+
+# | name  | score |
+# +-------+-------+
+# | Alice | 95    |
+# | Bob   | 87    |
+# +-------+-------+
+
+# Terminal colors
+puts red("Error!")
+puts green("Done!")
+puts success("All tests passed")
+
+# Pagination
+pg = paginate({total: 247, page: 3, per_page: 20})
+puts "#{pg["from"]}–#{pg["to"]} of #{pg["total"]}"   # 41–60 of 247
+
+# Layered config
+config = load_config({defaults: {host: "localhost", port: 3000}})
+puts config["host"]   # APP_HOST env → "localhost"
+
+# ? in user-defined function names — now works
+def even?(n)
+  n % 2 == 0
+end
+puts even?(4)   # true
+```
 ---
 
 ## v1.12 Highlights
@@ -303,7 +348,7 @@ Full documentation lives in the `docs/` folder:
 | `docs/03_collections.md` | Vectors, hashes, all iterators |
 | `docs/04_stdlib.md` | Math, stats, randomness, strings, regex, file I/O, file system, JSON, CSV, DateTime, HTTP, testing |
 | `docs/05_examples.md` | All example programs explained |
-| `docs/06_changelog.md` | v1.0 – v1.12 release notes |
+| `docs/06_changelog.md` | v1.0 – v1.13 release notes |
 | `docs/07_database.md` | SQLite database access — full API reference |
 | `docs/08_v17_features.md` | v1.4–v1.7 feature reference: nil safety, templates, file system, typed asserts, web server, randomness, constants, compound assignment |
 | `docs/09_web.md` | Web server — routes, requests, responses, filters |
@@ -312,6 +357,7 @@ Full documentation lives in the `docs/` folder:
 | `docs/12_v110_features.md` | v1.10 feature reference: string/vector *, heredoc, times(), flatten(depth), map_with_index, pp, encode/decode |
 | `docs/13_v111_features.md` | v1.11 feature reference: implicit return, inline if, .replace(), .format(hash), .zip_with, multiple return values |
 | `docs/14_v112_features.md` | v1.12 feature reference: gsub block, map_hash, round, product, chars, FileNotFoundError, assert_match/nil, watch, --no-banner |
+| `docs/15_v113_features.md` | v1.13 feature reference: stitch keyword, frankiforms, frankitable, frankicolor, frankipager, frankiconfig, ? in function names |
 
 The formal language grammar lives in `SPEC.md`.
 

@@ -107,6 +107,8 @@ class CodeGen:
             self.gen_raise(node)
         elif isinstance(node, RequireStmt):
             self.gen_require(node)
+        elif isinstance(node, StitchStmt):
+            self.gen_stitch(node)
         elif isinstance(node, CaseStmt):
             self.gen_case(node)
         elif isinstance(node, DestructAssign):
@@ -139,6 +141,7 @@ class CodeGen:
     # ─── Functions ───────────────────────────────────────────────────────────
 
     def gen_func_def(self, node: FuncDef):
+        py_name = node.name.replace('?', '_q').replace('!', '_bang')
         param_parts = []
         for i, pname in enumerate(node.params):
             default = node.defaults[i] if i < len(node.defaults) else None
@@ -147,7 +150,7 @@ class CodeGen:
             else:
                 param_parts.append(pname)
         params = ", ".join(param_parts)
-        self.emit(f"def {node.name}({params}):")
+        self.emit(f"def {py_name}({params}):")
         self.indent()
         self._gen_body_implicit_return(node.body)
         self.dedent()
@@ -162,7 +165,7 @@ class CodeGen:
         as-is — they implicitly return nil.
         """
         _PURE_STMT = (WhileStmt, UntilStmt, DoWhileStmt, ForInStmt,
-                      PrintStmt, DebugPrint, RequireStmt, NextStmt,
+                      PrintStmt, DebugPrint, RequireStmt, StitchStmt, NextStmt,
                       BreakStmt, RecordDef, FuncDef,
                       Assign, CompoundAssign, IndexAssign,
                       IndexCompoundAssign, DestructAssign, ConstAssign,
@@ -353,7 +356,8 @@ class CodeGen:
 
     def gen_assign(self, node: Assign):
         val = self.gen_expr(node.value)
-        self.emit(f"{node.name} = {val}")
+        py_name = node.name.replace('?', '_q').replace('!', '_bang')
+        self.emit(f"{py_name} = {val}")
 
     def gen_compound_assign(self, node):
         val = self.gen_expr(node.value)
@@ -380,7 +384,7 @@ class CodeGen:
         if isinstance(node, StringLiteral):
             return self.gen_string(node)
         if isinstance(node, Identifier):
-            return node.name
+            return node.name.replace('?', '_q').replace('!', '_bang')
         if isinstance(node, VectorLiteral):
             elems = ", ".join(self.gen_expr(e) for e in node.elements)
             return f"[{elems}]"
@@ -554,7 +558,7 @@ class CodeGen:
             'pp': 'pp',
             'times': 'times',
         }
-        py_name = stdlib_map.get(node.name, node.name)
+        py_name = stdlib_map.get(node.name, node.name.replace('?', '_q').replace('!', '_bang'))
         if node.name == 'print':
             return f"print(_fk_to_str({args}), end='')"
         if node.name == 'puts':
@@ -747,12 +751,12 @@ class CodeGen:
             self.dedent()
             return f"_fk_map_with_index({recv}, {fn_name})"
 
-        # .encode(encoding)
+        # .encode — string → vector of byte ints; vector of byte ints → string
         if node.method == 'encode':
             enc = self.gen_expr(node.args[0]) if node.args else '"utf-8"'
-            return f"_fk_str_encode({recv}, {enc})"
+            return f"(_fk_str_encode({recv}, {enc}) if isinstance({recv}, str) else _fk_str_decode({recv}, {enc}))"
 
-        # .decode(encoding)
+        # .decode — vector of byte ints → string (explicit form)
         if node.method == 'decode':
             enc = self.gen_expr(node.args[0]) if node.args else '"utf-8"'
             return f"_fk_str_decode({recv}, {enc})"
@@ -846,8 +850,8 @@ class CodeGen:
                 arg1 = self.gen_expr(node.args[1])
                 return f"{recv}.delete({arg0}, {arg1})"
             arg = self.gen_expr(node.args[0])
-            # Single arg: str→delete chars, hash→pop key, vector→(not typical)
-            return f"(_fk_str_delete({recv}, {arg}) if isinstance({recv}, str) else {recv}.pop({arg}, None))"
+            # Single arg: str→delete chars, hash→pop key, vector→remove by value
+            return f"(_fk_str_delete({recv}, {arg}) if isinstance({recv}, str) else (_fk_hash_delete({recv}, {arg}) if isinstance({recv}, dict) else (_fk_vec_delete({recv}, {arg}))))"
         if node.method == 'bytes':
             return f"_fk_bytes({recv})"
         if node.method == 'each_char':
@@ -1045,6 +1049,23 @@ class CodeGen:
             new = self.gen_expr(node.args[1]) if len(node.args) > 1 else '""'
             return f"_fk_str_sub({recv}, {old}, {new})"
 
+        if node.method == 'match':
+            pat = self.gen_expr(node.args[0]) if node.args else '""'
+            return f"match({recv}, {pat})"
+
+        if node.method == 'match_all':
+            pat = self.gen_expr(node.args[0]) if node.args else '""'
+            return f"match_all({recv}, {pat})"
+
+        if node.method in ('matches?', 'matches'):
+            pat = self.gen_expr(node.args[0]) if node.args else '""'
+            return f"matches({recv}, {pat})"
+
+        if node.method == 'sub':
+            pat = self.gen_expr(node.args[0]) if len(node.args) > 0 else '""'
+            rep = self.gen_expr(node.args[1]) if len(node.args) > 1 else '""'
+            return f"sub({recv}, {pat}, {rep})"
+
         if node.method == 'format':
             if node.args:
                 arg = self.gen_expr(node.args[0])
@@ -1146,20 +1167,61 @@ class CodeGen:
         block = node.block
         if block is None:
             return f"list({recv})"
+
+        # Two block params on a hash: |k, v| — iterate items()
+        if block.params and len(block.params) == 2:
+            k_var = block.params[0]
+            v_var = block.params[1]
+            recv_tmp = self.temp_var("_map_recv")
+            self.emit(f"{recv_tmp} = {recv}")
+            _CTRL_FLOW = (IfStmt, UnlessStmt, WhileStmt, UntilStmt, DoWhileStmt,
+                          ForInStmt, BeginRescue, CaseStmt)
+            if len(block.body) == 1 and not isinstance(block.body[0], _CTRL_FLOW):
+                body_expr = self.gen_expr(block.body[0])
+                return (f"[{body_expr} for {k_var}, {v_var} in "
+                        f"({recv_tmp}.items() if isinstance({recv_tmp}, dict) else {recv_tmp})]")
+            fn_name = self.temp_var("_map_fn")
+            self.emit(f"def {fn_name}({k_var}, {v_var}):")
+            self.indent()
+            for stmt in block.body[:-1]:
+                self.gen_stmt(stmt)
+            last = block.body[-1]
+            if isinstance(last, IfStmt):
+                self._gen_if_implicit_return(last)
+            elif isinstance(last, UnlessStmt):
+                self._gen_unless_implicit_return(last)
+            elif isinstance(last, _CTRL_FLOW):
+                self.gen_stmt(last)
+                self.emit("return None")
+            else:
+                self.emit(f"return {self.gen_expr(last)}")
+            self.dedent()
+            return (f"[{fn_name}(*_pair) for _pair in "
+                    f"({recv_tmp}.items() if isinstance({recv_tmp}, dict) else {recv_tmp})]")
+
         var = block.params[0] if block.params else '_'
-        # map returns a value — use list comprehension
-        if len(block.body) == 1:
+        _CTRL_FLOW = (IfStmt, UnlessStmt, WhileStmt, UntilStmt, DoWhileStmt,
+                      ForInStmt, BeginRescue, CaseStmt)
+        # map returns a value — use list comprehension for simple single-expr blocks
+        if len(block.body) == 1 and not isinstance(block.body[0], _CTRL_FLOW):
             body_expr = self.gen_expr(block.body[0])
             return f"[{body_expr} for {var} in {recv}]"
-        # Multi-statement map: use lambda with walrus / helper
-        # For simplicity, emit as a separate function
+        # Multi-statement map, or single control-flow node: emit a helper function
         fn_name = self.temp_var("_map_fn")
         self.emit(f"def {fn_name}({var}):")
         self.indent()
         for stmt in block.body[:-1]:
             self.gen_stmt(stmt)
-        last = self.gen_expr(block.body[-1])
-        self.emit(f"return {last}")
+        last = block.body[-1]
+        if isinstance(last, IfStmt):
+            self._gen_if_implicit_return(last)
+        elif isinstance(last, UnlessStmt):
+            self._gen_unless_implicit_return(last)
+        elif isinstance(last, _CTRL_FLOW):
+            self.gen_stmt(last)
+            self.emit("return None")
+        else:
+            self.emit(f"return {self.gen_expr(last)}")
         self.dedent()
         return f"[{fn_name}({var}) for {var} in {recv}]"
 
@@ -1262,18 +1324,56 @@ class CodeGen:
             self.emit(f"{result_var} = {self.gen_expr(last)}")
 
     def _gen_block_method(self, recv, node: MethodCall, helper: str) -> str:
-        """Generate: helper(recv, lambda x: body)"""
+        """Generate: helper(recv, lambda x: body)
+        For two-param blocks (|k, v|), unpacks the [key, value] pair."""
         block = node.block
         if block is None:
             return f"{helper}({recv}, lambda x: x)"
+        # Two-param block: |k, v| — unpack [key, value] pair
+        if block.params and len(block.params) == 2:
+            k_var = block.params[0]
+            v_var = block.params[1]
+            fn_name = self.temp_var("_blk2_fn")
+            self.emit(f"def {fn_name}(_pair):")
+            self.indent()
+            self.emit(f"{k_var} = _pair[0]")
+            self.emit(f"{v_var} = _pair[1]")
+            for stmt in block.body[:-1]:
+                self.gen_stmt(stmt)
+            last = block.body[-1]
+            if isinstance(last, ReturnStmt):
+                self.gen_stmt(last)
+            else:
+                self.emit(f"return {self.gen_expr(last)}")
+            self.dedent()
+            return f"{helper}({recv}, {fn_name})"
         lam = self._block_to_lambda(block, recv)
         return f"{helper}({recv}, {lam})"
 
     def _gen_predicate(self, recv, node: MethodCall, helper: str) -> str:
-        """Generate: helper(recv, lambda x: body)"""
+        """Generate: helper(recv, lambda x: body)
+        For two-param blocks (|k, v|), unpacks the [key, value] pair."""
         block = node.block
         if block is None:
             return f"{helper}({recv})"
+        # Two-param block: |k, v| — unpack [key, value] pair
+        if block.params and len(block.params) == 2:
+            k_var = block.params[0]
+            v_var = block.params[1]
+            fn_name = self.temp_var("_pred2_fn")
+            self.emit(f"def {fn_name}(_pair):")
+            self.indent()
+            self.emit(f"{k_var} = _pair[0]")
+            self.emit(f"{v_var} = _pair[1]")
+            for stmt in block.body[:-1]:
+                self.gen_stmt(stmt)
+            last = block.body[-1]
+            if isinstance(last, ReturnStmt):
+                self.gen_stmt(last)
+            else:
+                self.emit(f"return {self.gen_expr(last)}")
+            self.dedent()
+            return f"{helper}({recv}, {fn_name})"
         lam = self._block_to_lambda(block, recv)
         return f"{helper}({recv}, {lam})"
 
@@ -1310,9 +1410,14 @@ class CodeGen:
         x_var   = block.params[0] if len(block.params) > 0 else '_x'
         obj_var = block.params[1] if len(block.params) > 1 else '_obj'
         obj_tmp = self.temp_var("_ewo_obj")
+        recv_tmp = self.temp_var("_ewo_recv")
         self.emit(f"{obj_tmp} = {init}")
-        self.emit(f"for {x_var} in {recv}:")
+        self.emit(f"{recv_tmp} = {recv}")
+        # For dicts, iterate items() so block receives [key, value] pairs
+        self.emit(f"for {x_var} in ({recv_tmp}.items() if isinstance({recv_tmp}, dict) else {recv_tmp}):")
         self.indent()
+        # Wrap dict items as a list so pair[0]/pair[1] work in Frankie
+        self.emit(f"if isinstance({recv_tmp}, dict): {x_var} = list({x_var})")
         # bind obj_var to obj_tmp inside the loop
         self.emit(f"{obj_var} = {obj_tmp}")
         self.gen_body(block.body)
@@ -1497,6 +1602,10 @@ class CodeGen:
     def gen_require(self, node):
         path = self.gen_expr(node.path)
         self.emit(f"_fk_require({path})")
+
+    def gen_stitch(self, node):
+        name = self.gen_expr(node.name)
+        self.emit(f"_fk_stitch({name})")
 
     def gen_case(self, node):
         if node.subject is not None:
