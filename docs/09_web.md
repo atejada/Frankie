@@ -198,6 +198,85 @@ curl -X DELETE http://localhost:3000/notes/1
 
 ---
 
+## Cookies and Sessions *(v1.13.1)*
+
+### Reading and Writing Cookies
+
+Every request exposes its cookies as a hash via `req.cookies`. Every response can set a cookie via `resp.set_cookie(name, value, opts)`.
+
+```ruby
+app.get("/prefs") do |req|
+  theme = req.cookies["theme"] or "light"
+  resp = html_response("<p>Theme: #{theme}</p>")
+  resp.set_cookie("theme", theme, {max_age: 86400})
+  resp
+end
+```
+
+`set_cookie` options (all optional):
+
+| Option | Default | Description |
+|---|---|---|
+| `path` | `"/"` | Cookie scope path |
+| `http_only` | `true` | Hide from JavaScript |
+| `max_age` | `nil` | Expiry in seconds (omit for session cookie) |
+| `same_site` | `"Lax"` | CSRF protection (`"Strict"`, `"Lax"`, `"None"`) |
+
+### Cookie-Backed Sessions
+
+`session(req, resp)` returns a `FrankieSession` — a hash-like object backed by a single JSON cookie (`_fk_session`). Read it, mutate it, and call `.save()` before returning the response. No server-side state, no database, no configuration.
+
+```ruby
+app = web_app()
+
+app.get("/counter") do |req|
+  resp = response("")
+  s = session(req, resp)
+
+  count = (s["count"] or 0) + 1
+  s["count"] = count
+  s.save()
+
+  html_response("You have visited #{count} time(s).")
+end
+
+app.post("/login") do |req|
+  user = req.json["username"]
+  resp = response("")
+  s = session(req, resp)
+  s["user"] = user
+  s["logged_in_at"] = now()
+  s.save()
+  redirect("/dashboard")
+end
+
+app.get("/logout") do |req|
+  resp = response("")
+  s = session(req, resp)
+  s.clear()
+  s.save()
+  redirect("/")
+end
+
+app.run()
+```
+
+**Session API:**
+
+| Method | Description |
+|---|---|
+| `s["key"]` | Read value (`nil` if missing) |
+| `s["key"] = value` | Write value |
+| `s.has_key?(key)` | Check existence |
+| `s.keys` | All session keys |
+| `s.delete(key)` | Remove one key |
+| `s.clear()` | Remove all keys |
+| `s.save()` | Write cookie to response — must be called before returning |
+
+**Important:** the session cookie is `HttpOnly` and `SameSite=Lax`. It is **not encrypted** — store user IDs, not passwords or secrets.
+
+---
+
 ## Web API Summary
 
 | Function / Method                    | Description                              |
@@ -217,3 +296,6 @@ curl -X DELETE http://localhost:3000/notes/1
 | `json_response(data, status)`        | JSON response                            |
 | `redirect(location, status)`         | Redirect response                        |
 | `halt(status, body)`                 | Error response                           |
+| `req.cookies`                        | Parsed Cookie header as a hash           |
+| `resp.set_cookie(name, val, opts)`   | Append a Set-Cookie header               |
+| `session(req, resp)`                 | Cookie-backed session hash               |

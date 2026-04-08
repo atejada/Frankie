@@ -25,8 +25,12 @@ class FloatLiteral(Node):
 
 @dataclass
 class StringLiteral(Node):
-    """parts: list of ('literal', str) | ('interp', str_expr)"""
+    """parts: list of ('literal', str) | ('interp', str_expr)
+    is_symbol: True when this string was written as a bare hash key (host:)
+               so the formatter can round-trip it correctly.
+    """
     parts: list
+    is_symbol: bool = False
 
 @dataclass
 class BoolLiteral(Node):

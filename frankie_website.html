@@ -109,7 +109,7 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
 <body>
 
 <nav>
-  <a href="#" class="nav-logo">🧟 Frankie <span>v1.13</span></a>
+  <a href="#" class="nav-logo">🧟 Frankie <span>v1.13.1</span></a>
   <ul>
     <li><a href="#features">Features</a></li>
     <li><a href="#syntax">Syntax</a></li>
@@ -138,7 +138,7 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
   </div>
   <div class="ctas">
     <a href="#install" class="btn btn-p">Get Started →</a>
-    <a href="https://github.com/atejada/Frankie/releases" class="btn btn-s">Download v1.13</a>
+    <a href="https://github.com/atejada/Frankie/releases" class="btn btn-s">Download v1.13.1</a>
     <a href="https://atejada.github.io/frankielanguage/site/index.html" class="btn btn-s">Go to the Docs</a>
     <a href="https://github.com/atejada/Frankie" class="btn btn-s">★ Star on GitHub</a>
   </div>
@@ -152,9 +152,12 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
   <h2>Everything you need.<br>Nothing you don't.</h2>
   <p style="color:var(--muted);max-width:560px;font-size:.97rem">Proudly procedural — functions, data, loops, logic. No classes, no <code>self</code>, no inheritance. Runs on Python 3.10+ with zero external dependencies.</p>
   <div class="grid">
-    <div class="card"><div class="card-icon">🧵</div><h3><code>stitch "name"</code> — Package System <span class="new-badge">v1.13</span></h3><p>Zero-dependency, zero-registry packages. Drop a <code>.fk</code> file in <code>./stitches/</code> and stitch it in. Resolves locally then <code>~/.frankie/stitches/</code>. No lockfile, no network.</p></div>
-    <div class="card"><div class="card-icon">📦</div><h3>Six Starter Stitches <span class="new-badge">v1.13</span></h3><p><code>frankieforms</code> · <code>frankietable</code> · <code>frankiecolor</code> · <code>frankiepager</code> · <code>frankieconfig</code> · <code>frankiestring</code>. All zero-dependency, all plain <code>.fk</code> files you can read and fork.</p></div>
-    <div class="card"><div class="card-icon">❓</div><h3><code>def even?(n)</code> — Predicate Names <span class="new-badge">v1.13</span></h3><p><code>?</code> in user-defined function names now works. Write <code>valid?</code>, <code>palindrome?</code> just like Ruby. Compiled transparently to <code>_q</code> in generated Python.</p></div>
+    <div class="card"><div class="card-icon">🧵</div><h3><code>frankiestring</code> v2 + Vector block fixes <span class="new-badge">v1.13.1</span></h3><p>Rewritten string stitch with <code>pad_left</code>, <code>pad_right</code>, <code>truncate</code>, <code>slugify</code>, <code>word_wrap</code>, <code>indent_lines</code>. Plus <code>.sum do</code>, <code>.flat_map do</code> multi-line blocks now work correctly.</p></div>
+    <div class="card"><div class="card-icon">🧪</div><h3><code>assert_approx_eq</code> + <code>run_tests()</code> <span class="new-badge">v1.13.1</span></h3><p>Float comparison in tests with configurable delta (default <code>0.001</code>). <code>run_tests()</code> is now a public stdlib function — callable from any <code>.fk</code> file, not just <code>frankiec test</code>.</p></div>
+    <div class="card"><div class="card-icon">🍪</div><h3>Web Session Helper + <code>fmt</code> Idempotency <span class="new-badge">v1.13.1</span></h3><p>Cookie-backed <code>session(req, resp)</code> — read, mutate, <code>.save()</code>. Zero server state. <code>frankiec fmt</code> now preserves blank lines, expands long hashes, and is safe for pre-commit hooks.</p></div>
+    <div class="card"><div class="card-icon">🧵</div><h3><code>stitch "name"</code> — Package System <span class="badge bs">v1.13</span></h3><p>Zero-dependency, zero-registry packages. Drop a <code>.fk</code> file in <code>./stitches/</code> and stitch it in. Resolves locally then <code>~/.frankie/stitches/</code>. No lockfile, no network.</p></div>
+    <div class="card"><div class="card-icon">📦</div><h3>Six Starter Stitches <span class="badge bs">v1.13</span></h3><p><code>frankieforms</code> · <code>frankietable</code> · <code>frankiecolor</code> · <code>frankiepager</code> · <code>frankieconfig</code> · <code>frankiestring</code>. All zero-dependency, all plain <code>.fk</code> files you can read and fork.</p></div>
+    <div class="card"><div class="card-icon">❓</div><h3><code>def even?(n)</code> — Predicate Names <span class="badge bs">v1.13</span></h3><p><code>?</code> in user-defined function names now works. Write <code>valid?</code>, <code>palindrome?</code> just like Ruby. Compiled transparently to <code>_q</code> in generated Python.</p></div>
     <div class="card"><div class="card-icon">🔄</div><h3><code>.gsub</code> block + <code>.map_hash</code> + <code>round()</code> <span class="badge bs">v1.12</span></h3><p>Transform each regex match with a block. Map a hash to a new hash in one step. Round to N decimal places. Three long-overdue stdlib additions.</p></div>
     <div class="card"><div class="card-icon">🛠️</div><h3><code>frankiec watch</code> + friendlier errors <span class="badge bs">v1.12</span></h3><p>Re-run on save. <code>repl --no-banner</code> for scripts. <code>rescue FileNotFoundError</code> now works. Type errors speak Frankie, not Python internals.</p></div>
     <div class="card"><div class="card-icon">↩️</div><h3>Implicit Return + Inline <code>if</code> <span class="badge bs">v1.11</span></h3><p>Last expression returned automatically. <code>grade = if score >= 90 then "A" else "B" end</code>. The ergonomics new users expect from day one.</p></div>
@@ -262,7 +265,32 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
     </div>
 
     <div class="cp">
-      <div class="cp-head"><span class="cp-title">v1.13.fk <span class="new-badge">v1.13</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
+      <div class="cp-head"><span class="cp-title">v1.13.1.fk <span class="new-badge">v1.13.1</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
+      <pre><span class="cm"># frankiestring v2 — clean string helpers</span>
+<span class="kw">stitch</span> <span class="str">"frankiestring"</span>
+<span class="fn">puts</span> <span class="fn">pad_left</span>(<span class="str">"42"</span>, <span class="num">6</span>, <span class="str">"0"</span>)              <span class="cm"># "000042"</span>
+<span class="fn">puts</span> <span class="fn">slugify</span>(<span class="str">"Hello World!"</span>)           <span class="cm"># "hello-world"</span>
+<span class="fn">puts</span> <span class="fn">word_wrap</span>(<span class="str">"The quick brown fox"</span>, <span class="num">12</span>)
+
+<span class="cm"># .sum do — projected sum in one step</span>
+<span class="vr">cart</span> = [{price: <span class="num">0.99</span>, qty: <span class="num">4</span>}, {price: <span class="num">2.49</span>, qty: <span class="num">2</span>}]
+<span class="vr">total</span> = <span class="vr">cart</span>.<span class="fn">sum</span> <span class="kw">do</span> |<span class="vr">item</span>|
+  <span class="vr">item</span>[<span class="str">"price"</span>] * <span class="vr">item</span>[<span class="str">"qty"</span>]
+<span class="kw">end</span>
+<span class="fn">puts</span> <span class="vr">total</span>   <span class="cm"># 8.94</span>
+
+<span class="cm"># assert_approx_eq — float testing</span>
+<span class="fn">assert_approx_eq</span>(<span class="fn">sqrt</span>(<span class="num">2.0</span>), <span class="num">1.4142</span>, <span class="num">0.0001</span>, <span class="str">"sqrt(2)"</span>)
+<span class="fn">run_tests</span>()
+
+<span class="cm"># Cookie-backed session — no server state</span>
+<span class="vr">s</span> = <span class="fn">session</span>(<span class="vr">req</span>, <span class="vr">resp</span>)
+<span class="vr">s</span>[<span class="str">"count"</span>] = (<span class="vr">s</span>[<span class="str">"count"</span>] <span class="kw">or</span> <span class="num">0</span>) + <span class="num">1</span>
+<span class="vr">s</span>.<span class="fn">save</span>()</pre>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head"><span class="cp-title">v1.13.fk <span class="badge bs">v1.13</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
       <pre><span class="cm"># stitch — drop a .fk file in ./stitches/ and load it by name</span>
 <span class="kw">stitch</span> <span class="str">"frankieforms"</span>
 <span class="kw">stitch</span> <span class="str">"frankietable"</span>
@@ -718,7 +746,8 @@ frankiec test</pre></div>
   <table>
     <thead><tr><th>Version</th><th>Highlights</th><th>Status</th></tr></thead>
     <tbody>
-      <tr><td><strong>v1.13</strong></td><td>stitch keyword, frankieforms/frankitable/frankiecolor/frankiepager/frankieconfig/frankiestring, ? in function names</td><td><span class="badge bl">Latest</span></td></tr>
+      <tr><td><strong>v1.13.1</strong></td><td>frankiestring v2, .sum do / .flat_map do fixes, assert_approx_eq, run_tests() public, session(req,resp), fmt blank lines + idempotency</td><td><span class="badge bl">Latest</span></td></tr>
+      <tr><td>v1.13</td><td>stitch keyword, frankieforms/frankitable/frankiecolor/frankiepager/frankieconfig/frankiestring, ? in function names</td><td><span class="badge bs">Stable</span></td></tr>
       <tr><td>v1.12</td><td>gsub block, map_hash, round(), .product, .chars docs, FileNotFoundError fix, assert_match/nil, frankiec watch, repl --no-banner, friendlier errors</td><td><span class="badge bs">Stable</span></td></tr>
       <tr><td>v1.11</td><td>Implicit return, inline if expression, .replace(), .format(hash), .zip_with, multi-line REPL history, boxed check errors</td><td><span class="badge bs">Stable</span></td></tr>
       <tr><td>v1.10</td><td>String/vector *, heredoc &lt;&lt;~, times(), flatten(depth), map_with_index, pp, encode/decode, exit codes, --help</td><td><span class="badge bs">Stable</span></td></tr>

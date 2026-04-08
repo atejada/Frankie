@@ -1,0 +1,94 @@
+# whats_new_v1131.fk — Frankie v1.13.1 gap closers
+# Run with: frankiec run examples/whats_new_v1131.fk
+
+puts "=== Frankie v1.13.1 — Gap Closers ==="
+puts ""
+
+# ─────────────────────────────────────────────────────────────
+# 1. frankiestring v2
+# ─────────────────────────────────────────────────────────────
+
+stitch "frankiestring"
+
+puts "── frankiestring v2 ──"
+
+puts pad_left("42", 6, "0")
+puts pad_right("hello", 10, ".")
+puts truncate("Frankie is a small dynamically-typed language", 20, "...")
+puts slugify("Hello World! This is Frankie.")
+puts word_wrap("The quick brown fox jumps over the lazy dog near the riverbank", 25)
+puts ""
+
+# ─────────────────────────────────────────────────────────────
+# 2. Vector .sum do, .flat_map do, .count do
+# ─────────────────────────────────────────────────────────────
+
+puts "── Vector block methods ──"
+
+products = [
+  {name: "apple", price: 0.99, qty: 4},
+  {name: "bread", price: 2.49, qty: 2},
+  {name: "milk",  price: 1.79, qty: 3}
+]
+
+total = products.sum do |item|
+  item["price"] * item["qty"]
+end
+puts "Cart total: #{total}"
+
+tag_groups = [["ruby", "scripting"], ["python", "data"], ["frankie", "scripting"]]
+all_tags = tag_groups.flat_map do |group|
+  group
+end
+puts "All tags: #{all_tags.uniq}"
+
+nums = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+evens = nums.count do |x|
+  x % 2 == 0
+end
+puts "Even count: #{evens}"
+
+puts ""
+
+# ─────────────────────────────────────────────────────────────
+# 3. assert_approx_eq
+# ─────────────────────────────────────────────────────────────
+
+puts "── assert_approx_eq ──"
+
+pi = 3.14159265358979
+assert_approx_eq(pi, 3.14159, 0.00001, "pi to 5 decimal places")
+assert_approx_eq(pi, 3.14, 0.01, "pi to 2 decimal places")
+assert_approx_eq(mean([1.0, 2.0, 3.0]), 2.0, 0.001, "mean of 1..3")
+assert_approx_eq(sqrt(2.0), 1.4142, 0.0001, "sqrt(2)")
+run_tests()
+
+puts ""
+
+# ─────────────────────────────────────────────────────────────
+# 4. frankiec fmt — blank lines preserved, long literals expand
+# ─────────────────────────────────────────────────────────────
+
+puts "── frankiec fmt ──"
+
+long_config = {
+  host: "localhost",
+  port: 3000,
+  debug: true,
+  log_level: "info",
+  timeout: 30
+}
+
+puts "Config keys: #{long_config.keys}"
+
+puts ""
+
+# ─────────────────────────────────────────────────────────────
+# 5. Web session helper (cookie-backed, no server state)
+# ─────────────────────────────────────────────────────────────
+
+puts "── Web session ──"
+puts "session(req, resp) reads _fk_session JSON cookie"
+puts "Mutate the returned hash, call .save() to write back"
+puts ""
+puts "All v1.13.1 features verified."

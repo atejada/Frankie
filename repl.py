@@ -209,15 +209,26 @@ def _is_incomplete(lines):
     depth = 0
     for line in lines:
         stripped = line.strip()
-        if (stripped.startswith('def ') or stripped.startswith('if ') or
-                stripped.startswith('unless ') or stripped.startswith('while ') or
-                stripped.startswith('until ') or stripped.startswith('for ') or
-                stripped.startswith('begin') or stripped.startswith('case') or
-                stripped == 'do'):
+        if stripped.startswith('#'):
+            continue
+        # Keywords that open a new block
+        if (stripped.startswith('def ') or stripped == 'def' or
+                stripped.startswith('if ') or stripped == 'if' or
+                stripped.startswith('unless ') or
+                stripped.startswith('while ') or
+                stripped.startswith('until ') or
+                stripped.startswith('for ') or
+                stripped.startswith('begin') or
+                stripped.startswith('case')):
             depth += 1
-        if ' do' in stripped and not stripped.startswith('do') and not stripped.startswith('#'):
+        # Standalone `do` or `do |params|` on its own line
+        if stripped == 'do' or stripped.startswith('do ') or stripped.startswith('do|'):
             depth += 1
-        if stripped == 'end' or stripped.endswith(' end'):
+        # Inline `do` after a method call: `3.times do |i|`
+        elif ' do' in stripped and not stripped.startswith('#'):
+            depth += 1
+        # `end` closes a block — bare or trailing (e.g. `rescue RuntimeError => e`)
+        if stripped == 'end' or stripped.startswith('end ') or stripped.endswith(' end'):
             depth -= 1
     return depth > 0
 

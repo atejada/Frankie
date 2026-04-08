@@ -75,6 +75,7 @@ class Parser:
     def parse_statement(self) -> Optional[Node]:
         self.skip_newlines()
         t = self.current()
+        src_line = t.line  # capture before any token consumption
 
         if t.type == TT.DEF:
             return self.parse_func_def()
@@ -126,7 +127,10 @@ class Parser:
 
         # Expression statement (assignment, call, etc.)
         expr = self.parse_expr()
-        return self._maybe_postfix(expr)
+        node = self._maybe_postfix(expr)
+        if node is not None:
+            node._src_line = src_line
+        return node
 
     def _maybe_postfix(self, stmt: Node) -> Node:
         """Wrap stmt in PostfixIf if a trailing if/unless follows on the same line."""
@@ -155,8 +159,11 @@ class Parser:
         self.skip_newlines()
         body = []
         while not self.check(TT.END, TT.ELSE, TT.ELSIF, TT.EOF):
+            src_line = self.current().line
             stmt = self.parse_statement()
             if stmt is not None:
+                if not hasattr(stmt, '_src_line'):
+                    stmt._src_line = src_line
                 body.append(stmt)
             self.skip_newlines()
         return body
@@ -916,7 +923,7 @@ class Parser:
     def parse_hash_pair(self):
         # key: value  OR  "key" => value
         if self.check(TT.IDENT) and self.peek(1).type == TT.COLON:
-            key = StringLiteral(parts=[('literal', self.advance().value)])
+            key = StringLiteral(parts=[('literal', self.advance().value)], is_symbol=True)
             self.expect(TT.COLON)
             val = self.parse_expr()
             return key, val

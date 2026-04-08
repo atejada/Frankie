@@ -386,9 +386,15 @@ class Lexer:
                     # Consume <<~DELIM (or <<DELIM)
                     for _ in range(delim_end - self.pos):
                         self.advance()
-                    # Skip to next line
+                    # Save the rest of the line after <<~DELIM (e.g. the ")" in
+                    # html_response(<<~HTML) or "do |req|" in a route block).
+                    # These tokens must be emitted AFTER the heredoc STRING token,
+                    # so we collect them now and re-inject them into self.source
+                    # at the current scan position once the heredoc body is done.
+                    rest_of_line_start = self.pos
                     while self.pos < len(self.source) and self.peek() != '\n':
                         self.advance()
+                    rest_of_line = self.source[rest_of_line_start:self.pos].strip()
                     if self.pos < len(self.source):
                         self.advance()  # consume the newline
                     # Collect body lines until a line that is exactly `delimiter`
@@ -438,7 +444,16 @@ class Lexer:
                                 expr_chars.append(c)
                         parts.append(('interp', ''.join(expr_chars)))
                     self.tokens.append(Token(TT.STRING, parts, line, col))
-                    self.add_token(TT.NEWLINE)
+                    # Re-inject any tokens that were on the same line after <<~DELIM
+                    # (e.g. closing ")" or "do |req|") so they are lexed normally.
+                    # Prepend them to the remaining source; they'll encounter the
+                    # newline we append and produce a NEWLINE token naturally,
+                    # so we skip the explicit add_token(NEWLINE) in that case.
+                    if rest_of_line:
+                        self.source = rest_of_line + '\n' + self.source[self.pos:]
+                        self.pos = 0
+                    else:
+                        self.add_token(TT.NEWLINE)
                     continue
 
             # Strings — single/double quoted, with triple-quote multiline support

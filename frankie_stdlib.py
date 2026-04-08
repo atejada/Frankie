@@ -1525,6 +1525,92 @@ def halt(status=500, body=""):
     raise _HaltException(FrankieResponse(body, status, {}, "text/plain; charset=utf-8"))
 
 
+_SESSION_COOKIE = "_fk_session"
+
+class FrankieSession:
+    """Cookie-backed session — a hash you can read, mutate, and save.
+
+    Obtained via session(req, resp) in a route handler.  All data is stored
+    as a single JSON-encoded cookie (_fk_session).  No server-side state.
+
+    Usage:
+        s = session(req, resp)
+        user_id = s["user_id"]
+        s["user_id"] = 42
+        s.save()
+    """
+    def __init__(self, data: dict, resp: "FrankieResponse"):
+        self._data = data
+        self._resp = resp
+
+    # Hash-style read access
+    def __getitem__(self, key):
+        return self._data.get(str(key))
+
+    # Hash-style write access
+    def __setitem__(self, key, value):
+        self._data[str(key)] = value
+
+    def get(self, key, default=None):
+        return self._data.get(str(key), default)
+
+    def has_key(self, key):
+        return str(key) in self._data
+
+    def keys(self):
+        return list(self._data.keys())
+
+    def values(self):
+        return list(self._data.values())
+
+    def delete(self, key):
+        self._data.pop(str(key), None)
+
+    def clear(self):
+        self._data.clear()
+
+    def save(self):
+        """Serialize session data back to the response cookie."""
+        import json as _json
+        raw = _json.dumps(self._data, separators=(',', ':'))
+        self._resp.set_cookie(
+            _SESSION_COOKIE, raw,
+            {"http_only": True, "same_site": "Lax", "path": "/"}
+        )
+        return self
+
+    def to_hash(self):
+        return dict(self._data)
+
+    def __repr__(self):
+        return f"<FrankieSession {self._data!r}>"
+
+
+def session(req, resp):
+    """Read the cookie-backed session for this request.
+
+    Returns a FrankieSession that wraps the decoded session hash.
+    Call .save() to write the updated session back to the response.
+
+        s = session(req, resp)
+        s["user"] = "alice"
+        s.save()
+
+    The session is stored as a single JSON cookie (_fk_session).
+    It is not encrypted — do not store secrets in it.
+    """
+    import json as _json
+    cookies = req._cookies if hasattr(req, '_cookies') else {}
+    raw = cookies.get(_SESSION_COOKIE, "")
+    try:
+        data = _json.loads(raw) if raw else {}
+        if not isinstance(data, dict):
+            data = {}
+    except Exception:
+        data = {}
+    return FrankieSession(data, resp)
+
+
 class FrankieStaticResponse(FrankieResponse):
     """FrankieResponse variant that carries raw bytes for static file serving."""
     def __init__(self, data, content_type):
@@ -2031,6 +2117,22 @@ class _FKTestSuite:
             self._errors.append(label)
             print(f"  \033[31m✗\033[0m  {label}")
 
+    def assert_approx_eq(self, actual, expected, delta=0.001, msg=None):
+        try:
+            diff = abs(float(actual) - float(expected))
+        except (TypeError, ValueError):
+            diff = float('inf')
+        ok = diff <= abs(float(delta))
+        if ok:
+            self._pass += 1
+            label = msg or f"{actual} ≈ {expected} (delta {delta})"
+            print(f"  \033[32m✓\033[0m  {label}")
+        else:
+            self._fail += 1
+            label = msg or f"expected {actual} ≈ {expected} within {delta}, diff was {diff}"
+            self._errors.append(label)
+            print(f"  \033[31m✗\033[0m  {label}")
+
     def assert_raises(self, fn, msg=None):
         label = msg or "expected an error to be raised"
         try:
@@ -2109,8 +2211,14 @@ def assert_match(value, pattern, msg=None):
 def assert_nil(value, msg=None):
     _fk_test_suite.assert_nil(value, msg)
 
+def assert_approx_eq(actual, expected, delta=0.001, msg=None):
+    _fk_test_suite.assert_approx_eq(actual, expected, delta, msg)
+
 def _fk_run_tests():
     return _fk_test_suite.report()
+
+# Public alias — callable as run_tests() from any .fk file
+run_tests = _fk_run_tests
 
 # ─── v1.11 stdlib additions ───────────────────────────────────────────────────
 

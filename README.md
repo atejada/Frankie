@@ -7,7 +7,7 @@
  |  _|| | | (_| | | | |   <| |  __/
  |_|  |_|  \__,_|_| |_|_|\_\_|\___|
 
- The Frankie Language v1.13
+ The Frankie Language v1.13.1
  Stitched together from Ruby • Python • R • Fortran
 ```
 
@@ -94,6 +94,51 @@ rescue e
 end
 ```
 
+---
+
+## v1.13.1 Highlights
+
+```ruby
+# frankiestring v2 — clean, Frankie-convention string helpers
+stitch "frankiestring"
+
+pad_left("42", 6, "0")                   # "000042"
+pad_right("hello", 10, ".")              # "hello....."
+truncate("Frankie is a language", 12, "...") # "Frankie is a..."
+slugify("Hello World!")                  # "hello-world"
+word_wrap("The quick brown fox", 12)     # "The quick\nbrown fox"
+indent_lines("a\nb\nc", 4)              # "    a\n    b\n    c"
+
+# .sum do — projected sum in one step (was broken before)
+cart = [{price: 0.99, qty: 4}, {price: 2.49, qty: 2}]
+total = cart.sum do |item|
+  item["price"] * item["qty"]
+end
+puts total   # 8.94
+
+# .flat_map do — multi-line block bodies now work
+groups = [["ruby", "scripting"], ["frankie", "fun"]]
+all = groups.flat_map do |g|
+  g
+end
+puts all   # [ruby, scripting, frankie, fun]
+
+# assert_approx_eq — float testing
+assert_approx_eq(sqrt(2.0), 1.4142, 0.0001, "sqrt(2)")
+assert_approx_eq(0.1 + 0.2, 0.3, "float addition")   # default delta 0.001
+run_tests()   # now callable from any .fk file
+
+# Cookie-backed session — zero server state
+app = web_app()
+app.get("/counter") do |req|
+  resp = response("")
+  s = session(req, resp)
+  s["count"] = (s["count"] or 0) + 1
+  s.save()
+  html_response("Visits: #{s["count"]}")
+end
+app.run()
+```
 ---
 
 ## v1.13 Highlights
@@ -350,7 +395,7 @@ Full documentation lives in the `docs/` folder:
 | `docs/03_collections.md` | Vectors, hashes, all iterators |
 | `docs/04_stdlib.md` | Math, stats, randomness, strings, regex, file I/O, file system, JSON, CSV, DateTime, HTTP, testing |
 | `docs/05_examples.md` | All example programs explained |
-| `docs/06_changelog.md` | v1.0 – v1.13 release notes |
+| `docs/06_changelog.md` | v1.0 – v1.13.1 release notes |
 | `docs/07_database.md` | SQLite database access — full API reference |
 | `docs/08_v17_features.md` | v1.4–v1.7 feature reference: nil safety, templates, file system, typed asserts, web server, randomness, constants, compound assignment |
 | `docs/09_web.md` | Web server — routes, requests, responses, filters |
@@ -359,7 +404,8 @@ Full documentation lives in the `docs/` folder:
 | `docs/12_v110_features.md` | v1.10 feature reference: string/vector *, heredoc, times(), flatten(depth), map_with_index, pp, encode/decode |
 | `docs/13_v111_features.md` | v1.11 feature reference: implicit return, inline if, .replace(), .format(hash), .zip_with, multiple return values |
 | `docs/14_v112_features.md` | v1.12 feature reference: gsub block, map_hash, round, product, chars, FileNotFoundError, assert_match/nil, watch, --no-banner |
-| `docs/15_v113_features.md` | v1.13 feature reference: stitch keyword, frankiforms, frankitable, frankicolor, frankipager, frankiconfig, ? in function names |
+| `docs/15_v113_features.md` | v1.13 feature reference: stitch keyword, frankiforms, frankitable, frankicolor, frankiepager, frankiconfig, ? in function names |
+| `docs/16_v1131_features.md` | v1.13.1 feature reference: frankiestring v2, .sum do / .flat_map do fixes, assert_approx_eq, run_tests(), session(req,resp), fmt improvements |
 
 The formal language grammar lives in `SPEC.md`.
 
@@ -377,7 +423,8 @@ frankie/
 │   ├── ast_nodes.py       ← AST node definitions
 │   └── codegen.py         ← Python code generator
 ├── docs/                  ← full documentation
-├── examples/              ← example .fk programs (incl. webapp.fk, whats_new_v16.fk … whats_new_v112.fk)
+├── examples/              ← example .fk programs (incl. webapp.fk, whats_new_v16.fk … whats_new_v1131.fk)
+├── stitches/              ← official starter stitches (frankieforms, frankietable, frankiecolor, frankiepager, frankieconfig, frankiestring)
 ├── frankiec.py            ← compiler CLI entry point
 ├── frankie_stdlib.py      ← runtime standard library
 ├── repl.py                ← interactive REPL

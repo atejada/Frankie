@@ -1,24 +1,64 @@
-## frankistring.fk — Extra Strings operations
-## Additional operations on strings
+## frankiestring.fk v2 — Extra string utilities for Frankie
 ##
 ## Usage:
-##   stitch "frankistrings"
+##   stitch "frankiestring"
 ##
-##   lfill("Frankie", "Oh!", 12)
-##
-##   rfill("Frankie", "Oh!", 12)
+## Functions:
+##   pad_left(str, n, char)     — right-align with custom fill character
+##   pad_right(str, n, char)    — left-align with custom fill character
+##   truncate(str, n, suffix)   — cut to n chars, append custom suffix
+##   slugify(str)               — URL-safe lowercase slug
+##   word_wrap(str, width)      — wrap text at word boundaries
+##   indent_lines(str, n)       — prepend n spaces to every line
 
-def lfill(string, character, length)
-  filled = _fill(string, character, length) 
-  filled + string
+def pad_left(string, n, char)
+  string.rjust(n, char)
 end
 
-def rfill(string, character, length)
-  filled = _fill(string, character, length)
-  string + filled
+def pad_right(string, n, char)
+  string.ljust(n, char)
 end
 
-def _fill(string, character, length)
-  diff = length - string.length
-  character * diff
+def truncate(string, n, suffix)
+  if string.length <= n
+    string
+  else
+    string[0..(n - suffix.length - 1)] + suffix
+  end
+end
+
+def slugify(string)
+  result = string.downcase
+  result = result.gsub("[^a-z0-9]+", "-")
+  result = result.gsub("^-+", "")
+  result = result.gsub("-+$", "")
+  result
+end
+
+def word_wrap(string, width)
+  words = string.split(" ")
+  lines = []
+  current = ""
+  words.each do |word|
+    if current.length == 0
+      current = word
+    elsif current.length + 1 + word.length <= width
+      current = current + " " + word
+    else
+      lines.push(current)
+      current = word
+    end
+  end
+  if current.length > 0
+    lines.push(current)
+  end
+  lines.join("\n")
+end
+
+def indent_lines(string, n)
+  pad = " " * n
+  parts = string.split("\n")
+  parts.map do |line|
+    pad + line
+  end.join("\n")
 end

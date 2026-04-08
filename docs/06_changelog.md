@@ -1,5 +1,37 @@
 # Changelog
 
+## v1.13.1 (2026)
+
+### Bug Fixes & Gap Closers
+
+**Parser / Compiler**
+- **Heredoc inside `do...end` blocks** — Fixed lexer bug that discarded tokens after `<<~DELIM` on the same line (e.g. the closing `)` or `do |req|`). Heredocs now work anywhere a string expression is valid, including as arguments inside route and iterator blocks. The only documented workaround in the language is removed.
+- **Vector `.sum do |x| ... end`** — Block form was swallowed by the internal method map before block detection. Now correctly routes to `_fk_sum_by` for projected sums.
+- **Vector `.flat_map do |x| ... end`** — Multi-line block bodies now parse correctly.
+- **`Hash.each do |k, v|`** — Two-parameter block iteration confirmed and end-to-end tested. `h.each do |k, v| ... end` iterates key-value pairs directly; no workaround needed.
+
+**Standard Library**
+- **`assert_approx_eq(actual, expected, delta, msg)`** — Float comparison assertion with configurable delta (default `0.001`). Replaces `assert_true(abs(a-b) < delta, ...)` boilerplate in numeric and stats tests.
+- **`run_tests()`** — Now a public stdlib function callable from any `.fk` file, not just `frankiec test`. Prints the test report and returns pass/fail status.
+- **`session(req, resp)`** — Cookie-backed session helper. Returns a `FrankieSession` hash you can read, mutate, and write back with `.save()`. Stores a single JSON cookie (`_fk_session`), zero server-side state.
+- **String `.ljust(n)` / `.rjust(n)` / `.center(n)`** — Promoted to documented stdlib status with examples.
+- **String `.start_with?(s)` / `.end_with?(s)`** — Documented as first-class predicates.
+- **Hash `.keys` / `.values` / `.has_key?(k)`** — All three consistently documented; `.values` and `.has_key?` reference gaps closed.
+
+**Stitches**
+- **`frankiestring` v2** — Rewritten with a clean Frankie-convention API. Old `lfill`/`rfill` replaced by `pad_left(str, n, char)`, `pad_right(str, n, char)`, `truncate(str, n, suffix)`, `slugify(str)`, `word_wrap(str, width)`, `indent_lines(str, n)`.
+
+**Tooling**
+- **`frankiec fmt` — symbol key round-trip** — Symbol keys (`host: "x"`) are preserved as symbol keys after formatting; `{host: "val"}` no longer becomes `{"host": "val"}`.
+- **`frankiec fmt` — blank line preservation** — Intentional blank lines between statement groups inside function bodies are now preserved in formatted output.
+- **`frankiec fmt` — multi-line threshold** — Hashes and vectors whose inline form exceeds 60 characters are automatically expanded to one element per line.
+- **`frankiec fmt` — idempotency** — Running `fmt --write` twice now produces identical output in all cases. Safe for pre-commit hooks and CI.
+
+**REPL**
+- **Multi-line REPL input** — Fixed `_is_incomplete` edge cases: standalone `do |x|` lines now correctly hold the `...` prompt open; comment lines are skipped during depth counting.
+
+---
+
 ## v1.13.0 (2026)
 
 ### New Features

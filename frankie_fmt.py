@@ -19,12 +19,22 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from compiler.ast_nodes import *
 
 INDENT = "  "   # 2-space canonical indent
+INLINE_THRESHOLD = 60   # max chars before hash/vector goes multi-line
 
 
 class Formatter:
-    def __init__(self):
+    def __init__(self, source: str = ""):
         self._depth = 0
         self._lines = []
+        # Pre-compute set of line numbers that have a blank line immediately above them.
+        # Line numbers are 1-based, matching Token.line.
+        self._blank_before: set = set()
+        if source:
+            src_lines = source.splitlines()
+            for i, line in enumerate(src_lines):
+                if line.strip() == "" and i + 2 <= len(src_lines):
+                    # The line AFTER this blank line is (i+2) in 1-based numbering
+                    self._blank_before.add(i + 2)
 
     # ── output helpers ────────────────────────────────────────────────────────
 
@@ -99,7 +109,14 @@ class Formatter:
             self._emit(self._fmt_expr(node))
 
     def _fmt_body(self, body):
-        for stmt in body:
+        for i, stmt in enumerate(body):
+            # Preserve intentional blank lines from the original source.
+            # If the source had a blank line before this statement, emit one here too —
+            # but never before the very first statement in a body.
+            if i > 0:
+                src_line = getattr(stmt, '_src_line', None)
+                if src_line is not None and src_line in self._blank_before:
+                    self._emit()
             self._fmt_stmt(stmt)
 
     def _fmt_func_def(self, node: FuncDef):
@@ -233,8 +250,14 @@ class Formatter:
         if isinstance(node, Identifier):    return node.name
         if isinstance(node, StringLiteral): return self._fmt_string(node)
         if isinstance(node, VectorLiteral):
-            elems = ", ".join(self._fmt_expr(e) for e in node.elements)
-            return f"[{elems}]"
+            elem_strs = [self._fmt_expr(e) for e in node.elements]
+            inline = "[" + ", ".join(elem_strs) + "]"
+            if len(inline) <= INLINE_THRESHOLD:
+                return inline
+            indent = INDENT * (self._depth + 1)
+            close  = INDENT * self._depth
+            body   = (",\n" + indent).join(elem_strs)
+            return "[\n" + indent + body + "\n" + close + "]"
         if isinstance(node, HashLiteral):   return self._fmt_hash(node)
         if isinstance(node, RangeLiteral):
             op = ".." if node.inclusive else "..."
@@ -318,11 +341,22 @@ class Formatter:
     def _fmt_hash(self, node: HashLiteral) -> str:
         if not node.pairs:
             return "{}"
-        pairs = ", ".join(
-            f"{self._fmt_expr(k)}: {self._fmt_expr(v)}"
-            for k, v in node.pairs
-        )
-        return "{" + pairs + "}"
+        pairs_strs = []
+        for k, v in node.pairs:
+            # Preserve symbol key syntax: host: "val" not "host": "val"
+            if isinstance(k, StringLiteral) and k.is_symbol:
+                key_str = k.parts[0][1] + ":"
+            else:
+                key_str = self._fmt_expr(k) + ":"
+            pairs_strs.append(f"{key_str} {self._fmt_expr(v)}")
+        inline = "{" + ", ".join(pairs_strs) + "}"
+        if len(inline) <= INLINE_THRESHOLD:
+            return inline
+        # Multi-line: one pair per line, indented one level relative to current
+        indent = INDENT * (self._depth + 1)
+        close  = INDENT * self._depth
+        body   = (",\n" + indent).join(pairs_strs)
+        return "{\n" + indent + body + "\n" + close + "}"
 
     def _fmt_binop(self, node: BinOp) -> str:
         op_map = {
@@ -452,7 +486,7 @@ def fmt_source(source: str) -> str:
     from compiler.parser import Parser
     tokens = Lexer(source).tokenize()
     ast = Parser(tokens).parse()
-    return Formatter().format(ast)
+    return Formatter(source).format(ast)
 
 
 def fmt_file(fk_file: str, write: bool = False, check: bool = False) -> bool:

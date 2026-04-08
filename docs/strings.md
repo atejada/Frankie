@@ -267,6 +267,17 @@ end
 # Cherry      $  3.0
 ```
 
+For richer string utilities — `truncate`, `slugify`, `word_wrap`, `indent_lines`, and padding with full control — load the `frankiestring` stitch:
+
+```ruby
+stitch "frankiestring"
+
+puts pad_left("42", 6, "0")                    # "000042"
+puts pad_right("hello", 10, ".")               # "hello....."
+puts truncate("A very long description", 12, "...")  # "A very long..."
+puts slugify("Hello World!")                   # "hello-world"
+```
+
 ---
 
 ## Splitting and Joining

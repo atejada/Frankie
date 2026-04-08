@@ -76,6 +76,24 @@ assert_nil([1,2,3].find do |x| x > 9 end, "find with no match")
 assert_nil({a: 1}["missing"],   "missing hash key is nil")
 ```
 
+### `assert_approx_eq(actual, expected, delta, msg)` — Float proximity *(v1.13.1)*
+
+Passes if `|actual - expected| <= delta`. The `delta` argument defaults to `0.001` if omitted. Essential for any program that does floating-point arithmetic, statistics, or geometry.
+
+```ruby
+assert_approx_eq(3.14159, 3.14,   0.01,   "pi to 2 places")
+assert_approx_eq(sqrt(2), 1.4142, 0.0001, "sqrt(2)")
+assert_approx_eq(mean([1.0, 2.0, 3.0]), 2.0, 0.001, "mean of 1..3")
+
+# Default delta (0.001)
+assert_approx_eq(0.1 + 0.2, 0.3, "float addition")
+```
+
+On failure the output includes the actual difference:
+```
+  ✗  expected 1.5 ≈ 2.0 within 0.1, diff was 0.5
+```
+
 ### `assert_match(value, pattern, msg)` — Regex match
 
 Passes if `pattern` matches anywhere in `value`.
@@ -234,6 +252,7 @@ Every time you save `test.fk` (or any file, since watch triggers on the target f
 | `assert_neq(actual, expected, msg)` | `actual != expected` |
 | `assert_true(value, msg)` | `value` is truthy |
 | `assert_nil(value, msg)` | `value` is nil |
+| `assert_approx_eq(actual, expected, delta, msg)` | `\|actual - expected\| <= delta` |
 | `assert_match(value, pattern, msg)` | pattern matches anywhere in value |
 | `assert_raises(fn, msg)` | calling `fn` raises any error |
 | `assert_raises_typed(fn, type, msg)` | calling `fn` raises that specific type |

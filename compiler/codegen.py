@@ -639,6 +639,11 @@ class CodeGen:
         if node.method == 'max_by':
             return self._gen_block_method(recv, node, '_fk_max_by')
 
+        # .sum do |x| ... end — projected sum (routes to _fk_sum_by, same as sum_by)
+        # Must be checked BEFORE the method_map which would swallow the block.
+        if node.method == 'sum' and node.block:
+            return self._gen_block_method(recv, node, '_fk_sum_by')
+
         # .sum_by do |x| ... end
         if node.method == 'sum_by':
             return self._gen_block_method(recv, node, '_fk_sum_by')
