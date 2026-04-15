@@ -3,8 +3,67 @@
 Each version of Frankie ships a runnable `whats_new_vX.fk` example file that demonstrates every new feature introduced in that release. Run any of them with:
 
 ```bash
-frankiec run examples/whats_new_v112.fk
+frankiec run examples/whats_new_v114.fk
 ```
+
+---
+
+## v1.14 — `whats_new_v114.fk`
+
+**Theme:** Frankie for real web apps — concurrency, templates, signed cookies, middleware, and two language upgrades that make data manipulation natural.
+
+| Feature | Summary |
+|---|---|
+| `spawn { }` | Run a block in a background thread — returns immediately, zero boilerplate |
+| `timeout(n) { }` | Kill a block that exceeds `n` seconds — raises `TimeoutError` |
+| Async routes | `app.get_async` / `app.post_async` etc. — non-blocking handlers with `await` |
+| Middleware stack | `app.use do \|req, next_fn\|` — chain auth, logging, rate-limiting |
+| Static file serving | `app.static("./public")` — serve a directory in one line |
+| `frankietemplate` | Mustache-compatible templates — `{{ var }}`, `{{# section }}`, `{{^ inverted }}`, `{{> partial }}` |
+| `frankiecookie` | HMAC-signed cookies via Python's `hmac` stdlib — `set_signed_cookie` / `get_signed_cookie` |
+| Hash destructuring | `{name, age} = user` — pull keys into variables directly |
+| Shape pattern matching | `case user when {role: "admin"}` — match on hash structure, not just values |
+| `frankiec new` scaffold | Generated project now includes `stitches/` and `views/partials/` folders |
+| Global stitch install | `install.py` correctly copies all stitches to `~/.frankie/stitches/` |
+| `page_links` full example | Complete web pagination with `frankiepager` + `frankietemplate` |
+
+---
+
+## v1.13.1 — `whats_new_v1131.fk`
+
+**Theme:** Gap closers — no new syntax, everything real programs needed and didn't have.
+
+| Feature | Summary |
+|---|---|
+| `frankiestring` v2 | Rewritten stitch: `pad_left`, `pad_right`, `truncate`, `slugify`, `word_wrap`, `indent_lines` — replaces clunky `lfill`/`rfill` API |
+| `Vector .sum do \|x\|` | Block form now works — projected sum without a two-step `.map` + `sum` |
+| `Vector .flat_map do \|x\|` | Multi-line block bodies now parse correctly |
+| `assert_approx_eq(a, b, delta, msg)` | Float comparison in tests with configurable delta (default `0.001`) |
+| `run_tests()` | Now a public stdlib function — callable from any `.fk` file, not just `frankiec test` |
+| `session(req, resp)` | Cookie-backed session hash — read, mutate, `.save()`. Zero server state, single JSON cookie `_fk_session` |
+| `frankiec fmt` blank lines | Intentional blank lines between statement groups inside function bodies now preserved |
+| `frankiec fmt` multi-line threshold | Hashes/vectors whose inline form exceeds 60 chars auto-expand to one element per line |
+| `frankiec fmt` idempotency | Running `fmt --write` twice now produces identical output — safe for pre-commit hooks and CI |
+| Heredoc in `do...end` blocks | Fixed lexer bug — heredocs now work anywhere a string expression is valid |
+| `Hash.each do \|k, v\|` | Two-parameter block iteration confirmed and end-to-end tested |
+| Symbol key round-trip in `fmt` | `{host: "x"}` no longer becomes `{"host": "x"}` after formatting |
+
+---
+
+## v1.13 — `whats_new_v113.fk`
+
+**Theme:** Stitches — a zero-dependency, zero-registry package system.
+
+| Feature | Summary |
+|---|---|
+| `stitch "name"` keyword | Load a package by name — resolves from `./stitches/` then `~/.frankie/stitches/` |
+| `frankieforms` | Form field validation — `required`, `min_length`, `max_length`, `email`, `numeric`, `alpha`, `matches_pattern` |
+| `frankietable` | ASCII table rendering from a vector of hashes — `table(rows)` / `table(rows, cols)` |
+| `frankiecolor` | ANSI color helpers — `red`, `green`, `yellow`, `bold`, `success`, `error`, `warn`, `info`, `colorize`, `strip_color` |
+| `frankiepager` | Pagination math — `paginate(opts)`, `page_slice(items, page, per_page)`, `page_links(pager, url_template)` |
+| `frankieconfig` | Layered config loading: defaults → JSON file → env vars → overrides, with type coercion |
+| `frankiestring` | String utilities stitch (v1, superseded by v2 in v1.13.1) |
+| `?` in function names | `def even?(n)` now works — `?` compiled transparently to `_q` in generated Python |
 
 ---
 

@@ -1,0 +1,61 @@
+## frankiecookie.fk — Signed cookie helpers for Frankie
+##
+## Usage:
+##   stitch "frankiecookie"
+##
+## Cookies are signed with HMAC-SHA256 using Python's stdlib hmac + hashlib.
+## A signed cookie value looks like:  value:hmac_hex
+## Tampering with the value invalidates the signature — verified on read.
+##
+## Functions:
+##   set_signed_cookie(resp, name, value, secret, opts)  — write a signed cookie
+##   get_signed_cookie(req, name, secret)                — read + verify a signed cookie (nil if invalid/missing)
+##   delete_cookie(resp, name)                           — expire a cookie immediately
+##   cookie_set?(req, name)                              — check if a cookie exists
+
+## Sign a value — returns "value:hmac"
+def _cookie_sign(value, secret)
+  ## Delegates to a small Python helper injected into the runtime
+  _fk_hmac_sign(value.to_s, secret.to_s)
+end
+
+## Verify a signed cookie value — returns the plain value or nil
+def _cookie_verify(signed, secret)
+  _fk_hmac_verify(signed.to_s, secret.to_s)
+end
+
+## Write a signed cookie to the response
+## opts keys: path, max_age, same_site, http_only, secure
+def set_signed_cookie(resp, name, value, secret, opts)
+  signed = _cookie_sign(value, secret)
+  cookie_opts = {
+    path: (opts.has_key?("path") and opts["path"] or "/"),
+    http_only: (opts.has_key?("http_only") and opts["http_only"] or true),
+    same_site: (opts.has_key?("same_site") and opts["same_site"] or "Lax"),
+    secure: (opts.has_key?("secure") and opts["secure"] or false)
+  }
+  if opts.has_key?("max_age")
+    cookie_opts["max_age"] = opts["max_age"]
+  end
+  resp.set_cookie(name, signed, cookie_opts)
+end
+
+## Read and verify a signed cookie — returns the original value, or nil if missing / tampered
+def get_signed_cookie(req, name, secret)
+  raw = req.cookies[name]
+  if raw == nil
+    nil
+  else
+    _cookie_verify(raw, secret)
+  end
+end
+
+## Expire a cookie immediately by setting max_age to 0
+def delete_cookie(resp, name)
+  resp.set_cookie(name, "", {max_age: 0, path: "/"})
+end
+
+## Check if a cookie is present on the request
+def cookie_set?(req, name)
+  req.cookies[name] != nil
+end

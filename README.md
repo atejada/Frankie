@@ -7,7 +7,7 @@
  |  _|| | | (_| | | | |   <| |  __/
  |_|  |_|  \__,_|_| |_|_|\_\_|\___|
 
- The Frankie Language v1.13.1
+ The Frankie Language v1.14
  Stitched together from Ruby • Python • R • Fortran
 ```
 
@@ -94,6 +94,64 @@ rescue e
 end
 ```
 
+---
+
+## v1.14 Highlights
+
+```ruby
+# Hash destructuring — pull keys into variables directly
+user = {name: "Alice", role: "admin", age: 30}
+{name, role} = user
+puts "#{name} is a #{role}"   # Alice is a admin
+
+# Shape pattern matching — case on hash structure
+case user
+when {role: "admin"}
+  puts "Admin panel access granted"
+when {role: "moderator", active: true}
+  puts "Moderator tools available"
+when {active: false}
+  puts "Account suspended"
+else
+  puts "Regular user"
+end
+
+# spawn — fire-and-forget background blocks
+app.post("/register") do |req|
+  spawn do
+    send_welcome_email(req.json["email"])
+  end
+  json_response({status: "registered"}, 201)
+end
+
+# timeout — kill slow operations
+result = timeout(5) do
+  http_get("https://slow-api.example.com/data")
+end
+
+# Middleware stack
+app.use do |req, next_fn|
+  puts "→ #{req.method} #{req.path}"
+  next_fn.(req)
+end
+
+# Static files
+app.static("./public")
+
+# frankietemplate — Mustache-compatible templates
+stitch "frankietemplate"
+html = render_file("./views/dashboard.html", {
+  name: user["name"],
+  posts: db.find_all("posts")
+})
+html_response(html)
+
+# frankiecookie — HMAC-signed cookies
+stitch "frankiecookie"
+SECRET = env("COOKIE_SECRET")
+set_signed_cookie(resp, "user_id", "42", SECRET, {max_age: 86400})
+id = get_signed_cookie(req, "user_id", SECRET)   # nil if tampered
+```
 ---
 
 ## v1.13.1 Highlights
@@ -406,6 +464,7 @@ Full documentation lives in the `docs/` folder:
 | `docs/14_v112_features.md` | v1.12 feature reference: gsub block, map_hash, round, product, chars, FileNotFoundError, assert_match/nil, watch, --no-banner |
 | `docs/15_v113_features.md` | v1.13 feature reference: stitch keyword, frankiforms, frankitable, frankicolor, frankiepager, frankiconfig, ? in function names |
 | `docs/16_v1131_features.md` | v1.13.1 feature reference: frankiestring v2, .sum do / .flat_map do fixes, assert_approx_eq, run_tests(), session(req,resp), fmt improvements |
+| `docs/17_v114_features.md` | v1.14 feature reference: spawn, timeout, async routes, middleware, static files, frankietemplate, frankiecookie, hash destructuring, shape matching |
 
 The formal language grammar lives in `SPEC.md`.
 
@@ -423,8 +482,8 @@ frankie/
 │   ├── ast_nodes.py       ← AST node definitions
 │   └── codegen.py         ← Python code generator
 ├── docs/                  ← full documentation
-├── examples/              ← example .fk programs (incl. webapp.fk, whats_new_v16.fk … whats_new_v1131.fk)
-├── stitches/              ← official starter stitches (frankieforms, frankietable, frankiecolor, frankiepager, frankieconfig, frankiestring)
+├── examples/              ← example .fk programs (incl. webapp.fk, whats_new_v16.fk … whats_new_v114.fk)
+├── stitches/              ← official starter stitches (frankieforms, frankietable, frankiecolor, frankiepager, frankieconfig, frankiestring, frankietemplate, frankiecookie)
 ├── frankiec.py            ← compiler CLI entry point
 ├── frankie_stdlib.py      ← runtime standard library
 ├── repl.py                ← interactive REPL

@@ -1,0 +1,120 @@
+# test_v114.fk — verify v1.14 compiler features
+
+puts "=== Frankie v1.14 — Compiler Feature Tests ==="
+puts ""
+
+# ── 1. Hash Destructuring ─────────────────────────────────────────────────────
+puts "── Hash Destructuring ──"
+
+user = {name: "Alice", age: 30, role: "admin"}
+{name, age} = user
+puts "name=#{name} age=#{age}"
+
+{name, nickname} = {name: "Bob"}
+puts "name=#{name} nickname=#{nickname}"
+
+rows = [{city: "Lima", country: "Peru"}, {city: "Tokyo", country: "Japan"}]
+rows.each do |row|
+  {city, country} = row
+  puts "#{city}, #{country}"
+end
+
+puts ""
+
+# ── 2. Shape Pattern Matching ─────────────────────────────────────────────────
+puts "── Shape Pattern Matching ──"
+
+def describe(entity)
+  case entity
+  when {role: "admin"}
+    puts "Admin: #{entity["name"]}"
+  when {role: "moderator"}
+    puts "Moderator: #{entity["name"]}"
+  when {active: false}
+    puts "Suspended user"
+  else
+    puts "Regular user: #{entity["name"]}"
+  end
+end
+
+describe({name: "Alice", role: "admin"})
+describe({name: "Bob",   role: "moderator"})
+describe({name: "Carol", active: false})
+describe({name: "Dave",  role: "user"})
+
+puts ""
+
+# ── 3. spawn ──────────────────────────────────────────────────────────────────
+puts "── spawn ──"
+
+done = [false]
+spawn do
+  done[0] = true
+end
+
+# Poll briefly for the thread to finish
+i = 0
+while done[0] == false and i < 100
+  i += 1
+end
+puts "spawn completed: #{done[0]}"
+
+puts ""
+
+# ── 4. timeout — success case ─────────────────────────────────────────────────
+puts "── timeout (success) ──"
+
+result = timeout(2) do
+  "fast result"
+end
+puts "Got: #{result}"
+
+puts ""
+
+# ── 5. timeout — fires ────────────────────────────────────────────────────────
+puts "── timeout (fires) ──"
+
+begin
+  timeout(0.05) do
+    seq(1, 10000000).sum
+    "never"
+  end
+  puts "FAIL: should have raised TimeoutError"
+rescue TimeoutError e
+  puts "TimeoutError raised correctly: #{e}"
+end
+
+puts ""
+
+# ── 6. Mixed when clauses ─────────────────────────────────────────────────────
+puts "── Mixed when clauses ──"
+
+responses = [{status: 200, body: "OK"}, {status: 404, body: "Not found"}]
+responses.each do |r|
+  case r
+  when {status: 200}
+    puts "Success"
+  when {status: 404}
+    puts "Not found"
+  else
+    puts "Other"
+  end
+end
+
+puts ""
+
+# ── 7. HMAC sign/verify ───────────────────────────────────────────────────────
+puts "── HMAC sign/verify ──"
+
+signed = _fk_hmac_sign("user_id=42", "mysecret")
+puts "Signed: #{signed.split(":")[0]}"
+
+verified = _fk_hmac_verify(signed, "mysecret")
+puts "Verified: #{verified}"
+
+tampered = "user_id=99:" + signed.split(":")[1]
+result = _fk_hmac_verify(tampered, "mysecret")
+puts "Tampered returns nil: #{result == nil}"
+
+puts ""
+puts "=== All v1.14 tests passed ==="

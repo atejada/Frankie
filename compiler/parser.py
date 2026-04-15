@@ -122,6 +122,10 @@ class Parser:
             return self._maybe_postfix(self.parse_next())
         if t.type == TT.BREAK:
             return self._maybe_postfix(self.parse_break())
+        if t.type == TT.SPAWN:
+            return self.parse_spawn()
+        if t.type == TT.TIMEOUT:
+            return self.parse_timeout()
         if t.type == TT.EOF:
             return None
 
@@ -375,6 +379,7 @@ class Parser:
         while self.check(TT.WHEN):
             self.advance()
             # One or more values: when 1, 2, 3
+            # Shape pattern: when {role: "admin"} — parsed as a HashLiteral
             values = [self.parse_expr()]
             while self.match(TT.COMMA):
                 values.append(self.parse_expr())
@@ -429,6 +434,27 @@ class Parser:
             return BreakStmt(value=None)
         return BreakStmt(value=self.parse_expr())
 
+    def parse_spawn(self) -> SpawnBlock:
+        """spawn do ... end — fire-and-forget background block"""
+        self.expect(TT.SPAWN)
+        self.expect(TT.DO, "Expected 'do' after 'spawn'")
+        self.skip_newlines()
+        body = self.parse_body()
+        self.expect(TT.END, "Expected 'end' to close 'spawn'")
+        return SpawnBlock(body=body)
+
+    def parse_timeout(self) -> TimeoutBlock:
+        """timeout(n) do ... end — time-bounded block"""
+        self.expect(TT.TIMEOUT)
+        self.expect(TT.LPAREN, "Expected '(' after 'timeout'")
+        seconds = self.parse_expr()
+        self.expect(TT.RPAREN, "Expected ')' after timeout duration")
+        self.expect(TT.DO, "Expected 'do' after timeout(...)")
+        self.skip_newlines()
+        body = self.parse_body()
+        self.expect(TT.END, "Expected 'end' to close 'timeout'")
+        return TimeoutBlock(seconds=seconds, body=body)
+
     def parse_print(self) -> PrintStmt:
         tok = self.advance()
         newline = (tok.type == TT.PUTS)
@@ -454,7 +480,28 @@ class Parser:
         return left
 
     def parse_assign(self) -> Node:
-        # Destructuring: a, b, c = expr
+        # Hash destructuring: {name, age} = expr
+        # Detect: LBRACE IDENT (COMMA IDENT)* RBRACE ASSIGN
+        if self.check(TT.LBRACE) and self.peek(1).type == TT.IDENT:
+            save_pos = self.pos
+            self.advance()  # consume {
+            keys = []
+            if self.check(TT.IDENT):
+                keys.append(self.advance().value)
+                while self.check(TT.COMMA):
+                    self.advance()
+                    if self.check(TT.IDENT):
+                        keys.append(self.advance().value)
+                    else:
+                        break
+            if self.check(TT.RBRACE) and len(keys) >= 1:
+                self.advance()  # consume }
+                if self.check(TT.ASSIGN):
+                    self.advance()  # consume =
+                    value = self.parse_expr()
+                    return HashDestructAssign(keys=keys, value=value)
+            # Not hash destructuring — backtrack
+            self.pos = save_pos
         # Only applies when: IDENT COMMA ... ASSIGN  (pure identifiers, then =)
         # We must NOT consume tokens if this turns out not to be destructuring
         if self.check(TT.IDENT) and self.peek(1).type == TT.COMMA:
@@ -578,6 +625,10 @@ class Parser:
         return left
 
     def parse_unary(self) -> Node:
+        if self.check(TT.AWAIT):
+            self.advance()
+            expr = self.parse_postfix()
+            return AwaitExpr(expr=expr)
         if self.check(TT.MINUS):
             self.advance()
             operand = self.parse_postfix()   # parse primary+postfix, NOT another unary range
@@ -746,6 +797,13 @@ class Parser:
         # Inline if expression: if cond then a else b end
         if t.type == TT.IF:
             return self.parse_if_expr()
+
+        # spawn and timeout can appear as expressions (e.g. result = timeout(n) do)
+        if t.type == TT.SPAWN:
+            return self.parse_spawn()
+
+        if t.type == TT.TIMEOUT:
+            return self.parse_timeout()
 
         if t.type == TT.LBRACKET:
             return self.parse_vector()

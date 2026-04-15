@@ -121,6 +121,12 @@ class CodeGen:
             self.gen_const_assign(node)
         elif isinstance(node, RecordDef):
             self.gen_record_def(node)
+        elif isinstance(node, SpawnBlock):
+            self.gen_spawn(node)
+        elif isinstance(node, TimeoutBlock):
+            self.gen_timeout(node)
+        elif isinstance(node, HashDestructAssign):
+            self.gen_hash_destruct_assign(node)
         elif isinstance(node, FuncCall):
             # FuncCall used as statement (may have a block e.g. times(5) do...)
             expr = self.gen_func_call(node)
@@ -249,7 +255,14 @@ class CodeGen:
         first = True
         for values, body in node.when_clauses:
             if node.subject is not None:
-                cond = " or ".join(f"({subj_tmp} == {self.gen_expr(v)})" for v in values)
+                cond_parts = []
+                for v in values:
+                    if isinstance(v, HashLiteral):
+                        pat = self.gen_expr(v)
+                        cond_parts.append(f"_fk_shape_match({subj_tmp}, {pat})")
+                    else:
+                        cond_parts.append(f"({subj_tmp} == {self.gen_expr(v)})")
+                cond = " or ".join(cond_parts)
             else:
                 cond = " or ".join(self.gen_expr(v) for v in values)
             kw = "if" if first else "elif"
@@ -445,6 +458,29 @@ class CodeGen:
             then = self.gen_expr(node.then_expr)
             els = self.gen_expr(node.else_expr) if node.else_expr is not None else "None"
             return f"({then} if {cond} else {els})"
+        if isinstance(node, AwaitExpr):
+            # In Frankie's threading model, await is a no-op at the expression
+            # level — the value is returned directly (the async route handler
+            # runs in its own thread so blocking calls are fine there).
+            return self.gen_expr(node.expr)
+        if isinstance(node, TimeoutBlock):
+            # timeout(n) do ... end used as expression — wrap in a call that returns value
+            secs = self.gen_expr(node.seconds)
+            fn_name = self.temp_var("_timeout_fn")
+            self.emit(f"def {fn_name}():")
+            self.indent()
+            self._gen_body_implicit_return(node.body)
+            self.dedent()
+            return f"_fk_timeout({secs}, {fn_name})"
+        if isinstance(node, SpawnBlock):
+            # spawn used as expression — runs block, returns None
+            fn_name = self.temp_var("_spawn_fn")
+            self.emit(f"def {fn_name}():")
+            self.indent()
+            self.gen_body(node.body)
+            self.dedent()
+            self.emit(f"_threading.Thread(target={fn_name}, daemon=True).start()")
+            return "None"
         raise CodeGenError(f"Unknown expression node: {type(node).__name__}")
 
     def gen_string(self, node: StringLiteral) -> str:
@@ -1620,7 +1656,14 @@ class CodeGen:
         first = True
         for values, body in node.when_clauses:
             if node.subject is not None:
-                cond_parts = [f"({subj_tmp} == {self.gen_expr(v)})" for v in values]
+                cond_parts = []
+                for v in values:
+                    if isinstance(v, HashLiteral):
+                        # Shape matching: subject contains at least these k/v pairs
+                        pat = self.gen_expr(v)
+                        cond_parts.append(f"_fk_shape_match({subj_tmp}, {pat})")
+                    else:
+                        cond_parts.append(f"({subj_tmp} == {self.gen_expr(v)})")
                 cond = " or ".join(cond_parts)
             else:
                 # bare case: when condition (truthy)
@@ -1663,6 +1706,33 @@ class CodeGen:
         self.emit(f'return {{"__type__": "{node.name}", {pairs}}}')
         self.dedent()
         self.emit()
+
+    def gen_spawn(self, node: SpawnBlock):
+        """spawn do ... end  →  threading.Thread(target=lambda: ...).start()"""
+        fn_name = self.temp_var("_spawn_fn")
+        self.emit(f"def {fn_name}():")
+        self.indent()
+        self.gen_body(node.body)
+        self.dedent()
+        self.emit(f"_threading.Thread(target={fn_name}, daemon=True).start()")
+
+    def gen_timeout(self, node: TimeoutBlock):
+        """timeout(n) do ... end  →  _fk_timeout(n, fn)"""
+        secs = self.gen_expr(node.seconds)
+        fn_name = self.temp_var("_timeout_fn")
+        self.emit(f"def {fn_name}():")
+        self.indent()
+        self._gen_body_implicit_return(node.body)
+        self.dedent()
+        self.emit(f"_fk_timeout({secs}, {fn_name})")
+
+    def gen_hash_destruct_assign(self, node: HashDestructAssign):
+        """{name, age} = user  →  name = user.get('name'); age = user.get('age')"""
+        val_tmp = self.temp_var("_hd")
+        value = self.gen_expr(node.value)
+        self.emit(f"{val_tmp} = {value}")
+        for key in node.keys:
+            self.emit(f"{key} = ({val_tmp}.get({key!r}) if isinstance({val_tmp}, dict) else None)")
 
     def gen_lambda(self, node: 'LambdaLiteral') -> str:
         """Generate a Python lambda or named inner function for a Frankie lambda literal.

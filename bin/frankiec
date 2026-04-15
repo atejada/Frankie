@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
 import sys, os
-sys.path.insert(0, '/home/claude/frankie')
+sys.path.insert(0, '/Users/blag/frankie')
 from frankiec import main
 main()

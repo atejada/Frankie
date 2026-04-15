@@ -154,6 +154,58 @@ else
 end
 ```
 
+### `case` with hash shapes *(v1.14)*
+
+`when` clauses accept hash literals — the subject matches if it contains at least the specified key/value pairs. Extra keys in the subject are ignored.
+
+```ruby
+user = {name: "Alice", role: "admin", active: true}
+
+case user
+when {role: "admin"}
+  puts "Admin panel access granted"
+when {role: "moderator", active: true}
+  puts "Moderator tools available"
+when {active: false}
+  puts "Account suspended"
+else
+  puts "Regular user"
+end
+```
+
+Mix value and shape `when` clauses in the same `case`:
+
+```ruby
+case response
+when {status: 200}
+  puts "OK"
+when {status: 404}
+  puts "Not found"
+when {status: 500}
+  puts "Server error"
+when nil
+  puts "No response"
+else
+  puts "Unexpected"
+end
+```
+
+Shape matching works with records too — `record Point(x, y)` compiles to a hash, so `when {x: 0}` matches any point on the y-axis.
+
+```ruby
+p = Point(0, 5)
+case p
+when {x: 0, y: 0}
+  puts "Origin"
+when {x: 0}
+  puts "On y-axis"
+when {y: 0}
+  puts "On x-axis"
+else
+  puts "Somewhere else"
+end
+```
+
 ---
 
 ## Ternary-style with Inline `if`

@@ -66,8 +66,9 @@ main()
 
         if os.path.isfile(src_file):
             shutil.copy(src_file, dst_file)
+            print(f"    {f}")
 
-print(f"Installed stitches to {USER_STITCH_DIR}")
+    print(f"\nInstalled stitches to {USER_STITCH_DIR}")
 
 
 def uninstall():

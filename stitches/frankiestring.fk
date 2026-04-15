@@ -4,8 +4,11 @@
 ##   stitch "frankiestring"
 ##
 ## Functions:
+##   pad_left(str, n)           — right-align in a field of width n (space fill)
 ##   pad_left(str, n, char)     — right-align with custom fill character
+##   pad_right(str, n)          — left-align in a field of width n (space fill)
 ##   pad_right(str, n, char)    — left-align with custom fill character
+##   truncate(str, n)           — cut to n chars, append "..." if truncated
 ##   truncate(str, n, suffix)   — cut to n chars, append custom suffix
 ##   slugify(str)               — URL-safe lowercase slug
 ##   word_wrap(str, width)      — wrap text at word boundaries

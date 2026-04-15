@@ -287,6 +287,11 @@ app.run()
 | `app.put(path) do \|req\| end`       | Register a PUT route                     |
 | `app.delete(path) do \|req\| end`    | Register a DELETE route                  |
 | `app.patch(path) do \|req\| end`     | Register a PATCH route                   |
+| `app.get_async(path) do \|req\| end` | Register a non-blocking GET route        |
+| `app.post_async(path) do \|req\| end`| Register a non-blocking POST route       |
+| `app.use do \|req, next_fn\| end`    | Register middleware                      |
+| `app.static(dir)`                    | Serve a directory at `/`                 |
+| `app.static(dir, prefix)`            | Serve a directory at a URL prefix        |
 | `app.before do \|req\| end`          | Register a before-filter                 |
 | `app.after do \|req, res\| end`      | Register an after-filter                 |
 | `app.not_found do \|req\| end`       | Register a custom 404 handler            |
@@ -299,3 +304,133 @@ app.run()
 | `req.cookies`                        | Parsed Cookie header as a hash           |
 | `resp.set_cookie(name, val, opts)`   | Append a Set-Cookie header               |
 | `session(req, resp)`                 | Cookie-backed session hash               |
+| `spawn { }`                          | Run block in background thread           |
+| `timeout(n) { }`                     | Run block with a time limit              |
+| `await expr`                         | Non-blocking wait inside async routes    |
+
+---
+
+## Concurrency *(v1.14)*
+
+### `spawn { }` — Background Blocks
+
+`spawn` runs a block in a background thread and returns immediately. Use it inside route handlers to do work after the response goes out.
+
+```ruby
+app.post("/register") do |req|
+  user = req.json
+
+  spawn do
+    send_welcome_email(user["email"])
+    log("welcome email sent to #{user["email"]}")
+  end
+
+  json_response({status: "registered"}, 201)
+end
+```
+
+Works anywhere — not just in web routes:
+
+```ruby
+spawn do
+  result = crunch_numbers(data)
+  file_write("report.json", json_dump(result))
+end
+puts "Crunching in background..."
+```
+
+Spawned blocks capture variables by value at spawn time. Mutations inside the block do not affect the outer scope.
+
+### `timeout(n) { }` — Time-Bounded Execution
+
+`timeout(seconds)` raises `TimeoutError` if the block takes longer than `n` seconds.
+
+```ruby
+app.get("/weather") do |req|
+  begin
+    data = timeout(3) do
+      http_get("https://api.weather.example.com/current")
+    end
+    json_response(data)
+  rescue TimeoutError
+    json_response({error: "weather service unavailable"}, 503)
+  end
+end
+```
+
+### Async Routes — `app.get_async`
+
+Async routes are non-blocking — slow I/O in one handler does not hold up other requests. Use `await` inside the block for non-blocking calls.
+
+```ruby
+app = web_app()
+
+app.get_async("/feed") do |req|
+  posts = await http_get("https://api.example.com/posts")
+  likes = await http_get("https://api.example.com/likes")
+  json_response({posts: posts, likes: likes})
+end
+
+app.run(3000)
+```
+
+All five HTTP methods have async variants: `get_async`, `post_async`, `put_async`, `delete_async`, `patch_async`.
+
+---
+
+## Middleware *(v1.14)*
+
+`app.use` registers middleware that runs around every request. Each layer receives the request and a `next_fn` — call `next_fn.(req)` to pass control forward, or return a response directly to short-circuit.
+
+```ruby
+app = web_app()
+
+# Logging
+app.use do |req, next_fn|
+  puts "→ #{req.method} #{req.path}"
+  resp = next_fn.(req)
+  puts "← #{resp.status}"
+  resp
+end
+
+# Auth guard for /admin/*
+app.use do |req, next_fn|
+  if req.path.start_with?("/admin") and req.headers["X-Api-Key"] != env("API_KEY")
+    halt(401, "Unauthorized")
+  else
+    next_fn.(req)
+  end
+end
+
+app.get("/admin/dashboard") do |req|
+  html_response("<h1>Admin</h1>")
+end
+
+app.run(3000)
+```
+
+Middleware runs in registration order. `before` and `after` filters still work alongside `use` — they run inside the middleware chain.
+
+---
+
+## Static File Serving *(v1.14)*
+
+Serve a directory of files with one line. Files are served relative to the project root.
+
+```ruby
+app = web_app()
+
+# Serve ./public/ at /
+app.static("./public")
+
+# Serve ./assets/ at /static/
+app.static("./assets", "/static")
+
+app.get("/") do |req|
+  html_response(file_read("./public/index.html"))
+end
+
+app.run(3000)
+```
+
+Served automatically: `.html`, `.css`, `.js`, `.json`, `.png`, `.jpg`, `.gif`, `.svg`, `.webp`, `.ico`, `.woff`, `.woff2`. Directory listing is disabled — unlisted paths return 404.

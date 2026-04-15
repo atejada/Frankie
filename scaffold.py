@@ -16,7 +16,7 @@ __pycache__/
 MAIN_FK = '''# {name}/main.fk — entry point
 
 puts "Hello from {name}!"
-puts "Built with Frankie v1.9 🧟"
+puts "Built with Frankie v1.14 🧟"
 '''
 
 README_FK = """# {name}
@@ -29,15 +29,39 @@ A Frankie project.
 frankiec run main.fk
 ```
 
+## Test
+
+```bash
+frankiec test
+```
+
 ## Project structure
 
 ```
 {name}/
 ├── main.fk          # entry point
+├── test.fk          # test suite
 ├── lib/             # reusable modules (require'd by main.fk)
+├── stitches/        # third-party Frankie packages (stitch'd by main.fk)
+├── views/           # HTML templates (render_file'd by route handlers)
+│   └── partials/    # reusable template fragments ({{> name}})
 ├── data/            # data files (JSON, CSV, SQLite)
+├── public/          # static files served by app.static("./public")
 └── README.md
 ```
+
+## Packages (Stitches)
+
+Third-party Frankie packages go in `stitches/`. Load them with:
+
+```ruby
+stitch "frankietemplate"
+stitch "frankiecookie"
+```
+
+Official stitches are installed globally by `install.py` and available
+in every project. Drop your own `.fk` files in `stitches/` to share
+utilities across this project without publishing them globally.
 """
 
 TEST_FK = '''# {name}/test.fk — test suite
@@ -95,15 +119,35 @@ def scaffold(project_name: str):
         project_name,
         os.path.join(project_name, "lib"),
         os.path.join(project_name, "data"),
+        os.path.join(project_name, "stitches"),
+        os.path.join(project_name, "views"),
+        os.path.join(project_name, "views", "partials"),
+        os.path.join(project_name, "public"),
     ]
 
+    STITCHES_README = """# Stitches
+
+Third-party Frankie packages live here. Load them in your `.fk` files with:
+
+    stitch "frankietemplate"
+    stitch "frankiecookie"
+
+Official stitches (frankieforms, frankietable, frankiecolor, frankiepager,
+frankieconfig, frankiestring, frankietemplate, frankiecookie) are installed
+globally by `install.py` and resolve from `~/.frankie/stitches/`.
+
+Project-local stitches in this folder take priority over global ones —
+drop a `.fk` file here to override or add project-specific packages.
+"""
+
     files = {
-        os.path.join(project_name, "main.fk"):          MAIN_FK.replace("{name}", project_name),
-        os.path.join(project_name, "test.fk"):           TEST_FK.replace("{name}", project_name),
-        os.path.join(project_name, "lib", "utils.fk"):   LIB_FK.replace("{name}", project_name),
-        os.path.join(project_name, "README.md"):          README_FK.replace("{name}", project_name),
-        os.path.join(project_name, ".gitignore"):         GITIGNORE,
-        os.path.join(project_name, ".env.example"):       ENV_EXAMPLE,
+        os.path.join(project_name, "main.fk"):                    MAIN_FK.replace("{name}", project_name),
+        os.path.join(project_name, "test.fk"):                    TEST_FK.replace("{name}", project_name),
+        os.path.join(project_name, "lib", "utils.fk"):            LIB_FK.replace("{name}", project_name),
+        os.path.join(project_name, "stitches", "README.md"):      STITCHES_README,
+        os.path.join(project_name, "README.md"):                  README_FK.replace("{name}", project_name),
+        os.path.join(project_name, ".gitignore"):                  GITIGNORE,
+        os.path.join(project_name, ".env.example"):                ENV_EXAMPLE,
     }
 
     # Create directories
@@ -123,7 +167,12 @@ def scaffold(project_name: str):
     ├── main.fk        ← entry point
     ├── test.fk        ← test suite
     ├── lib/
-    │   └── utils.fk   ← reusable utilities
+    │   └── utils.fk   ← reusable utilities (require "lib/utils")
+    ├── stitches/
+    │   └── README.md  ← stitch convention explained
+    ├── views/
+    │   └── partials/  ← template fragments ({{> name}})
+    ├── public/        ← static files (app.static("./public"))
     ├── data/          ← JSON, CSV, SQLite files
     ├── .gitignore
     ├── .env.example
@@ -133,5 +182,5 @@ def scaffold(project_name: str):
     cd {project_name}
     frankiec run main.fk
     frankiec repl
-    frankiec run test.fk
+    frankiec test
 """)

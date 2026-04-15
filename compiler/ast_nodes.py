@@ -359,3 +359,29 @@ class IfExpr(Node):
     condition: Node
     then_expr: Node
     else_expr: Optional[Node]
+
+# ─── v1.14 — Concurrency ─────────────────────────────────────────────────────
+
+@dataclass
+class SpawnBlock(Node):
+    """spawn do ... end — run block in a background thread"""
+    body: List[Node]
+
+@dataclass
+class TimeoutBlock(Node):
+    """timeout(n) do ... end — run block with time limit, raises TimeoutError"""
+    seconds: Node
+    body: List[Node]
+
+@dataclass
+class AwaitExpr(Node):
+    """await expr — non-blocking wait inside async route handlers"""
+    expr: Node
+
+# ─── v1.14 — Hash Destructuring ──────────────────────────────────────────────
+
+@dataclass
+class HashDestructAssign(Node):
+    """{name, age} = user — pull hash keys into local variables"""
+    keys: List[str]
+    value: Node

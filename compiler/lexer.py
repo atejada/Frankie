@@ -116,6 +116,9 @@ class TT(Enum):
     BREAK        = auto()  # break
     RECORD       = auto()  # record
     THEN         = auto()  # then  (inline if expression)
+    SPAWN        = auto()  # spawn
+    TIMEOUT      = auto()  # timeout
+    AWAIT        = auto()  # await
 
 
 KEYWORDS = {
@@ -159,6 +162,9 @@ KEYWORDS = {
     'break':            TT.BREAK,
     'record':           TT.RECORD,
     'then':             TT.THEN,
+    'spawn':            TT.SPAWN,
+    'timeout':          TT.TIMEOUT,
+    'await':            TT.AWAIT,
 }
 
 
@@ -471,6 +477,12 @@ class Lexer:
             # Identifiers & keywords
             if ch.isalpha() or ch == '_':
                 word = self.read_ident()
+                # If immediately followed by ':' (but not '::'), this is a hash
+                # key — always emit as IDENT regardless of whether it's a keyword.
+                # e.g.  {timeout: 30, spawn: true, end: "value"}
+                if self.peek() == ':' and self.peek(1) != ':':
+                    self.tokens.append(Token(TT.IDENT, word, line, col))
+                    continue
                 ttype = KEYWORDS.get(word)
                 if ttype is not None:
                     if ttype == TT.BOOL:

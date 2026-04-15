@@ -808,6 +808,64 @@ def _fk_unpack(value, count):
     return lst[:count]
 
 
+# ─── v1.14 Runtime Helpers ────────────────────────────────────────────────────
+
+def _fk_timeout(seconds, fn):
+    """Run fn() with a time limit. Raises TimeoutError if it exceeds seconds."""
+    import threading as _t
+    result = [None]
+    exc    = [None]
+
+    def _target():
+        try:
+            result[0] = fn()
+        except Exception as e:
+            exc[0] = e
+
+    thread = _t.Thread(target=_target, daemon=True)
+    thread.start()
+    thread.join(timeout=float(seconds))
+    if thread.is_alive():
+        raise TimeoutError(f"Operation timed out after {seconds}s")
+    if exc[0] is not None:
+        raise exc[0]
+    return result[0]
+
+
+def _fk_shape_match(subject, pattern):
+    """Return True if subject (a dict) contains all key/value pairs in pattern."""
+    if not isinstance(subject, dict) or not isinstance(pattern, dict):
+        return False
+    for k, v in pattern.items():
+        if subject.get(k) != v:
+            return False
+    return True
+
+
+def _fk_hmac_sign(value: str, secret: str) -> str:
+    """Sign a value with HMAC-SHA256. Returns 'value:hex_digest'."""
+    import hmac as _hmac
+    import hashlib as _hashlib
+    sig = _hmac.new(secret.encode(), value.encode(), _hashlib.sha256).hexdigest()
+    return f"{value}:{sig}"
+
+
+def _fk_hmac_verify(signed: str, secret: str):
+    """Verify a signed value. Returns the original value or None if invalid."""
+    import hmac as _hmac
+    import hashlib as _hashlib
+    if ':' not in signed:
+        return None
+    # Split on LAST colon so values containing ':' still work
+    last_colon = signed.rfind(':')
+    value = signed[:last_colon]
+    provided_sig = signed[last_colon + 1:]
+    expected_sig = _hmac.new(secret.encode(), value.encode(), _hashlib.sha256).hexdigest()
+    if _hmac.compare_digest(provided_sig, expected_sig):
+        return value
+    return None
+
+
 # ─── v1.1 String Helpers ──────────────────────────────────────────────────────
 
 def _fk_chars(s):
@@ -1653,6 +1711,7 @@ class FrankieApp:
         self._after     = []   # after-filters
         self._not_found = None # custom 404 handler
         self._static    = []   # [(url_prefix, fs_root), ...]
+        self._middleware = []  # [(handler,), ...] — app.use stack
 
     # ── Route registration ──────────────────────────────────────────────────
 
@@ -1667,6 +1726,21 @@ class FrankieApp:
     def delete(self, pattern, handler): self._register('DELETE', pattern, handler)
     def patch(self, pattern, handler):  self._register('PATCH',  pattern, handler)
 
+    # Async route variants — in Frankie's threading model each request already
+    # runs in its own thread, so async routes are identical to sync ones.
+    def get_async(self, pattern, handler):    self._register('GET',    pattern, handler)
+    def post_async(self, pattern, handler):   self._register('POST',   pattern, handler)
+    def put_async(self, pattern, handler):    self._register('PUT',    pattern, handler)
+    def delete_async(self, pattern, handler): self._register('DELETE', pattern, handler)
+    def patch_async(self, pattern, handler):  self._register('PATCH',  pattern, handler)
+
+    def use(self, handler):
+        """Register middleware.  handler(req, next_fn) -> response.
+        Call next_fn(req) to pass control to the next layer.
+        Return a response directly to short-circuit the chain.
+        """
+        self._middleware.append(handler)
+
     def before(self, handler):
         """Register a before-filter (called before every matched route)."""
         self._before.append(handler)
@@ -1679,13 +1753,19 @@ class FrankieApp:
         """Register a custom 404 handler."""
         self._not_found = handler
 
-    def static(self, url_prefix, fs_root):
-        """Serve files from fs_root for any GET request under url_prefix.
+    def static(self, fs_root_or_prefix, fs_root=None):
+        """Serve files from a directory.
 
-        Example: app.static("/assets", "./public")
-          GET /assets/style.css  ->  ./public/style.css
+        One-argument form:   app.static("./public")        → served at /
+        Two-argument form:   app.static("./assets", "/static")  → served at /static/
         """
-        # Normalise: url_prefix must start with /, fs_root is relative to cwd
+        if fs_root is None:
+            # 1-arg: app.static("./public") — serve at /
+            url_prefix = '/'
+            fs_root    = fs_root_or_prefix
+        else:
+            # 2-arg: app.static("/static", "./assets")
+            url_prefix = fs_root_or_prefix
         if not url_prefix.startswith('/'):
             url_prefix = '/' + url_prefix
         self._static.append((url_prefix.rstrip('/'), _os.path.abspath(fs_root)))
@@ -1695,7 +1775,26 @@ class FrankieApp:
     def _dispatch(self, method, path, query_string, headers, body):
         query = dict(_urllib_parse.parse_qsl(query_string))
         try:
-            return self._dispatch_inner(method, path, query, headers, body)
+            # Build the middleware chain around _dispatch_inner
+            def inner(req):
+                return self._dispatch_inner(req.method, req.path, req.query,
+                                            req.headers, req.body)
+
+            if self._middleware:
+                # Build chain from inside out
+                chain = inner
+                for mw in reversed(self._middleware):
+                    outer_chain = chain
+                    def make_layer(handler, next_fn):
+                        def layer(req):
+                            return handler(req, next_fn)
+                        return layer
+                    chain = make_layer(mw, outer_chain)
+                req = FrankieRequest(method, path, {}, query, headers, body)
+                result = chain(req)
+            else:
+                result = self._dispatch_inner(method, path, query, headers, body)
+            return result
         except _HaltException as _h:
             return _h.response
 
@@ -1801,19 +1900,147 @@ class FrankieApp:
             server.shutdown()
 
 
-def render(template_path, data=None):
-    """Render a .html file as a template, filling {{key}} placeholders from data.
+def _fk_tmpl_escape(s):
+    """HTML-escape a string for safe output."""
+    s = str(s) if s is not None else ''
+    return (s.replace('&', '&amp;')
+             .replace('<', '&lt;')
+             .replace('>', '&gt;')
+             .replace('"', '&quot;')
+             .replace("'", '&#39;'))
 
-    Reads the file at template_path, passes it through template() with the
-    supplied hash, and returns an html_response.
+
+def _fk_tmpl_lookup(data, key):
+    """Look up key in data dict; return None if missing."""
+    key = key.strip()
+    if isinstance(data, dict):
+        return data.get(key)
+    return None
+
+
+def _fk_tmpl_render(tmpl, data):
+    """Core Mustache-compatible renderer.
+
+    Supports:
+      {{ var }}             — HTML-escaped interpolation
+      {{{ var }}}           — raw unescaped interpolation
+      {{# section }}...{{/ section }} — truthy block / vector iteration
+      {{^ inverted }}...{{/ inverted }} — falsy / empty block
+      {{! comment }}        — stripped from output
+    """
+    import re as _re
+
+    # Strip comments
+    tmpl = _re.sub(r'\{\{![^}]*\}\}', '', tmpl)
+
+    # Sections {{# key }} ... {{/ key }}
+    def render_section(m):
+        key = m.group(1).strip()
+        inner = m.group(2)
+        value = _fk_tmpl_lookup(data, key)
+        if value is None or value is False:
+            return ''
+        if isinstance(value, list):
+            out = []
+            for item in value:
+                merged = dict(data, **item) if isinstance(item, dict) else data
+                out.append(_fk_tmpl_render(inner, merged))
+            return ''.join(out)
+        if value is True or isinstance(value, (dict, str, int, float)):
+            merged = dict(data, **value) if isinstance(value, dict) else data
+            return _fk_tmpl_render(inner, merged)
+        return ''
+
+    tmpl = _re.sub(
+        r'\{\{#\s*(\w+)\s*\}\}([\s\S]*?)\{\{/\s*\1\s*\}\}',
+        render_section, tmpl)
+
+    # Inverted sections {{^ key }} ... {{/ key }}
+    def render_inverted(m):
+        key = m.group(1).strip()
+        inner = m.group(2)
+        value = _fk_tmpl_lookup(data, key)
+        if value is None or value is False or (isinstance(value, list) and len(value) == 0):
+            return _fk_tmpl_render(inner, data)
+        return ''
+
+    tmpl = _re.sub(
+        r'\{\{\^\s*(\w+)\s*\}\}([\s\S]*?)\{\{/\s*\1\s*\}\}',
+        render_inverted, tmpl)
+
+    # Triple mustache {{{ var }}} — raw output
+    def raw_var(m):
+        key = m.group(1).strip()
+        val = _fk_tmpl_lookup(data, key)
+        return '' if val is None else str(val)
+
+    tmpl = _re.sub(r'\{\{\{([^}]+)\}\}\}', raw_var, tmpl)
+
+    # Double mustache {{ var }} — HTML-escaped
+    def escaped_var(m):
+        key = m.group(1).strip()
+        val = _fk_tmpl_lookup(data, key)
+        return '' if val is None else _fk_tmpl_escape(val)
+
+    tmpl = _re.sub(r'\{\{([^#\^/>{!][^}]*)\}\}', escaped_var, tmpl)
+
+    return tmpl
+
+
+def render(template_str_or_path, data=None):
+    """Render a Mustache-compatible template string with a data hash.
+
+    render(template, data)       — render a string template
+    render(path, data)           — kept for backward compat: if it looks like a
+                                   file path (contains / or ends with .html/.mustache),
+                                   reads the file first.
+
+    Syntax:
+      {{ var }}               HTML-escaped interpolation
+      {{{ var }}}             raw / unescaped interpolation
+      {{# section }}...{{/ section }}   truthy block or vector iteration
+      {{^ inverted }}...{{/ inverted }}  falsy / empty block
+      {{! comment }}          stripped from output
 
     Example:
-        resp = render("views/index.html", {title: "Home", name: "Alice"})
+        tmpl = \"Hello, {{ name }}! You have {{ count }} messages.\"
+        puts render(tmpl, {name: \"Alice\", count: 7})
     """
-    with open(template_path, 'r', encoding='utf-8') as _fh:
+    import os as _os
+    d = data or {}
+    s = template_str_or_path
+    # Treat as a file path only if it looks like an actual path:
+    # no newlines, no spaces, no < or > (rules out HTML), and either
+    # has a recognised extension or contains an OS path separator.
+    is_path = (
+        '\n' not in s
+        and ' ' not in s
+        and '<' not in s
+        and '>' not in s
+        and '{' not in s
+        and (s.endswith('.html') or s.endswith('.mustache')
+             or _os.sep in s)
+    )
+    if is_path:
+        with open(s, 'r', encoding='utf-8') as _fh:
+            s = _fh.read()
+        return html_response(_fk_tmpl_render(s, d))
+    return _fk_tmpl_render(s, d)
+
+
+def render_file(path, data=None):
+    """Load a template file and render it with a data hash.
+
+    Returns the rendered string (not a response object).
+    Use html_response(render_file(...)) inside a route handler.
+
+    Example:
+        html = render_file(\"./views/dashboard.html\", {name: user[\"name\"]})
+        html_response(html)
+    """
+    with open(path, 'r', encoding='utf-8') as _fh:
         tmpl = _fh.read()
-    filled = template(tmpl, data or {})
-    return html_response(filled)
+    return _fk_tmpl_render(tmpl, data or {})
 
 
 def web_app():

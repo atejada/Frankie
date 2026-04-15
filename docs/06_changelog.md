@@ -1,5 +1,119 @@
 # Changelog
 
+## v1.14.0 (2026)
+
+### Theme: Frankie for Real Web Apps
+
+---
+
+### New Language Features
+
+**`spawn { }` — Background Blocks**
+- Run any block in a background thread — returns immediately, response goes out while work continues
+- Works in web routes and standalone scripts
+- Spawned blocks receive a copy of variables at spawn time; mutations do not affect outer scope
+- Backed by Python's `threading.Thread` — zero dependencies
+
+**`timeout(n) { }` — Time-Bounded Execution**
+- Kill any block that exceeds `n` seconds — raises `TimeoutError`
+- Works inside `begin/rescue TimeoutError` for graceful fallback
+- Essential for external HTTP calls, slow database queries, and any operation that can hang
+- Backed by Python's `threading` with a sentinel thread — zero dependencies
+
+**Hash Destructuring — `{name, age} = user`**
+- Pull hash keys directly into local variables in one assignment
+- Missing keys evaluate to `nil` — no error
+- Works anywhere an assignment is valid: top level, inside functions, inside route handlers, inside loops
+- Bareword (symbol) keys only — matches the existing hash literal convention
+
+**Shape Pattern Matching — `case user when {role: "admin"}`**
+- `when` clauses now accept hash literals — matches any hash containing at least those key/value pairs
+- Extra keys in the subject hash are ignored (subset match)
+- Works with records — `record Point(x, y)` is a hash, so `when {x: 0}` is valid
+- Mix shape and value `when` clauses in the same `case`
+
+---
+
+### New Web Features
+
+**Async Routes — `app.get_async` / `app.post_async` etc.**
+- Non-blocking route handlers — slow I/O in one handler does not hold up others
+- All five HTTP methods have async variants: `get_async`, `post_async`, `put_async`, `delete_async`, `patch_async`
+- Use `await` inside async blocks for non-blocking calls
+
+**Middleware Stack — `app.use do |req, next_fn|`**
+- Chain middleware that wraps every request — auth, logging, rate-limiting, CORS
+- Each layer calls `next_fn.(req)` to pass control forward, or returns a response to short-circuit
+- Runs in registration order
+
+**Static File Serving — `app.static(dir)` / `app.static(dir, prefix)`**
+- Serve a directory of static files with one line
+- Serves HTML, CSS, JS, images, fonts, JSON automatically
+- Optional URL prefix: `app.static("./assets", "/static")`
+- Directory listing disabled by default
+
+---
+
+### New Stitches
+
+**`frankietemplate`**
+- Mustache-compatible template engine — zero dependencies, pure `.fk`
+- `{{ variable }}` — HTML-escaped interpolation
+- `{{{ variable }}}` — raw / unescaped output
+- `{{# section }} ... {{/ section}}` — truthy blocks and vector iteration
+- `{{^ inverted }} ... {{/ inverted}}` — falsy / empty blocks
+- `{{> partial_name }}` — include from `./views/partials/<n>.html`
+- `{{! comment }}` — stripped from output
+- `render(template, data)` — render a string
+- `render_file(path, data)` — load and render a file
+- `partial(name)` — load a partial by name
+
+**`frankiecookie`**
+- HMAC-SHA256 signed cookies via Python's `hmac` + `hashlib` stdlib — zero dependencies
+- `set_signed_cookie(resp, name, value, secret, opts)` — write a tamper-proof cookie
+- `get_signed_cookie(req, name, secret)` — read and verify — returns `nil` if missing or tampered
+- `delete_cookie(resp, name)` — expire a cookie immediately
+- `cookie_set?(req, name)` — check if a cookie is present
+- Supports all cookie options: `path`, `max_age`, `same_site`, `http_only`, `secure`
+
+---
+
+### Tooling
+
+**`frankiec new` — Scaffold Updated for Stitches**
+- Generated project now includes a `stitches/` folder with a `README.md` explaining the stitch convention
+- Generated project includes a `views/partials/` folder for template projects
+- Generated `README.md` documents `stitch "name"` usage
+- Version string in `main.fk` banner updated to v1.14
+
+**Global Stitch Install — `install.py`**
+- `install.py` now correctly copies all bundled stitches to `~/.frankie/stitches/` at install time
+- Installation output lists each stitch file copied
+- `frankiecookie` and `frankietemplate` included in the bundled set
+- `python3 install.py --uninstall` removes `~/.frankie/stitches/` and `~/.frankie/` if empty
+
+---
+
+### Documentation
+
+**`frankiepager` — `page_links` Full Example**
+- Complete web pagination example showing `paginate` + `page_slice` + `page_links` together
+- Matching `frankietemplate` HTML template for the pagination nav
+- `page_links` return value documented with key/type/description table
+
+**`docs/09_web.md` — Web Reference Updated**
+- `spawn`, `timeout`, async routes, middleware, and static serving all documented
+- Web API summary table extended to cover all new functions and methods
+
+**`docs/language_conditionals.md` — Shape Matching Added**
+- Shape `when` clauses documented with examples
+- Mixed value + shape `case` documented
+- Record compatibility noted
+
+---
+
+
+
 ## v1.13.1 (2026)
 
 ### Bug Fixes & Gap Closers
@@ -249,7 +363,9 @@
 
 **Standard Library — `pp(value)` pretty-print**
 - Indented multiline output for hashes, vectors, and records
-- Records printed as `RecordName(\n  field: value,\n  ...)`
+- Records printed as `RecordName(
+  field: value,
+  ...)`
 - Flat vectors printed on one line; nested structures indented recursively
 
 **Standard Library — `encode` / `decode`**

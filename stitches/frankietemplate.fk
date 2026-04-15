@@ -1,0 +1,24 @@
+## frankietemplate.fk — Mustache-compatible template rendering for Frankie
+##
+## The template engine is implemented in frankie_stdlib.py.
+## Stitching this file makes render() and render_file() available.
+##
+## Usage:
+##   stitch "frankietemplate"
+##
+##   tmpl = "Hello, {{ name }}! You have {{ count }} messages."
+##   puts render(tmpl, {name: "Alice", count: 5})
+##
+##   html = render_file("./views/index.html", {title: "Home"})
+##   html_response(html)
+##
+## Syntax:
+##   {{ var }}                          — HTML-escaped interpolation
+##   {{{ var }}}                        — raw / unescaped interpolation
+##   {{# section }} ... {{/ section }}  — truthy block or vector iteration
+##   {{^ inverted }} ... {{/ inverted}} — falsy / empty block
+##   {{! comment }}                     — stripped from output
+
+## render(template, data) and render_file(path, data) are built into
+## frankie_stdlib.py — no Frankie implementation needed here.
+## This file exists so stitch "frankietemplate" signals intent clearly.

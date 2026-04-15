@@ -51,6 +51,51 @@ lo, hi = min_max([3, 1, 4, 1, 5, 9])
 puts "#{lo}..#{hi}"   # 1..9
 ```
 
+### Hash Destructuring *(v1.14)*
+
+Pull hash keys directly into local variables using `{ }` on the left-hand side. Keys must be bareword (symbol) keys — matching the hash literal convention.
+
+```ruby
+user = {name: "Alice", age: 30, role: "admin"}
+
+{name, age} = user
+puts name   # Alice
+puts age    # 30
+```
+
+Missing keys evaluate to `nil` — no error is raised:
+
+```ruby
+{name, nickname} = {name: "Alice"}
+puts name       # Alice
+puts nickname   # nil
+```
+
+Works anywhere an assignment is valid — inside functions, loops, and route handlers:
+
+```ruby
+# Unpack a config hash in a function
+def start_server(config)
+  {host, port, debug} = config
+  puts "Starting on #{host}:#{port} (debug=#{debug})"
+end
+
+start_server({host: "localhost", port: 3000, debug: true})
+
+# Unpack database rows in a loop
+db.find_all("users").each do |row|
+  {name, email, role} = row
+  puts "#{name} <#{email}> [#{role}]"
+end
+
+# Unpack a request body in a route handler
+app.post("/users") do |req|
+  {name, email, password} = req.json
+  user = create_user(name, email, password)
+  json_response({id: user["id"]}, 201)
+end
+```
+
 ---
 
 ## Constants
