@@ -572,15 +572,83 @@ comparison  ::= addition (('=='|'!='|'<'|'<='|'>'|'>='|'=~') addition)*
 addition    ::= multiply (('+' | '-') multiply)*
 multiply    ::= unary (('*'|'/'|'//'|'%'|'**') unary)*
 unary       ::= '-' postfix | postfix [('..' | '...') unary]
-postfix     ::= primary ('.' method | '[' expr ']')*
+postfix     ::= primary ('.' method | '[' expr ']' | '.' '(' args ')')*
 primary     ::= INTEGER | FLOAT | STRING | BOOL | NIL
               | IDENT ['(' args ')']
               | '[' elements ']'
               | '{' pairs '}'
               | '(' expr ')'
               | input_expr
+              | ternary_expr
+ternary_expr ::= or_expr '?' or_expr ':' ternary_expr
 ```
 
 ---
 
-*Frankie v1.2 — "It's alive!" 🧟⚡*
+## 27. Ternary Expression (v1.15)
+
+```frankie
+label = score >= 90 ? "A" : score >= 70 ? "B" : "C"
+msg   = n == 1 ? "one item" : "many items"
+```
+
+Right-associative. Works in any expression position including interpolation and arguments.
+
+---
+
+## 28. Default Parameters — keyword style (v1.15)
+
+Both `=` and `:` syntax are accepted in `def`:
+
+```frankie
+def connect(host, port = 5432, ssl: true, timeout: 30)
+  puts "#{host}:#{port}"
+end
+connect("localhost")
+connect("prod", port: 3306, ssl: false)
+```
+
+Named arguments at the call site (`name: value`) already worked; `name: default` in the definition is new in v1.15.
+
+---
+
+## 29. Splat in Multi-Assign (v1.15)
+
+```frankie
+a, b, *rest        = [1, 2, 3, 4, 5]   # rest = [3, 4, 5]
+first, *mid, last  = [1, 2, 3, 4, 5]   # mid  = [2, 3, 4]
+x, y               = [7, 8, 9]          # x=7, y=8 (truncates)
+```
+
+---
+
+## 30. `const` Keyword (v1.15)
+
+Explicit constant declaration. Equivalent to ALL_CAPS convention but more readable:
+
+```frankie
+const PI      = 3.14159
+const MAX_INT = 2 ** 31
+```
+
+Reassignment prints a warning and keeps the original value.
+
+---
+
+## 31. Lambda Call Syntax (v1.15)
+
+`fn.(args)` is now valid everywhere, not just inside route bodies:
+
+```frankie
+double = ->(x) { x * 2 }
+puts double.(5)       # 10
+
+add = ->(a, b) do
+  return a + b
+end
+puts add.(3, 4)       # 7
+```
+
+---
+
+*Frankie v1.3 — "It's alive!" 🧟⚡*

@@ -115,6 +115,7 @@ class TT(Enum):
     NEXT         = auto()  # next
     BREAK        = auto()  # break
     RECORD       = auto()  # record
+    CONST        = auto()  # const
     THEN         = auto()  # then  (inline if expression)
     SPAWN        = auto()  # spawn
     TIMEOUT      = auto()  # timeout
@@ -161,6 +162,7 @@ KEYWORDS = {
     'next':             TT.NEXT,
     'break':            TT.BREAK,
     'record':           TT.RECORD,
+    'const':            TT.CONST,
     'then':             TT.THEN,
     'spawn':            TT.SPAWN,
     'timeout':          TT.TIMEOUT,

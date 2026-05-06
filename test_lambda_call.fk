@@ -1,0 +1,17 @@
+# fn.(args) — lambda call syntax now works everywhere
+double = ->(x) { x * 2 }
+puts double.(5)
+puts double.(21)
+
+add = ->(a, b) do
+  return a + b
+end
+puts add.(3, 4)
+
+# In a chain
+fns = [double, ->(x) { x + 1 }]
+val = 10
+fns.each do |f|
+  val = f.(val)
+end
+puts val

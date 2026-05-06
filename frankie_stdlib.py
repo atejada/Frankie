@@ -559,6 +559,38 @@ def dir_list(path="."):
         raise RuntimeError(f"[Frankie] dir_list failed: {e}")
 
 
+# ─── Path Helpers ─────────────────────────────────────────────────────────────
+import os.path as _osp
+
+def path_join(*parts):
+    """Join path components: path_join("a", "b", "c") → "a/b/c" """
+    return _osp.join(*[str(p) for p in parts])
+
+def path_dirname(path):
+    """Directory component of a path: path_dirname("/a/b/c.txt") → "/a/b" """
+    return _osp.dirname(str(path))
+
+def path_basename(path):
+    """Filename component of a path: path_basename("/a/b/c.txt") → "c.txt" """
+    return _osp.basename(str(path))
+
+def path_extname(path):
+    """Extension of a path: path_extname("file.txt") → ".txt" """
+    return _osp.splitext(str(path))[1]
+
+def path_stem(path):
+    """Filename without extension: path_stem("file.txt") → "file" """
+    return _osp.splitext(_osp.basename(str(path)))[0]
+
+def path_absolute(path):
+    """Resolve to absolute path."""
+    return _osp.abspath(str(path))
+
+def path_expand(path):
+    """Expand ~ and environment variables in path."""
+    return _osp.expandvars(_osp.expanduser(str(path)))
+
+
 # ─── String Formatting ────────────────────────────────────────────────────────
 
 def format(template, *args):
@@ -808,6 +840,19 @@ def _fk_unpack(value, count):
     return lst[:count]
 
 
+def _fk_unpack_splat(value, n_before, n_after):
+    """Unpack with a *rest splat.
+    Returns a flat list: n_before items, then rest as a list, then n_after items."""
+    lst = list(value) if isinstance(value, (list, tuple)) else [value]
+    total_fixed = n_before + n_after
+    while len(lst) < total_fixed:
+        lst.append(None)
+    before = lst[:n_before]
+    rest   = lst[n_before: len(lst) - n_after if n_after > 0 else len(lst)]
+    after  = lst[len(lst) - n_after:] if n_after > 0 else []
+    return before + [rest] + after
+
+
 # ─── v1.14 Runtime Helpers ────────────────────────────────────────────────────
 
 def _fk_timeout(seconds, fn):
@@ -864,6 +909,31 @@ def _fk_hmac_verify(signed: str, secret: str):
     if _hmac.compare_digest(provided_sig, expected_sig):
         return value
     return None
+
+# ─── v1.15 Runtime Helpers ────────────────────────────────────────────────────
+# Public aliases — callable directly from Frankie scripts
+def hmac_sign(value, secret):
+    """Sign a string with HMAC-SHA256: hmac_sign(value, secret) → signed_token"""
+    return _fk_hmac_sign(str(value), str(secret))
+
+def hmac_verify(signed, secret):
+    """Verify an HMAC-signed token: hmac_verify(token, secret) → value or nil"""
+    return _fk_hmac_verify(str(signed), str(secret))
+
+def base64_encode(s):
+    """Encode a string to Base64: base64_encode('hello') → 'aGVsbG8='"""
+    import base64 as _b64
+    return _b64.b64encode(str(s).encode('utf-8')).decode('ascii')
+
+def base64_decode(s):
+    """Decode a Base64 string: base64_decode('aGVsbG8=') → 'hello'"""
+    import base64 as _b64
+    try:
+        # Add padding if needed
+        padded = str(s) + '=' * (-len(str(s)) % 4)
+        return _b64.b64decode(padded).decode('utf-8')
+    except Exception as e:
+        raise RuntimeError(f"[Frankie] base64_decode error: {e}")
 
 
 # ─── v1.1 String Helpers ──────────────────────────────────────────────────────
@@ -1152,10 +1222,14 @@ def json_parse(s):
     except _json.JSONDecodeError as e:
         raise RuntimeError(f"[Frankie] JSON parse error: {e}")
 
-def json_dump(obj, pretty=False):
-    """Serialize a Frankie value → JSON string."""
+def json_encode(obj, pretty=False):
+    """Serialize a Frankie value → JSON string. Alias: json_dump."""
     indent = 2 if pretty else None
     return _json.dumps(obj, indent=indent, default=str)
+
+def json_dump(obj, pretty=False):
+    """Serialize a Frankie value → JSON string. (json_encode is preferred)"""
+    return json_encode(obj, pretty=pretty)
 
 def json_read(path):
     """Read and parse a JSON file."""
@@ -1286,6 +1360,47 @@ class FrankieDate:
     def timestamp(self):
         """Unix timestamp as float."""
         return self._dt.timestamp()
+
+    # ── Arithmetic operators ───────────────────────────────────────────────
+    def __add__(self, other):
+        """date + n  →  date advanced by n days (int) or timedelta."""
+        if isinstance(other, int):
+            return FrankieDate(self._dt + _dt.timedelta(days=other))
+        if isinstance(other, float):
+            return FrankieDate(self._dt + _dt.timedelta(days=other))
+        if isinstance(other, _dt.timedelta):
+            return FrankieDate(self._dt + other)
+        return NotImplemented
+
+    def __radd__(self, other):
+        return self.__add__(other)
+
+    def __sub__(self, other):
+        """date - n  →  date moved back n days.
+           date - date  →  integer number of days between them."""
+        if isinstance(other, (int, float)):
+            return FrankieDate(self._dt - _dt.timedelta(days=other))
+        if isinstance(other, _dt.timedelta):
+            return FrankieDate(self._dt - other)
+        if isinstance(other, FrankieDate):
+            return (self._dt - other._dt).days   # signed integer
+        return NotImplemented
+
+    # ── Comparison operators ───────────────────────────────────────────────
+    def __eq__(self, other):
+        return isinstance(other, FrankieDate) and self._dt == other._dt
+
+    def __lt__(self, other):
+        return isinstance(other, FrankieDate) and self._dt < other._dt
+
+    def __le__(self, other):
+        return isinstance(other, FrankieDate) and self._dt <= other._dt
+
+    def __gt__(self, other):
+        return isinstance(other, FrankieDate) and self._dt > other._dt
+
+    def __ge__(self, other):
+        return isinstance(other, FrankieDate) and self._dt >= other._dt
 
     def __repr__(self):
         return f"Date({self._dt})"
@@ -1492,6 +1607,34 @@ class FrankieRequest:
 
     def __repr__(self):
         return f"<FrankieRequest {self.method} {self.path}>"
+
+    def query_int(self, key, default=None):
+        """Get a query param as an integer, or default if missing/invalid."""
+        val = self.query.get(str(key))
+        if val is None:
+            return default
+        try:
+            return int(val)
+        except (ValueError, TypeError):
+            return default
+
+    def query_float(self, key, default=None):
+        """Get a query param as a float, or default if missing/invalid."""
+        val = self.query.get(str(key))
+        if val is None:
+            return default
+        try:
+            return float(val)
+        except (ValueError, TypeError):
+            return default
+
+    def query_bool(self, key, default=False):
+        """Get a query param as a boolean.
+        'true', '1', 'yes' → True; 'false', '0', 'no' → False."""
+        val = self.query.get(str(key))
+        if val is None:
+            return default
+        return val.lower() in ('true', '1', 'yes')
 
 
 class FrankieResponse:
@@ -2344,6 +2487,28 @@ class _FKTestSuite:
             self._errors.append(label)
             print(f"  \033[31m✗\033[0m  {label}")
 
+    def assert_not_nil(self, value, msg=None):
+        ok = value is not None
+        label = msg or "expected non-nil value, got nil"
+        if ok:
+            self._pass += 1
+            print(f"  \033[32m✓\033[0m  {msg or 'value is not nil'}")
+        else:
+            self._fail += 1
+            self._errors.append(label)
+            print(f"  \033[31m✗\033[0m  {label}")
+
+    def assert_in(self, item, collection, msg=None):
+        ok = item in collection
+        label = msg or f"expected {item!r} to be in {collection!r}"
+        if ok:
+            self._pass += 1
+            print(f"  \033[32m✓\033[0m  {msg or f'{item!r} in collection'}")
+        else:
+            self._fail += 1
+            self._errors.append(label)
+            print(f"  \033[31m✗\033[0m  {label}")
+
     def assert_approx_eq(self, actual, expected, delta=0.001, msg=None):
         try:
             diff = abs(float(actual) - float(expected))
@@ -2437,6 +2602,12 @@ def assert_match(value, pattern, msg=None):
 
 def assert_nil(value, msg=None):
     _fk_test_suite.assert_nil(value, msg)
+
+def assert_not_nil(value, msg=None):
+    _fk_test_suite.assert_not_nil(value, msg)
+
+def assert_in(item, collection, msg=None):
+    _fk_test_suite.assert_in(item, collection, msg)
 
 def assert_approx_eq(actual, expected, delta=0.001, msg=None):
     _fk_test_suite.assert_approx_eq(actual, expected, delta, msg)

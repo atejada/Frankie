@@ -1,0 +1,73 @@
+# frankieauth — HTTP Basic Auth + Bearer token verification
+# Zero dependencies: uses Frankie's built-in hmac_sign/hmac_verify and base64.
+#
+# Usage:
+#
+#   stitch "frankieauth"
+#
+#   # Basic Auth middleware:
+#   app.use do |req, next_fn|
+#     if not basic_auth_ok?(req, "admin", "secret")
+#       halt(401, "Unauthorized")
+#     end
+#     next_fn.(req)
+#   end
+#
+#   # Bearer token flow:
+#   TOKEN_SECRET = env("TOKEN_SECRET", "dev-secret")
+#
+#   app.post("/login") do |req|
+#     token = auth_token_create(req.json["user"], TOKEN_SECRET)
+#     json_response({token: token})
+#   end
+#
+#   app.get("/me") do |req|
+#     user = auth_token_verify(req, TOKEN_SECRET)
+#     if user == nil
+#       halt(401, "Invalid token")
+#     end
+#     json_response({user: user})
+#   end
+
+def basic_auth_ok?(req, expected_user, expected_pass)
+  header = req.headers["Authorization"] or req.headers["authorization"]
+  if header == nil
+    return false
+  end
+  if not header.start_with?("Basic ")
+    return false
+  end
+  encoded = header[6..-1].strip
+  decoded = base64_decode(encoded)
+  parts = decoded.split(":")
+  if parts.length < 2
+    return false
+  end
+  user = parts[0]
+  password = parts[1..-1].join(":")
+  return user == expected_user and password == expected_pass
+end
+
+def auth_token_create(subject, secret)
+  return hmac_sign(subject, secret)
+end
+
+def auth_token_verify(req, secret)
+  header = req.headers["Authorization"] or req.headers["authorization"]
+  if header == nil
+    return nil
+  end
+  if not header.start_with?("Bearer ")
+    return nil
+  end
+  token = header[7..-1].strip
+  return hmac_verify(token, secret)
+end
+
+def bearer_required(req, secret)
+  user = auth_token_verify(req, secret)
+  if user == nil
+    halt(401, "Unauthorized")
+  end
+  return user
+end

@@ -319,6 +319,7 @@ class CaseStmt(Node):
 class DestructAssign(Node):
     names: List[str]
     value: Node
+    splat_index: int = -1   # index of *rest name, -1 if none
 
 # ─── Loop Control ─────────────────────────────────────────────────────────────
 
@@ -352,6 +353,13 @@ class RecordDef(Node):
     """record Point(x, y) — lightweight named data object / struct"""
     name: str
     fields: List[str]
+
+@dataclass
+class TernaryExpr(Node):
+    """condition ? then_expr : else_expr"""
+    condition: Node
+    then_expr: Node
+    else_expr: Node
 
 @dataclass
 class IfExpr(Node):

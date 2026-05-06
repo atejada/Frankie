@@ -1,0 +1,185 @@
+# ╔══════════════════════════════════════════════════════╗
+# ║        Frankie v1.15 — What's New                    ║
+# ╚══════════════════════════════════════════════════════╝
+
+puts "╔══════════════════════════════════════════╗"
+puts "║       Frankie v1.15 — What's New         ║"
+puts "╚══════════════════════════════════════════╝"
+puts ""
+
+# ── 1. Ternary operator ──────────────────────────────────────────────────────
+
+puts "── 1. Ternary operator ──"
+
+score = 85
+grade = score >= 90 ? "A" : score >= 70 ? "B" : "C"
+puts "Score #{score} → #{grade}"
+
+n = 1
+puts "#{n} #{n == 1 ? "item" : "items"}"
+
+x = -7
+puts x > 0 ? "positive" : x < 0 ? "negative" : "zero"
+puts ""
+
+# ── 2. Keyword-style default parameters ─────────────────────────────────────
+
+puts "── 2. Keyword default parameters ──"
+
+def connect(host, port: 5432, ssl: true, timeout: 30)
+  puts "#{host}:#{port} ssl=#{ssl} timeout=#{timeout}s"
+end
+
+connect("localhost")
+connect("prod.db", port: 3306)
+connect("prod.db", ssl: false, timeout: 10)
+puts ""
+
+# ── 3. Splat multi-assign ────────────────────────────────────────────────────
+
+puts "── 3. Splat multi-assign ──"
+
+a, b, *rest = [1, 2, 3, 4, 5]
+puts "a=#{a} b=#{b} rest=#{rest}"
+
+first, *mid, last = ["alpha", "beta", "gamma", "delta"]
+puts "first=#{first} mid=#{mid} last=#{last}"
+
+head, *tail = [99]
+puts "head=#{head} tail=#{tail}"
+puts ""
+
+# ── 4. const keyword ─────────────────────────────────────────────────────────
+
+puts "── 4. const keyword ──"
+
+const PI         = 3.14159
+const APP_NAME   = "Frankie"
+const MAX_ITEMS  = 100
+
+puts "#{APP_NAME} — PI=#{PI} max=#{MAX_ITEMS}"
+area = PI * 5.0 * 5.0
+puts "Circle area r=5: #{area}"
+puts ""
+
+# ── 5. fn.(args) lambda call syntax ──────────────────────────────────────────
+
+puts "── 5. fn.(args) lambda call syntax ──"
+
+double = ->(x) { x * 2 }
+puts double.(6)
+
+add = ->(a, b) do
+  return a + b
+end
+puts add.(10, 32)
+
+pipeline = [
+  ->(x) { x * 2 },
+  ->(x) { x + 3 },
+  ->(x) { x * x }
+]
+val = 5
+pipeline.each do |f|
+  val = f.(val)
+end
+puts "pipeline(5) = #{val}"
+puts ""
+
+# ── 6. json_encode ────────────────────────────────────────────────────────────
+
+puts "── 6. json_encode ──"
+
+data = {name: "Alice", scores: [95, 87, 92], active: true}
+raw = json_encode(data)
+puts raw
+back = json_parse(raw)
+puts "round-trip name: #{back["name"]}"
+puts ""
+
+# ── 7. base64_encode / base64_decode ─────────────────────────────────────────
+
+puts "── 7. base64 ──"
+
+encoded = base64_encode("admin:secret")
+puts encoded
+puts base64_decode(encoded)
+puts ""
+
+# ── 8. hmac_sign / hmac_verify ───────────────────────────────────────────────
+
+puts "── 8. hmac_sign / hmac_verify ──"
+
+secret = "my-app-secret"
+token  = hmac_sign("user_id=42", secret)
+puts hmac_verify(token, secret)
+puts hmac_verify("tampered:deadbeef", secret)
+puts ""
+
+# ── 9. String#format ─────────────────────────────────────────────────────────
+
+puts "── 9. String#format ──"
+
+puts "Hello, {name}! You have {count} messages.".format({name: "Bob", count: 3})
+puts "v{major}.{minor}.{patch}".format({major: 1, minor: 15, patch: 0})
+puts ""
+
+# ── 10. .chars / .bytes ──────────────────────────────────────────────────────
+
+puts "── 10. .chars / .bytes ──"
+
+puts "hello".chars
+puts "ABC".bytes
+vowels = "Frankie".chars.select do |c|
+  matches(c, "[aeiouAEIOU]")
+end
+puts "vowels in 'Frankie': #{vowels}"
+puts ""
+
+# ── 11. Path helpers ─────────────────────────────────────────────────────────
+
+puts "── 11. Path helpers ──"
+
+puts path_join("home", "blag", "projects", "frankie")
+puts path_basename("/usr/local/bin/frankiec")
+puts path_extname("script.fk")
+puts path_stem("report.v115.md")
+puts ""
+
+# ── 12. Date arithmetic ──────────────────────────────────────────────────────
+
+puts "── 12. Date arithmetic ──"
+
+release = date_from(2026, 4, 17)
+puts "v1.15 released: #{release.format("%B %d, %Y")}"
+puts "30 days later:  #{(release + 30).format("%B %d, %Y")}"
+puts "Days since v1.14 (approx 90): #{release - (release - 90)}"
+puts "v1.15 > v1.14 date: #{release > release - 90}"
+puts ""
+
+# ── 13. .zip_with ────────────────────────────────────────────────────────────
+
+puts "── 13. .zip_with ──"
+
+names  = ["Alice", "Bob", "Carol"]
+scores = [95, 87, 92]
+
+names.zip_with(scores) do |name, score|
+  puts "  #{name}: #{score}"
+end
+puts ""
+
+# ── 14. assert_not_nil / assert_in ───────────────────────────────────────────
+
+puts "── 14. assert_not_nil / assert_in ──"
+
+assert_not_nil("hello", "string is not nil")
+assert_not_nil(42,      "number is not nil")
+assert_in(3, [1, 2, 3, 4, 5], "3 is in range")
+assert_in("fk", ["fk", "py", "rb"], "fk is a known extension")
+run_tests()
+puts ""
+
+puts "╔══════════════════════════════════════════╗"
+puts "║         Frankie v1.15 — Done! 🧟         ║"
+puts "╚══════════════════════════════════════════╝"

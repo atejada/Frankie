@@ -1,0 +1,51 @@
+# frankieratelimit — In-memory per-IP rate limiting middleware
+# No dependencies. Resets on server restart (by design).
+#
+# Usage:
+#
+#   stitch "frankieratelimit"
+#
+#   # Default: 60 requests per 60 seconds per IP
+#   app.use do |req, next_fn|
+#     rate_limit_check(req, next_fn)
+#   end
+#
+#   # Custom limits:
+#   app.use do |req, next_fn|
+#     rate_limit_check(req, next_fn, max: 30, window: 60)
+#   end
+
+_rl_store = {}
+
+def rate_limit_check(req, next_fn, max: 60, window: 60)
+  fwd = req.headers["X-Forwarded-For"]
+  ip  = fwd or "unknown"
+  key = "#{ip}_#{window}"
+  now_ts = now().timestamp()
+  cutoff  = now_ts - window
+
+  entry = _rl_store[key]
+  if entry == nil
+    timestamps = []
+  else
+    timestamps = entry["timestamps"].select do |t|
+      t > cutoff
+    end
+  end
+  timestamps.push(now_ts)
+
+  _rl_store[key] = {timestamps: timestamps}
+
+  if timestamps.length > max
+    halt(429, "Too Many Requests")
+  end
+
+  if next_fn != nil
+    return next_fn.(req)
+  end
+end
+
+def rate_limit_reset(ip, window: 60)
+  key = "#{ip}_#{window}"
+  _rl_store.delete(key)
+end

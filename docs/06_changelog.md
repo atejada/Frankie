@@ -1,5 +1,119 @@
 # Changelog
 
+## v1.15.0 (2026)
+
+### Theme: Language Polish & Developer Ergonomics
+
+---
+
+### New Language Features
+
+**Keyword-style default parameters — `def fn(name: default)`**
+- `def connect(host, port: 5432, ssl: true)` — Ruby-style keyword defaults in `def`
+- Both `=` and `:` syntax accepted: `def fn(x = 0)` and `def fn(x: 0)` are equivalent
+- Mixed positional and keyword defaults in the same signature work correctly
+- Reserved words (`timeout`, `spawn`) now usable as parameter names
+
+**Splat in multi-assign — `a, b, *rest = vec`**
+- Capture remaining elements: `a, b, *rest = [1, 2, 3, 4, 5]`  → `rest = [3, 4, 5]`
+- Splat anywhere in the list: `first, *mid, last = [1, 2, 3, 4, 5]`  → `mid = [2, 3, 4]`
+- Empty splat is an empty vector, not nil
+
+**Ternary operator — `condition ? a : b`**
+- Works in any expression position: assignment, interpolation, function arguments
+- Right-associative — nesting works naturally: `a ? b : c ? d : e`
+
+**`const` keyword**
+- `const PI = 3.14159` — explicit constant declaration alongside existing ALL_CAPS convention
+- Reassignment prints a warning and preserves the original value
+
+**Lambda call syntax — `fn.(args)` everywhere**
+- `fn.(args)` previously only worked inside web route bodies — now valid in all contexts
+- `double.(5)`, `add.(3, 4)`, chaining in vectors all work
+
+---
+
+### New Stdlib
+
+**`json_encode(obj, pretty: false)`**
+- Canonical inverse of `json_parse` — serializes any Frankie value to a JSON string
+- `json_encode(data, pretty: true)` for indented output
+
+**`hmac_sign(value, secret)` / `hmac_verify(token, secret)`**
+- Public aliases for the previously internal `_fk_hmac_sign` / `_fk_hmac_verify`
+- HMAC-SHA256 signing and verification — no external dependencies
+
+**`base64_encode(s)` / `base64_decode(s)`**
+- Encode and decode Base64 strings using Python's stdlib `base64` module
+- Auto-pads on decode — accepts strings with or without trailing `=`
+
+**`String#format` with named placeholders**
+- `"Hello, {name}!".format({name: "Alice"})` — runtime `{key}` substitution
+- Raises a descriptive error for missing keys
+
+**`.chars` / `.bytes` methods**
+- `"hello".chars` → `[h, e, l, l, o]`
+- `"AB".bytes` → `[65, 66]`
+- Both iterable — chain with `.each`, `.map`, `.select`
+
+**Path helpers**
+- `path_join("a", "b", "c")` → `"a/b/c"`
+- `path_dirname(p)`, `path_basename(p)`, `path_extname(p)`, `path_stem(p)`, `path_absolute(p)`
+
+**Date arithmetic operators**
+- `date + 7` → new date 7 days later
+- `date - 3` → new date 3 days earlier
+- `date1 - date2` → signed integer number of days between them
+- Full comparison: `<`, `<=`, `>`, `>=`, `==`
+
+**`.zip_with` block**
+- `[1,2,3].zip_with([4,5,6]) do |a, b| a + b end` → `[5, 7, 9]`
+- Without block: returns vector of `[a, b]` pairs
+
+**Testing: `assert_not_nil` / `assert_in`**
+- `assert_not_nil(value, msg)` — passes when value is not nil
+- `assert_in(item, collection, msg)` — passes when item is a member of collection
+- Both available as module-level functions alongside existing assert helpers
+
+**`FrankieRequest` query helpers**
+- `req.query_int("page", 1)` — typed query param with default, returns integer
+- `req.query_float("score", 0.0)` — returns float
+- `req.query_bool("debug", false)` — `"true"/"1"/"yes"` → `true`, else `false`
+
+---
+
+### New Stitches
+
+**`frankieauth`**
+- `basic_auth_ok?(req, user, pass)` — HTTP Basic Auth verification (stdlib base64, no deps)
+- `auth_token_create(subject, secret)` — HMAC-signed Bearer token
+- `auth_token_verify(req, secret)` → subject string or nil
+- `bearer_required(req, secret)` — verifies token and calls `halt(401)` if invalid
+
+**`frankieratelimit`**
+- `rate_limit_check(req, next_fn, max: 60, window: 60)` — in-memory per-IP rate limiting
+- Sliding window using timestamps — resets on server restart by design
+- `rate_limit_reset(ip)` — clear a specific IP's counter
+- Zero dependencies — plain hash + `now().timestamp()`
+
+---
+
+### Tooling
+
+**`frankiec check <file.fk>`**
+- Parse and type-check without executing — exits 0 on success, 1 on error
+- Prints precise error location; suitable for CI pre-flight
+
+**`frankiec new <project>`**
+- Scaffolds `main.fk`, `test.fk`, `lib/utils.fk`, `stitches/`, `views/`, `public/`, `data/`, `.env.example`, `.gitignore`, `README.md`
+- Scaffolded project runs and passes tests out of the box
+
+**`frankiec watch <file.fk>`** *(was undocumented — now official)*
+- Polls for file changes and re-runs automatically
+- `--test` flag runs `frankiec test` instead of `frankiec run`
+
+---
+
 ## v1.14.0 (2026)
 
 ### Theme: Frankie for Real Web Apps

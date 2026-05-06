@@ -118,13 +118,15 @@ class Parser:
             return self.parse_case()
         if t.type == TT.RECORD:
             return self.parse_record_def()
+        if t.type == TT.CONST:
+            return self.parse_const()
         if t.type == TT.NEXT:
             return self._maybe_postfix(self.parse_next())
         if t.type == TT.BREAK:
             return self._maybe_postfix(self.parse_break())
-        if t.type == TT.SPAWN:
+        if t.type == TT.SPAWN and self.peek(1).type == TT.DO:
             return self.parse_spawn()
-        if t.type == TT.TIMEOUT:
+        if t.type == TT.TIMEOUT and self.peek(1).type == TT.LPAREN:
             return self.parse_timeout()
         if t.type == TT.EOF:
             return None
@@ -183,19 +185,13 @@ class Parser:
         if self.check(TT.LPAREN):
             self.advance()
             if not self.check(TT.RPAREN):
-                pname = self._parse_param_name()
+                pname, pdefault = self._parse_one_param()
                 params.append(pname)
-                if self.match(TT.ASSIGN):
-                    defaults.append(self.parse_expr())
-                else:
-                    defaults.append(None)
+                defaults.append(pdefault)
                 while self.match(TT.COMMA):
-                    pname = self._parse_param_name()
+                    pname, pdefault = self._parse_one_param()
                     params.append(pname)
-                    if self.match(TT.ASSIGN):
-                        defaults.append(self.parse_expr())
-                    else:
-                        defaults.append(None)
+                    defaults.append(pdefault)
             self.expect(TT.RPAREN)
         self.skip_newlines()
         body = self.parse_body()
@@ -216,15 +212,38 @@ class Parser:
         self.expect(TT.RPAREN, "Expected ')' to close record field list")
         return RecordDef(name=name, fields=fields)
 
+    def parse_const(self) -> ConstAssign:
+        """Parse:  const NAME = expr  — explicit constant declaration."""
+        self.advance()  # consume 'const'
+        name_tok = self.expect(TT.IDENT, "Expected constant name after 'const'")
+        name = name_tok.value
+        self.expect(TT.ASSIGN, "Expected '=' after constant name")
+        value = self.parse_expr()
+        return ConstAssign(name=name, value=value)
+
     def _parse_param_name(self) -> str:
         """Accept any identifier-like token as a parameter name."""
         t = self.current()
         if t.type == TT.IDENT or t.type in (
             TT.TIMES, TT.EACH, TT.EACH_WITH_INDEX, TT.MAP,
             TT.IN, TT.AND, TT.OR, TT.NOT,
+            TT.TIMEOUT, TT.SPAWN,
         ):
             return self.advance().value
         raise ParseError("Expected parameter name", t)
+
+    def _parse_one_param(self):
+        """Parse one def parameter: name, name = default, or name: default.
+        Returns (param_name, default_node_or_None).
+        Uses parse_or (not parse_expr) so commas don't get eaten greedily."""
+        pname = self._parse_param_name()
+        if self.match(TT.ASSIGN):
+            return pname, self.parse_or()
+        if self.check(TT.COLON):
+            # name: default  — Ruby keyword-arg style
+            self.advance()  # consume ':'
+            return pname, self.parse_or()
+        return pname, None
 
     # ─── Control Flow ────────────────────────────────────────────────────────
 
@@ -472,12 +491,23 @@ class Parser:
         return self.parse_pipe()
 
     def parse_pipe(self) -> Node:
-        left = self.parse_assign()
+        left = self.parse_ternary()
         while self.check(TT.PIPE_ARROW):
             self.advance()
             right = self.parse_call_or_ident()
             left = PipeOp(left=left, right=right)
         return left
+
+    def parse_ternary(self) -> Node:
+        """condition ? then_expr : else_expr  (right-associative for nesting)"""
+        node = self.parse_assign()
+        if self.check(TT.QUESTION):
+            self.advance()              # consume ?
+            then_expr = self.parse_or()
+            self.expect(TT.COLON, "Expected ':' in ternary expression")
+            else_expr = self.parse_ternary()   # recursive → right-associative
+            return TernaryExpr(condition=node, then_expr=then_expr, else_expr=else_expr)
+        return node
 
     def parse_assign(self) -> Node:
         # Hash destructuring: {name, age} = expr
@@ -503,22 +533,32 @@ class Parser:
             # Not hash destructuring — backtrack
             self.pos = save_pos
         # Only applies when: IDENT COMMA ... ASSIGN  (pure identifiers, then =)
+        # Also supports *rest splat: a, b, *rest = [...]
         # We must NOT consume tokens if this turns out not to be destructuring
         if self.check(TT.IDENT) and self.peek(1).type == TT.COMMA:
-            # Scan ahead to confirm all commas lead to idents and end with =
+            # Scan ahead to confirm all commas lead to idents/*idents and end with =
             save_pos = self.pos
             names = [self.advance().value]  # first ident
+            splat_index = -1
             is_destruct = False
             while self.check(TT.COMMA):
                 self.advance()
-                if self.check(TT.IDENT):
+                if self.check(TT.STAR):
+                    # *rest — splat capture
+                    self.advance()  # consume *
+                    if self.check(TT.IDENT):
+                        splat_index = len(names)
+                        names.append(self.advance().value)
+                    else:
+                        break
+                elif self.check(TT.IDENT):
                     names.append(self.advance().value)
                 else:
                     break
             if self.check(TT.ASSIGN) and len(names) > 1:
                 self.advance()  # consume =
                 value = self.parse_expr()
-                return DestructAssign(names=names, value=value)
+                return DestructAssign(names=names, value=value, splat_index=splat_index)
             # Not destructuring — backtrack
             self.pos = save_pos
 
@@ -661,8 +701,19 @@ class Parser:
             if self.check(TT.DOT):
                 self.advance()
                 method_tok = self.current()
+                # Lambda call: fn.(arg1, arg2) — dot followed immediately by LPAREN
+                if method_tok.type == TT.LPAREN:
+                    self.advance()  # consume (
+                    args = []
+                    if not self.check(TT.RPAREN):
+                        args.append(self.parse_expr())
+                        while self.match(TT.COMMA):
+                            args.append(self.parse_expr())
+                    self.expect(TT.RPAREN)
+                    node = MethodCall(receiver=node, method='call', args=args, block=None)
+                    continue
                 # method name can be IDENT or keywords like 'times', 'each', etc.
-                if method_tok.type in (TT.IDENT, TT.TIMES, TT.EACH, TT.EACH_WITH_INDEX, TT.MAP):
+                elif method_tok.type in (TT.IDENT, TT.TIMES, TT.EACH, TT.EACH_WITH_INDEX, TT.MAP):
                     method = self.advance().value
                 else:
                     self.error("Expected method name after '.'")
@@ -681,10 +732,6 @@ class Parser:
                     block = self.parse_block()
 
                 node = MethodCall(receiver=node, method=method, args=args, block=block)
-
-            # Lambda call:  fn.(arg1, arg2)  — dot followed immediately by LPAREN
-            elif self.check(TT.DOT) is False and False:
-                pass  # placeholder — handled below
 
             elif self.check(TT.SAFE_NAV):
                 self.advance()  # consume &.
@@ -799,11 +846,15 @@ class Parser:
             return self.parse_if_expr()
 
         # spawn and timeout can appear as expressions (e.g. result = timeout(n) do)
-        if t.type == TT.SPAWN:
+        if t.type == TT.SPAWN and self.peek(1).type == TT.DO:
             return self.parse_spawn()
+        if t.type == TT.SPAWN:
+            return Identifier(name=self.advance().value)
 
-        if t.type == TT.TIMEOUT:
+        if t.type == TT.TIMEOUT and self.peek(1).type == TT.LPAREN:
             return self.parse_timeout()
+        if t.type == TT.TIMEOUT:
+            return Identifier(name=self.advance().value)
 
         if t.type == TT.LBRACKET:
             return self.parse_vector()

@@ -109,7 +109,7 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
 <body>
 
 <nav>
-  <a href="#" class="nav-logo">🧟 Frankie <span>v1.14</span></a>
+  <a href="#" class="nav-logo">🧟 Frankie <span>v1.15</span></a>
   <ul>
     <li><a href="#features">Features</a></li>
     <li><a href="#syntax">Syntax</a></li>
@@ -138,7 +138,7 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
   </div>
   <div class="ctas">
     <a href="#install" class="btn btn-p">Get Started →</a>
-    <a href="https://github.com/atejada/Frankie/releases" class="btn btn-s">Download v1.14</a>
+    <a href="https://github.com/atejada/Frankie/releases" class="btn btn-s">Download v1.15</a>
     <a href="https://atejada.github.io/frankielanguage/site/index.html" class="btn btn-s">Go to the Docs</a>
     <a href="https://github.com/atejada/Frankie" class="btn btn-s">★ Star on GitHub</a>
   </div>
@@ -152,11 +152,17 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
   <h2>Everything you need.<br>Nothing you don't.</h2>
   <p style="color:var(--muted);max-width:560px;font-size:.97rem">Proudly procedural — functions, data, loops, logic. No classes, no <code>self</code>, no inheritance. Runs on Python 3.10+ with zero external dependencies.</p>
   <div class="grid">
-    <div class="card"><div class="card-icon">🌐</div><h3>Async Routes + Middleware Stack <span class="new-badge">v1.14</span></h3><p><code>app.get_async</code> for non-blocking handlers. <code>app.use do |req, next_fn|</code> for chainable auth, logging, and rate-limiting. Real web apps, real patterns.</p></div>
-    <div class="card"><div class="card-icon">⚡</div><h3><code>spawn { }</code> + <code>timeout(n) { }</code> <span class="new-badge">v1.14</span></h3><p>Fire-and-forget background blocks. Kill slow operations before they hang your server. Zero threading boilerplate, zero dependencies.</p></div>
-    <div class="card"><div class="card-icon">🎨</div><h3><code>frankietemplate</code> — Mustache Templates <span class="new-badge">v1.14</span></h3><p>Mustache-compatible engine as a stitch. <code>{{ var }}</code>, sections, partials, inverted blocks. <code>render_file("./views/index.html", data)</code>. Zero dependencies, pure <code>.fk</code>.</p></div>
-    <div class="card"><div class="card-icon">🍪</div><h3><code>frankiecookie</code> + Static Files <span class="new-badge">v1.14</span></h3><p>HMAC-signed cookies via Python's <code>hmac</code> stdlib — tamper-proof, zero deps. <code>app.static("./public")</code> serves a directory in one line.</p></div>
-    <div class="card"><div class="card-icon">🗂️</div><h3>Hash Destructuring + Shape Matching <span class="new-badge">v1.14</span></h3><p><code>{name, age} = user</code> pulls keys into variables. <code>case user when {role: "admin"}</code> matches on hash shape. Data manipulation finally feels natural.</p></div>
+    <div class="card"><div class="card-icon">❓</div><h3>Ternary Operator <span class="new-badge">v1.15</span></h3><p><code>score >= 90 ? "A" : "B"</code> — right-associative, works in any expression: assignments, interpolation, arguments. No more single-expression <code>if/end</code> blocks.</p></div>
+    <div class="card"><div class="card-icon">🎯</div><h3>Keyword Default Params <span class="new-badge">v1.15</span></h3><p><code>def connect(host, port: 5432, ssl: true)</code> — Ruby-style <code>name: default</code> syntax in <code>def</code>. Mixed positional and keyword defaults in the same signature.</p></div>
+    <div class="card"><div class="card-icon">💥</div><h3>Splat Multi-Assign <span class="new-badge">v1.15</span></h3><p><code>a, b, *rest = [1,2,3,4,5]</code> and <code>first, *mid, last = vec</code> — capture remaining elements anywhere in a destructuring assignment.</p></div>
+    <div class="card"><div class="card-icon">🔒</div><h3><code>const</code> + <code>fn.(args)</code> <span class="new-badge">v1.15</span></h3><p>Explicit <code>const PI = 3.14</code> constant keyword. Lambda call <code>fn.(args)</code> now works everywhere — store, pass, and call lambdas freely.</p></div>
+    <div class="card"><div class="card-icon">🔑</div><h3><code>frankieauth</code> + <code>frankieratelimit</code> <span class="new-badge">v1.15</span></h3><p>HTTP Basic Auth and HMAC Bearer tokens via <code>frankieauth</code> stitch. In-memory sliding-window rate limiting via <code>frankieratelimit</code>. Zero dependencies.</p></div>
+    <div class="card"><div class="card-icon">🛠️</div><h3><code>frankiec check</code> + <code>frankiec new</code> <span class="new-badge">v1.15</span></h3><p>Lint without running — CI-ready <code>frankiec check file.fk</code> exits 1 on errors. Full project scaffold with <code>frankiec new myapp</code> — runs and tests pass out of the box.</p></div>
+    <div class="card"><div class="card-icon">🌐</div><h3>Async Routes + Middleware Stack <span class="badge bs">v1.14</span></h3><p><code>app.get_async</code> for non-blocking handlers. <code>app.use do |req, next_fn|</code> for chainable auth, logging, and rate-limiting. Real web apps, real patterns.</p></div>
+    <div class="card"><div class="card-icon">⚡</div><h3><code>spawn { }</code> + <code>timeout(n) { }</code> <span class="badge bs">v1.14</span></h3><p>Fire-and-forget background blocks. Kill slow operations before they hang your server. Zero threading boilerplate, zero dependencies.</p></div>
+    <div class="card"><div class="card-icon">🎨</div><h3><code>frankietemplate</code> — Mustache Templates <span class="badge bs">v1.14</span></h3><p>Mustache-compatible engine as a stitch. <code>{{ var }}</code>, sections, partials, inverted blocks. <code>render_file("./views/index.html", data)</code>. Zero dependencies, pure <code>.fk</code>.</p></div>
+    <div class="card"><div class="card-icon">🍪</div><h3><code>frankiecookie</code> + Static Files <span class="badge bs">v1.14</span></h3><p>HMAC-signed cookies via Python's <code>hmac</code> stdlib — tamper-proof, zero deps. <code>app.static("./public")</code> serves a directory in one line.</p></div>
+    <div class="card"><div class="card-icon">🗂️</div><h3>Hash Destructuring + Shape Matching <span class="badge bs">v1.14</span></h3><p><code>{name, age} = user</code> pulls keys into variables. <code>case user when {role: "admin"}</code> matches on hash shape. Data manipulation finally feels natural.</p></div>
     <div class="card"><div class="card-icon">🧵</div><h3><code>frankiestring</code> v2 + Vector block fixes <span class="badge bs">v1.13.1</span></h3><p>Rewritten string stitch with <code>pad_left</code>, <code>pad_right</code>, <code>truncate</code>, <code>slugify</code>, <code>word_wrap</code>, <code>indent_lines</code>. Plus <code>.sum do</code>, <code>.flat_map do</code> multi-line blocks now work correctly.</p></div>
     <div class="card"><div class="card-icon">🧪</div><h3><code>assert_approx_eq</code> + <code>run_tests()</code> <span class="badge bs">v1.13.1</span></h3><p>Float comparison in tests with configurable delta (default <code>0.001</code>). <code>run_tests()</code> is now a public stdlib function — callable from any <code>.fk</code> file, not just <code>frankiec test</code>.</p></div>
     <div class="card"><div class="card-icon">🍪</div><h3>Web Session Helper + <code>fmt</code> Idempotency <span class="badge bs">v1.13.1</span></h3><p>Cookie-backed <code>session(req, resp)</code> — read, mutate, <code>.save()</code>. Zero server state. <code>frankiec fmt</code> now preserves blank lines, expands long hashes, and is safe for pre-commit hooks.</p></div>
@@ -269,7 +275,41 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
     </div>
 
     <div class="cp">
-      <div class="cp-head"><span class="cp-title">v1.14.fk <span class="new-badge">v1.14</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
+      <div class="cp-head"><span class="cp-title">v1.15.fk <span class="new-badge">v1.15</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
+      <pre><span class="cm"># Ternary operator</span>
+<span class="vr">grade</span> = <span class="vr">score</span> >= <span class="num">90</span> ? <span class="str">"A"</span> : <span class="vr">score</span> >= <span class="num">70</span> ? <span class="str">"B"</span> : <span class="str">"C"</span>
+
+<span class="cm"># Keyword default parameters</span>
+<span class="kw">def</span> <span class="fn">connect</span>(host, port: <span class="num">5432</span>, ssl: <span class="kw">true</span>)
+  <span class="fn">puts</span> <span class="str">"#{host}:#{port} ssl=#{ssl}"</span>
+<span class="kw">end</span>
+
+<span class="cm"># Splat multi-assign</span>
+<span class="vr">first</span>, *<span class="vr">mid</span>, <span class="vr">last</span> = [<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>, <span class="num">5</span>]
+
+<span class="cm"># const keyword</span>
+<span class="kw">const</span> <span class="vr">MAX</span> = <span class="num">100</span>
+
+<span class="cm"># Lambda call syntax everywhere</span>
+<span class="vr">double</span> = ->(<span class="vr">x</span>) { <span class="vr">x</span> * <span class="num">2</span> }
+<span class="fn">puts</span> <span class="vr">double</span>.(<span class="num">6</span>)
+
+<span class="cm"># frankieauth stitch</span>
+<span class="kw">stitch</span> <span class="str">"frankieauth"</span>
+<span class="vr">app</span>.<span class="fn">use</span> <span class="kw">do</span> |<span class="vr">req</span>, <span class="vr">next_fn</span>|
+  <span class="kw">if</span> <span class="kw">not</span> <span class="fn">basic_auth_ok?</span>(<span class="vr">req</span>, <span class="str">"admin"</span>, <span class="fn">env</span>(<span class="str">"PASS"</span>))
+    <span class="fn">halt</span>(<span class="num">401</span>, <span class="str">"Unauthorized"</span>)
+  <span class="kw">end</span>
+  <span class="vr">next_fn</span>.(<span class="vr">req</span>)
+<span class="kw">end</span>
+
+<span class="cm"># frankiec check — CI lint</span>
+<span class="cm"># $ frankiec check app.fk   → exit 0 or 1</span>
+<span class="cm"># frankiec new myapp        → full scaffold</span></pre>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head"><span class="cp-title">v1.14.fk <span class="badge bs">v1.14</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
       <pre><span class="cm"># Hash destructuring</span>
 <span class="vr">user</span> = {name: <span class="str">"Alice"</span>, role: <span class="str">"admin"</span>, age: <span class="num">30</span>}
 {name, role} = <span class="vr">user</span>
@@ -781,7 +821,8 @@ frankiec test</pre></div>
   <table>
     <thead><tr><th>Version</th><th>Highlights</th><th>Status</th></tr></thead>
     <tbody>
-      <tr><td><strong>v1.14</strong></td><td>spawn/timeout, async routes, middleware, static files, frankietemplate, frankiecookie, hash destructuring, shape pattern matching, scaffold stitches</td><td><span class="badge bl">Latest</span></td></tr>
+      <tr><td><strong>v1.15</strong></td><td>ternary operator, keyword default params, splat multi-assign, const keyword, fn.(args) everywhere, json_encode, base64/hmac public, String#format, path helpers, date arithmetic, frankieauth, frankieratelimit, frankiec check/new</td><td><span class="badge bl">Latest</span></td></tr>
+      <tr><td><strong>v1.14</strong></td><td>spawn/timeout, async routes, middleware, static files, frankietemplate, frankiecookie, hash destructuring, shape pattern matching, scaffold stitches</td><td><span class="badge bs">Stable</span></td></tr>
       <tr><td>v1.13.1</td><td>frankiestring v2, .sum do / .flat_map do fixes, assert_approx_eq, run_tests() public, session(req,resp), fmt blank lines + idempotency</td><td><span class="badge bs">Stable</span></td></tr>
       <tr><td>v1.13</td><td>stitch keyword, frankieforms/frankitable/frankiecolor/frankiepager/frankieconfig/frankiestring, ? in function names</td><td><span class="badge bs">Stable</span></td></tr>
       <tr><td>v1.12</td><td>gsub block, map_hash, round(), .product, .chars docs, FileNotFoundError fix, assert_match/nil, frankiec watch, repl --no-banner, friendlier errors</td><td><span class="badge bs">Stable</span></td></tr>

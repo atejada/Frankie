@@ -7,7 +7,7 @@
  |  _|| | | (_| | | | |   <| |  __/
  |_|  |_|  \__,_|_| |_|_|\_\_|\___|
 
- The Frankie Language v1.14
+ The Frankie Language v1.15
  Stitched together from Ruby • Python • R • Fortran
 ```
 
@@ -92,6 +92,77 @@ begin
 rescue e
   puts "Caught: #{e}"
 end
+```
+
+---
+
+## v1.15 Highlights
+
+```ruby
+# Ternary operator — right-associative, works everywhere
+grade = score >= 90 ? "A" : score >= 70 ? "B" : "C"
+msg   = n == 1 ? "one item" : "#{n} items"
+
+# Keyword-style default parameters
+def connect(host, port: 5432, ssl: true, timeout: 30)
+  puts "#{host}:#{port} ssl=#{ssl}"
+end
+connect("localhost")
+connect("prod", port: 3306, ssl: false)
+
+# Splat multi-assign
+a, b, *rest       = [1, 2, 3, 4, 5]   # rest = [3, 4, 5]
+first, *mid, last = ["a", "b", "c", "d"]
+
+# const keyword
+const PI       = 3.14159
+const BASE_URL = env("BASE_URL", "http://localhost:3000")
+
+# fn.(args) lambda call syntax — now works everywhere
+double = ->(x) { x * 2 }
+puts double.(6)   # 12
+
+# json_encode — canonical inverse of json_parse
+puts json_encode({name: "Alice", scores: [95, 87]})
+
+# base64 and HMAC now public
+token = hmac_sign("user_id=42", SECRET)
+puts base64_encode("admin:secret")
+
+# String#format with named placeholders
+puts "Hello, {name}! v{ver}".format({name: "Blag", ver: "1.15"})
+
+# Path helpers
+puts path_join("home", "blag", "frankie")
+puts path_extname("script.fk")    # .fk
+
+# Date arithmetic
+d = date_from(2026, 4, 17)
+puts (d + 30).format("%Y-%m-%d")  # 2026-05-17
+puts (d + 30) - d                 # 30
+
+# New test assertions
+assert_not_nil(result, "query returned a result")
+assert_in("admin", user_roles, "user is admin")
+
+# frankieauth stitch — Basic Auth + Bearer tokens (zero deps)
+stitch "frankieauth"
+app.use do |req, next_fn|
+  if not basic_auth_ok?(req, "admin", env("PASS"))
+    halt(401, "Unauthorized")
+  end
+  next_fn.(req)
+end
+
+# frankieratelimit stitch — in-memory per-IP rate limiting
+stitch "frankieratelimit"
+app.use do |req, next_fn|
+  rate_limit_check(req, next_fn, max: 60, window: 60)
+end
+
+# Query-string typed helpers
+page  = req.query_int("page", 1)
+debug = req.query_bool("debug", false)
 ```
 
 ---
@@ -465,6 +536,7 @@ Full documentation lives in the `docs/` folder:
 | `docs/15_v113_features.md` | v1.13 feature reference: stitch keyword, frankiforms, frankitable, frankicolor, frankiepager, frankiconfig, ? in function names |
 | `docs/16_v1131_features.md` | v1.13.1 feature reference: frankiestring v2, .sum do / .flat_map do fixes, assert_approx_eq, run_tests(), session(req,resp), fmt improvements |
 | `docs/17_v114_features.md` | v1.14 feature reference: spawn, timeout, async routes, middleware, static files, frankietemplate, frankiecookie, hash destructuring, shape matching |
+| `docs/18_v115_features.md` | v1.15 feature reference: ternary, keyword defaults, splat multi-assign, const, fn.(args), json_encode, base64, hmac, String#format, path helpers, date arithmetic, frankieauth, frankieratelimit, frankiec check/new |
 
 The formal language grammar lives in `SPEC.md`.
 
