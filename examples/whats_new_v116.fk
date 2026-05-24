@@ -1,7 +1,7 @@
-# whats_new_v116.fk — Runnable tour of every Frankie v1.16.1 feature
+# whats_new_v116.fk — Runnable tour of every Frankie v1.16.2 feature
 # Run: frankiec run examples/whats_new_v116.fk
 
-puts "=== Frankie v1.16.1 — What's New ==="
+puts "=== Frankie v1.16.2 — What's New ==="
 puts ""
 
 # ──────────────────────────────────────────────
@@ -176,7 +176,7 @@ puts "--- frankiemail stitch ---"
 stitch "frankiemail"
 puts "frankiemail loaded — send_mail() is available"
 puts "Usage: send_mail(to: \"...\", subject: \"...\", body: \"...\","
-puts "                 smtp: env(\"SMTP_HOST\"), user: env(\"SMTP_USER\"), pass: env(\"SMTP_PASS\"))"
+puts "                 smtp: env(\"SMTP_HOST\"), user: env(\"SMTP_USER\"), password: env(\"SMTP_PASS\"))"
 puts ""
 
-puts "=== v1.16.1 tour complete ==="
+puts "=== v1.16.2 tour complete ==="

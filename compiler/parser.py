@@ -191,6 +191,9 @@ class Parser:
                 params.append(pname)
                 defaults.append(pdefault)
                 while self.match(TT.COMMA):
+                    self.skip_newlines()  # allow multi-line parameter lists
+                    if self.check(TT.RPAREN):
+                        break  # trailing comma
                     pname, pdefault = self._parse_one_param()
                     params.append(pname)
                     defaults.append(pdefault)
@@ -739,10 +742,15 @@ class Parser:
                 args = []
                 if self.check(TT.LPAREN):
                     self.advance()
+                    self.skip_newlines()  # allow opening paren on its own line
                     if not self.check(TT.RPAREN):
                         args.append(self.parse_expr())
                         while self.match(TT.COMMA):
+                            self.skip_newlines()  # allow multi-line call args
+                            if self.check(TT.RPAREN):
+                                break
                             args.append(self.parse_expr())
+                    self.skip_newlines()  # allow closing paren on its own line
                     self.expect(TT.RPAREN)
 
                 block = None
@@ -762,10 +770,15 @@ class Parser:
                 args = []
                 if self.check(TT.LPAREN):
                     self.advance()
+                    self.skip_newlines()  # allow opening paren on its own line
                     if not self.check(TT.RPAREN):
                         args.append(self.parse_expr())
                         while self.match(TT.COMMA):
+                            self.skip_newlines()  # allow multi-line call args
+                            if self.check(TT.RPAREN):
+                                break
                             args.append(self.parse_expr())
+                    self.skip_newlines()  # allow closing paren on its own line
                     self.expect(TT.RPAREN)
 
                 block = None
@@ -889,13 +902,16 @@ class Parser:
             name = self.advance().value
             if self.check(TT.LPAREN):
                 self.advance()
+                self.skip_newlines()  # allow opening paren on its own line
                 args = []
                 if not self.check(TT.RPAREN):
                     args.append(self.parse_arg())
                     while self.match(TT.COMMA):
+                        self.skip_newlines()  # allow multi-line call args
                         if self.check(TT.RPAREN):
                             break
                         args.append(self.parse_arg())
+                self.skip_newlines()  # allow closing paren on its own line
                 self.expect(TT.RPAREN)
                 return FuncCall(name=name, args=args)
             return Identifier(name=name)
@@ -905,13 +921,16 @@ class Parser:
             # Function call
             if self.check(TT.LPAREN):
                 self.advance()
+                self.skip_newlines()  # allow opening paren on its own line
                 args = []
                 if not self.check(TT.RPAREN):
                     args.append(self.parse_arg())
                     while self.match(TT.COMMA):
+                        self.skip_newlines()  # allow multi-line call args
                         if self.check(TT.RPAREN):
                             break
                         args.append(self.parse_arg())
+                self.skip_newlines()  # allow closing paren on its own line
                 self.expect(TT.RPAREN)
                 return FuncCall(name=name, args=args)
             return Identifier(name=name)

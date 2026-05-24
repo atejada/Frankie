@@ -7,7 +7,7 @@
  |  _|| | | (_| | | | |   <| |  __/
  |_|  |_|  \__,_|_| |_|_|\_\_|\___|
 
- The Frankie Language v1.16.1
+ The Frankie Language v1.16.2
  Stitched together from Ruby • Python • R • Fortran
 ```
 
@@ -96,7 +96,7 @@ end
 
 ---
 
-## v1.16.1 Highlights
+## v1.16.2 Highlights
 
 ```ruby
 # shell() — run any OS command, get structured output

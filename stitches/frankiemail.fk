@@ -6,14 +6,14 @@
 #
 #   # Simple send (TLS on port 587 — works with Gmail, SendGrid, Mailgun, etc.)
 #   result = send_mail(
-#     to:      "alice@example.com",
-#     subject: "Hello from Frankie!",
-#     body:    "This was sent by a Frankie script.",
-#     from:    env("MAIL_FROM", "bot@example.com"),
-#     smtp:    env("SMTP_HOST", "smtp.gmail.com"),
-#     port:    587,
-#     user:    env("SMTP_USER", ""),
-#     pass:    env("SMTP_PASS", "")
+#     to:       "alice@example.com",
+#     subject:  "Hello from Frankie!",
+#     body:     "This was sent by a Frankie script.",
+#     sender:   env("MAIL_FROM", "bot@example.com"),
+#     smtp:     env("SMTP_HOST", "smtp.gmail.com"),
+#     port:     587,
+#     user:     env("SMTP_USER", ""),
+#     password: env("SMTP_PASS", "")
 #   )
 #
 #   if result["ok"]
@@ -31,36 +31,36 @@
 
 ## `send_mail(opts)` — send an email. All options are keyword args with defaults.
 ##
-## | Option    | Default                | Description |
-## |-----------|------------------------|-------------|
-## | `to`      | `""`                   | Recipient address |
-## | `subject` | `""`                   | Email subject |
-## | `body`    | `""`                   | Plain-text or HTML body |
-## | `from`    | `"frankie@localhost"`  | Sender address |
-## | `smtp`    | `"localhost"`          | SMTP server hostname |
-## | `port`    | `587`                  | SMTP port (587 = TLS, 465 = SSL, 25 = plain) |
-## | `user`    | `""`                   | SMTP username (leave blank for no auth) |
-## | `pass`    | `""`                   | SMTP password |
-## | `html`    | `false`                | Set `true` for HTML body |
-## | `cc`      | `""`                   | CC address |
-## | `bcc`     | `""`                   | BCC address |
+## | Option      | Default                | Description |
+## |-------------|------------------------|-------------|
+## | `to`        | `""`                   | Recipient address |
+## | `subject`   | `""`                   | Email subject |
+## | `body`      | `""`                   | Plain-text or HTML body |
+## | `sender`    | `"frankie@localhost"`  | Sender address (the From: header) |
+## | `smtp`      | `"localhost"`          | SMTP server hostname |
+## | `port`      | `587`                  | SMTP port (587 = TLS, 465 = SSL, 25 = plain) |
+## | `user`      | `""`                   | SMTP username (leave blank for no auth) |
+## | `password`  | `""`                   | SMTP password |
+## | `html`      | `false`                | Set `true` for HTML body |
+## | `cc`        | `""`                   | CC address |
+## | `bcc`       | `""`                   | BCC address |
 ##
 ## Returns `{ok: true}` on success or `{ok: false, error: "..."}` on failure.
 
-def send_mail(to: "", subject: "", body: "", from: "frankie@localhost",
-              smtp: "localhost", port: 587, user: "", pass: "",
+def send_mail(to: "", subject: "", body: "", sender: "frankie@localhost",
+              smtp: "localhost", port: 587, user: "", password: "",
               html: false, cc: "", bcc: "")
   return smtp_send({
-    to:      to,
-    subject: subject,
-    body:    body,
-    from:    from,
-    smtp:    smtp,
-    port:    port,
-    user:    user,
-    pass:    pass,
-    html:    html,
-    cc:      cc,
-    bcc:     bcc
+    to:       to,
+    subject:  subject,
+    body:     body,
+    from:     sender,
+    smtp:     smtp,
+    port:     port,
+    user:     user,
+    pass:     password,
+    html:     html,
+    cc:       cc,
+    bcc:      bcc
   })
 end
