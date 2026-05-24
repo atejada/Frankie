@@ -1,8 +1,8 @@
-## frankitable.fk — ASCII table rendering
+## frankietable.fk — ASCII table rendering
 ## Renders a vector of hashes as a formatted ASCII table.
 ##
 ## Usage:
-##   stitch "frankitable"
+##   stitch "frankietable"
 ##
 ##   rows = [
 ##     {name: "Alice", dept: "Engineering", salary: 95000},

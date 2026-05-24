@@ -1,9 +1,9 @@
-## frankiforms.fk — Form field validation
+## frankieforms.fk — Form field validation
 ## Returns a hash of {field: error_message} pairs.
 ## An empty hash means all fields are valid.
 ##
 ## Usage:
-##   stitch "frankiforms"
+##   stitch "frankieforms"
 ##
 ##   form  = {name: "Alice", email: "alice@example.com", age: "25"}
 ##   rules = {

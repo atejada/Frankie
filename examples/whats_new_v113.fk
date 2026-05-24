@@ -16,9 +16,9 @@ puts "# stitch \"frankieforms\"   ← loads ./stitches/frankieforms.fk"
 puts "# stitch \"myutils\"       ← loads ./stitches/myutils.fk"
 puts ""
 
-# ── 2. frankiforms — form validation ─────────────────────────────────────────
+# ── 2. frankieforms — form validation ─────────────────────────────────────────
 puts "── 2. frankieforms ──"
-stitch "frankiforms"
+stitch "frankieforms"
 
 form  = {name: "Alice", email: "alice@example.com", age: "25"}
 rules = {
@@ -40,7 +40,7 @@ puts ""
 
 # ── 3. frankietable — ASCII tables ────────────────────────────────────────────
 puts "── 3. frankietable ──"
-stitch "frankitable"
+stitch "frankietable"
 
 rows = [
   {name: "Alice", dept: "Engineering", salary: 95000},
@@ -74,7 +74,7 @@ puts ""
 
 # ── 5. frankiepager — pagination ──────────────────────────────────────────────
 puts "── 5. frankiepager ──"
-stitch "frankipager"
+stitch "frankiepager"
 
 pg = paginate({total: 247, page: 3, per_page: 20})
 puts "Page #{pg["page"]} of #{pg["total_pages"]}"

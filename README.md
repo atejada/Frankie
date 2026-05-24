@@ -7,7 +7,7 @@
  |  _|| | | (_| | | | |   <| |  __/
  |_|  |_|  \__,_|_| |_|_|\_\_|\___|
 
- The Frankie Language v1.16
+ The Frankie Language v1.16.1
  Stitched together from Ruby • Python • R • Fortran
 ```
 
@@ -96,7 +96,7 @@ end
 
 ---
 
-## v1.16 Highlights
+## v1.16.1 Highlights
 
 ```ruby
 # shell() — run any OS command, get structured output
@@ -345,11 +345,11 @@ app.run()
 
 ```ruby
 # stitch — zero-dependency package system
-stitch "frankiforms"
-stitch "frankitable"
-stitch "frankicolor"
-stitch "frankipager"
-stitch "frankiconfig"
+stitch "frankieforms"
+stitch "frankietable"
+stitch "frankiecolor"
+stitch "frankiepager"
+stitch "frankieconfig"
 
 # Form validation
 rules = {email: [{rule: "required"}, {rule: "email"}]}
@@ -604,7 +604,7 @@ Full documentation lives in the `docs/` folder:
 | `docs/12_v110_features.md` | v1.10 feature reference: string/vector *, heredoc, times(), flatten(depth), map_with_index, pp, encode/decode |
 | `docs/13_v111_features.md` | v1.11 feature reference: implicit return, inline if, .replace(), .format(hash), .zip_with, multiple return values |
 | `docs/14_v112_features.md` | v1.12 feature reference: gsub block, map_hash, round, product, chars, FileNotFoundError, assert_match/nil, watch, --no-banner |
-| `docs/15_v113_features.md` | v1.13 feature reference: stitch keyword, frankiforms, frankitable, frankicolor, frankiepager, frankiconfig, ? in function names |
+| `docs/15_v113_features.md` | v1.13 feature reference: stitch keyword, frankieforms, frankietable, frankiecolor, frankiepager, frankieconfig, ? in function names |
 | `docs/16_v1131_features.md` | v1.13.1 feature reference: frankiestring v2, .sum do / .flat_map do fixes, assert_approx_eq, run_tests(), session(req,resp), fmt improvements |
 | `docs/17_v114_features.md` | v1.14 feature reference: spawn, timeout, async routes, middleware, static files, frankietemplate, frankiecookie, hash destructuring, shape matching |
 | `docs/18_v115_features.md` | v1.15 feature reference: ternary, keyword defaults, splat multi-assign, const, fn.(args), json_encode, base64, hmac, String#format, path helpers, date arithmetic, frankieauth, frankieratelimit, frankiec check/new |

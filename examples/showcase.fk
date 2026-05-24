@@ -1,7 +1,7 @@
 # showcase.fk — Everything Frankie can do in one program
 
 puts "╔══════════════════════════════════════╗"
-puts "║     Frankie v1.16 — Full Showcase     ║"
+puts "║     Frankie v1.16.1 — Full Showcase     ║"
 puts "╚══════════════════════════════════════╝"
 puts ""
 
@@ -618,9 +618,9 @@ puts "Frankie v1.12 is alive and kicking! 🧟⚡"
 puts ""
 puts "── 39. stitch (v1.13) ──"
 
-stitch "frankiforms"
-stitch "frankitable"
-stitch "frankipager"
+stitch "frankieforms"
+stitch "frankietable"
+stitch "frankiepager"
 
 rules = {email: [{rule: "required"}, {rule: "email"}]}
 puts valid?({email: "alice@example.com"}, rules)   # true
@@ -763,7 +763,7 @@ puts "base64: #{b64}"
 
 SECRET = "my-signing-key"
 token = hmac_sign("user_id=42", SECRET)
-puts "token ok: #{hmac_verify("user_id=42", token, SECRET)}"
+puts "token ok: #{hmac_verify(token, SECRET)}"
 
 # ── 49. String#format + path helpers + date arithmetic (v1.15) ─────────────────
 puts ""
@@ -784,7 +784,7 @@ puts (d + 100) - d   # 100
 puts ""
 puts "── 50. shell() + dotenv() (v1.16) ──"
 
-r = shell("echo Frankie v1.16 says hello")
+r = shell("echo Frankie v1.16.1 says hello")
 puts r["stdout"].strip
 
 r2 = shell("ls /tmp | head -3")
@@ -803,7 +803,7 @@ puts "── 51. loop do...end + ||= (v1.16) ──"
 
 memo = nil
 memo ||= {}
-puts "memo initialized: #{memo.inspect}"
+puts "memo initialized: #{memo}"
 
 counter = 0
 loop do
@@ -818,7 +818,9 @@ b = 1
 fibs = []
 loop do
   fibs.push(a)
-  a, b = b, a + b
+  tmp = a + b
+  a = b
+  b = tmp
   break if a > 100
 end
 puts "fibs: #{fibs}"
@@ -849,11 +851,11 @@ puts ""
 puts "── 53. String#scan + Hash#deep_merge (v1.16) ──"
 
 log_line = "ERROR at 14:22:03 on 2026-05-24, ERROR at 14:23:01 on 2026-05-24"
-errors = log_line.scan(/ERROR at \d{2}:\d{2}:\d{2}/)
+errors = log_line.scan("ERROR at \\d{2}:\\d{2}:\\d{2}")
 puts "errors found: #{errors.length}"
 
 html = "<a href='https://frankie.dev'>Frankie</a> and <a href='https://anthropic.com'>Anthropic</a>"
-links = html.scan(/href='([^']+)'/)
+links = html.scan("href='([^']+)'")
 puts "links: #{links}"
 
 base_cfg = {
@@ -910,4 +912,4 @@ cache_clear()
 puts "after clear, size: #{cache_size()}"
 
 puts ""
-puts "Frankie v1.16 is alive and kicking! 🧟⚡"
+puts "Frankie v1.16.1 is alive and kicking! 🧟⚡"

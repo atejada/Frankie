@@ -1,8 +1,8 @@
-## frankicolor.fk — ANSI terminal color helpers
+## frankiecolor.fk — ANSI terminal color helpers
 ## Wraps strings in ANSI escape codes for colored terminal output.
 ##
 ## Usage:
-##   stitch "frankicolor"
+##   stitch "frankiecolor"
 ##
 ##   puts red("Error: something went wrong")
 ##   puts green("All tests passed!")

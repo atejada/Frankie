@@ -1,7 +1,7 @@
-# whats_new_v116.fk — Runnable tour of every Frankie v1.16 feature
+# whats_new_v116.fk — Runnable tour of every Frankie v1.16.1 feature
 # Run: frankiec run examples/whats_new_v116.fk
 
-puts "=== Frankie v1.16 — What's New ==="
+puts "=== Frankie v1.16.1 — What's New ==="
 puts ""
 
 # ──────────────────────────────────────────────
@@ -64,10 +64,14 @@ puts ""
 puts "--- ||= ---"
 cache = nil
 cache ||= {}
-puts "cache initialized: #{cache.inspect}"
+puts "cache initialized: #{cache}"
 
-cache["user:1"] ||= {name: "Alice"}
-cache["user:1"] ||= {name: "Bob"}   # no-op — already set
+if cache["user:1"] == nil
+  cache["user:1"] = {name: "Alice"}
+end
+if cache["user:1"] == nil   # no-op — already set
+  cache["user:1"] = {name: "Bob"}
+end
 puts "user:1 = #{cache["user:1"]["name"]}"   # Alice
 
 score = 0
@@ -100,11 +104,11 @@ puts ""
 # ──────────────────────────────────────────────
 puts "--- String#scan ---"
 text = "Contact alice@example.com or bob@test.org for support."
-emails = text.scan(/[\w.]+@[\w.]+/)
+emails = text.scan("[\\w.]+@[\\w.]+")
 puts "emails found: #{emails}"
 
 log = "ERROR 404 at /foo, ERROR 500 at /bar, WARNING at /baz"
-codes = log.scan(/ERROR \d+/)
+codes = log.scan("ERROR \\d+")
 puts "error codes: #{codes}"
 puts ""
 
@@ -175,4 +179,4 @@ puts "Usage: send_mail(to: \"...\", subject: \"...\", body: \"...\","
 puts "                 smtp: env(\"SMTP_HOST\"), user: env(\"SMTP_USER\"), pass: env(\"SMTP_PASS\"))"
 puts ""
 
-puts "=== v1.16 tour complete ==="
+puts "=== v1.16.1 tour complete ==="

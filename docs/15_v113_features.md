@@ -27,8 +27,8 @@ If neither exists, a clear error tells you exactly what to do:
 
 ```
 ╔══ Frankie Runtime Error ══════════════════════════════
-║  [Frankie] Stitch not found: "frankiforms"
-║    Put frankiforms.fk in ./stitches/ or ~/.frankie/stitches/
+║  [Frankie] Stitch not found: "frankieforms"
+║    Put frankieforms.fk in ./stitches/ or ~/.frankie/stitches/
 ╚═══════════════════════════════════════════════════════
 ```
 
@@ -38,7 +38,7 @@ Each stitch is loaded **at most once** — calling `stitch "name"` multiple time
 
 | | `require` | `stitch` |
 |---|---|---|
-| Path | Explicit: `require "lib/utils"` | By name: `stitch "frankiforms"` |
+| Path | Explicit: `require "lib/utils"` | By name: `stitch "frankieforms"` |
 | Resolution | Relative to cwd | `./stitches/` then `~/.frankie/stitches/` |
 | Signals | Your own code | Third-party packages |
 | Convention | `lib/` folder | `stitches/` folder |
@@ -108,7 +108,7 @@ end
 ## `frankietable` — ASCII Tables
 
 ```ruby
-stitch "frankitable"
+stitch "frankietable"
 
 rows = [
   {name: "Alice", dept: "Engineering", salary: 95000},
@@ -142,7 +142,7 @@ puts table(rows, ["name", "salary"])
 ## `frankiecolor` — Terminal Colors
 
 ```ruby
-stitch "frankicolor"
+stitch "frankiecolor"
 
 puts red("Error: something failed")
 puts green("Success: all tests passed")
@@ -180,7 +180,7 @@ puts colorize("hello", "magenta")
 ## `frankiepager` — Pagination
 
 ```ruby
-stitch "frankipager"
+stitch "frankiepager"
 
 pager = paginate({total: 247, page: 3, per_page: 20})
 
@@ -229,7 +229,7 @@ puts page_items   # [41, 42, 43, ... 60]
 ## `frankieconfig` — Layered Config
 
 ```ruby
-stitch "frankiconfig"
+stitch "frankieconfig"
 
 config = load_config({
   file:       "config.json",

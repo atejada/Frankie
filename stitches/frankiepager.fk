@@ -1,8 +1,8 @@
-## frankipager.fk — Pagination helpers
+## frankiepager.fk — Pagination helpers
 ## Simple pagination math for web apps and CLI tools.
 ##
 ## Usage:
-##   stitch "frankipager"
+##   stitch "frankiepager"
 ##
 ##   pager = paginate({total: 247, page: 3, per_page: 20})
 ##   puts pager["total_pages"]   # 13

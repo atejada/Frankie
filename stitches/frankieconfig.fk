@@ -1,4 +1,4 @@
-## frankiconfig.fk — Layered configuration loading
+## frankieconfig.fk — Layered configuration loading
 ## Loads config from multiple sources in priority order:
 ##   1. Explicit overrides (highest priority)
 ##   2. Environment variables (with prefix)
@@ -6,7 +6,7 @@
 ##   4. Default values (lowest priority)
 ##
 ## Usage:
-##   stitch "frankiconfig"
+##   stitch "frankieconfig"
 ##
 ##   config = load_config({
 ##     file:       "config.json",
@@ -45,7 +45,7 @@ def load_config(opts)
         result[k.to_s] = v
       end
     rescue RuntimeError e
-      puts "frankiconfig warning: could not read #{file_path}: #{e}"
+      puts "frankieconfig warning: could not read #{file_path}: #{e}"
     end
   end
 
