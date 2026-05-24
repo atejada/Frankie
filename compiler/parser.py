@@ -128,6 +128,8 @@ class Parser:
             return self.parse_spawn()
         if t.type == TT.TIMEOUT and self.peek(1).type == TT.LPAREN:
             return self.parse_timeout()
+        if t.type == TT.LOOP:
+            return self.parse_loop()
         if t.type == TT.EOF:
             return None
 
@@ -227,7 +229,7 @@ class Parser:
         if t.type == TT.IDENT or t.type in (
             TT.TIMES, TT.EACH, TT.EACH_WITH_INDEX, TT.MAP,
             TT.IN, TT.AND, TT.OR, TT.NOT,
-            TT.TIMEOUT, TT.SPAWN,
+            TT.TIMEOUT, TT.SPAWN, TT.LOOP,
         ):
             return self.advance().value
         raise ParseError("Expected parameter name", t)
@@ -474,6 +476,15 @@ class Parser:
         self.expect(TT.END, "Expected 'end' to close 'timeout'")
         return TimeoutBlock(seconds=seconds, body=body)
 
+    def parse_loop(self) -> 'LoopStmt':
+        """loop do ... end — infinite loop, exits only via break"""
+        self.expect(TT.LOOP)
+        self.match(TT.DO)   # optional 'do'
+        self.skip_newlines()
+        body = self.parse_body()
+        self.expect(TT.END, "Expected 'end' to close 'loop'")
+        return LoopStmt(body=body)
+
     def parse_print(self) -> PrintStmt:
         tok = self.advance()
         newline = (tok.type == TT.PUTS)
@@ -584,6 +595,13 @@ class Parser:
             self.advance()  # consume op=
             value = self.parse_expr()
             return CompoundAssign(name=name, op=op, value=value)
+
+        # Nil-coalescing assign: IDENT ||= expr
+        if self.check(TT.IDENT) and self.peek(1).type == TT.OR_ASSIGN:
+            name = self.advance().value
+            self.advance()  # consume ||=
+            value = self.parse_expr()
+            return OrAssign(name=name, value=value)
 
         # Single assign: IDENT = expr
         if self.check(TT.IDENT) and self.peek(1).type == TT.ASSIGN:

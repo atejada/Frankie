@@ -1,7 +1,7 @@
 # showcase.fk — Everything Frankie can do in one program
 
 puts "╔══════════════════════════════════════╗"
-puts "║     Frankie v1.11 — Full Showcase     ║"
+puts "║     Frankie v1.16 — Full Showcase     ║"
 puts "╚══════════════════════════════════════╝"
 puts ""
 
@@ -651,3 +651,263 @@ puts primes   # [2, 3, 5, 7, 11, 13, 17, 19]
 
 puts ""
 puts "Frankie v1.13 is alive and kicking! 🧟⚡"
+
+# ── 41. Hash Destructuring (v1.14) ────────────────────────────────────────────
+puts ""
+puts "── 41. Hash Destructuring (v1.14) ──"
+
+user = {name: "Alice", role: "admin", age: 30}
+{name, role} = user
+puts "#{name} is a #{role}"   # Alice is a admin
+
+config = {host: "localhost", port: 5432, ssl: true}
+{host, port} = config
+puts "Connecting to #{host}:#{port}"
+
+# ── 42. Shape Pattern Matching (v1.14) ─────────────────────────────────────────
+puts ""
+puts "── 42. Shape Pattern Matching (v1.14) ──"
+
+def classify_user(u)
+  case u
+  when {role: "admin"}
+    "Admin panel access"
+  when {role: "moderator", active: true}
+    "Moderator tools"
+  when {active: false}
+    "Account suspended"
+  else
+    "Regular user"
+  end
+end
+
+puts classify_user({role: "admin", active: true})
+puts classify_user({role: "moderator", active: true})
+puts classify_user({role: "user", active: false})
+puts classify_user({role: "user", active: true})
+
+# ── 43. spawn + timeout (v1.14) ────────────────────────────────────────────────
+puts ""
+puts "── 43. spawn + timeout (v1.14) ──"
+
+result = timeout(2) do
+  sum = 0
+  10000.times do |i|
+    sum += i
+  end
+  sum
+end
+puts "timeout result: #{result}"
+
+# ── 44. Ternary Operator (v1.15) ───────────────────────────────────────────────
+puts ""
+puts "── 44. Ternary Operator (v1.15) ──"
+
+score = 88
+grade = score >= 90 ? "A" : score >= 80 ? "B" : score >= 70 ? "C" : "F"
+puts "grade: #{grade}"   # B
+
+items = ["apple"]
+puts items.length == 1 ? "one item" : "#{items.length} items"
+
+# ── 45. Keyword Default Params (v1.15) ─────────────────────────────────────────
+puts ""
+puts "── 45. Keyword Default Params (v1.15) ──"
+
+def connect(host, port: 5432, ssl: true, timeout: 30)
+  puts "#{host}:#{port} ssl=#{ssl} timeout=#{timeout}"
+end
+
+connect("localhost")
+connect("prod", port: 3306, ssl: false)
+connect("staging", port: 5433, timeout: 60)
+
+# ── 46. Splat Multi-Assign (v1.15) ─────────────────────────────────────────────
+puts ""
+puts "── 46. Splat Multi-Assign (v1.15) ──"
+
+a, b, *rest = [1, 2, 3, 4, 5]
+puts "a=#{a}, b=#{b}, rest=#{rest}"   # a=1, b=2, rest=[3, 4, 5]
+
+first, *mid, last = ["alpha", "beta", "gamma", "delta"]
+puts "first=#{first}, mid=#{mid}, last=#{last}"
+
+head, *tail = [10, 20, 30, 40]
+puts "head=#{head}, tail=#{tail}"
+
+# ── 47. const keyword (v1.15) ──────────────────────────────────────────────────
+puts ""
+puts "── 47. const keyword (v1.15) ──"
+
+const PI     = 3.14159265358979
+const E      = 2.71828182845905
+const APP    = "Frankie Showcase"
+
+puts "PI = #{PI}"
+puts "E  = #{E}"
+puts "App: #{APP}"
+
+# ── 48. json_encode + base64/HMAC public (v1.15) ───────────────────────────────
+puts ""
+puts "── 48. json_encode + base64/HMAC (v1.15) ──"
+
+data = {name: "Alice", scores: [95, 87, 92], active: true}
+encoded = json_encode(data)
+puts encoded
+
+pretty = json_encode(data, pretty: true)
+puts pretty
+
+b64 = base64_encode("admin:secret")
+puts "base64: #{b64}"
+
+SECRET = "my-signing-key"
+token = hmac_sign("user_id=42", SECRET)
+puts "token ok: #{hmac_verify("user_id=42", token, SECRET)}"
+
+# ── 49. String#format + path helpers + date arithmetic (v1.15) ─────────────────
+puts ""
+puts "── 49. String#format + paths + dates (v1.15) ──"
+
+puts "Hello, {name}! v{ver}".format({name: "Blag", ver: "1.15"})
+
+puts path_join("home", "blag", "scripts", "hello.fk")
+puts path_extname("report.csv")
+puts path_basename("/home/blag/report.csv")
+puts path_dirname("/home/blag/report.csv")
+
+d = date_from(2026, 1, 1)
+puts (d + 100).format("%Y-%m-%d")
+puts (d + 100) - d   # 100
+
+# ── 50. shell() + dotenv() (v1.16) ─────────────────────────────────────────────
+puts ""
+puts "── 50. shell() + dotenv() (v1.16) ──"
+
+r = shell("echo Frankie v1.16 says hello")
+puts r["stdout"].strip
+
+r2 = shell("ls /tmp | head -3")
+if r2["ok"]
+  puts r2["stdout"].strip
+end
+
+file_write(".env.showcase", "SHOWCASE_ENV=production\nSHOWCASE_VER=1.16\n")
+dotenv(".env.showcase")
+puts "env: #{env("SHOWCASE_ENV")} v#{env("SHOWCASE_VER")}"
+file_delete(".env.showcase")
+
+# ── 51. loop do...end + ||= (v1.16) ────────────────────────────────────────────
+puts ""
+puts "── 51. loop do...end + ||= (v1.16) ──"
+
+memo = nil
+memo ||= {}
+puts "memo initialized: #{memo.inspect}"
+
+counter = 0
+loop do
+  counter += 1
+  break if counter >= 5
+end
+puts "loop counter: #{counter}"
+
+# Fibonacci using loop
+a = 0
+b = 1
+fibs = []
+loop do
+  fibs.push(a)
+  a, b = b, a + b
+  break if a > 100
+end
+puts "fibs: #{fibs}"
+
+# ── 52. transform_values + transform_keys (v1.16) ──────────────────────────────
+puts ""
+puts "── 52. transform_values + transform_keys (v1.16) ──"
+
+inventory = {apple: 100, banana: 250, cherry: 80}
+
+restocked = inventory.transform_values do |qty| qty + 50 end
+puts "restocked: #{restocked}"
+
+on_sale = inventory.transform_values do |qty|
+  if qty < 100
+    qty * 2
+  else
+    qty
+  end
+end
+puts "on_sale: #{on_sale}"
+
+normalized = inventory.transform_keys do |k| k.upcase end
+puts "normalized: #{normalized}"
+
+# ── 53. String#scan + Hash#deep_merge (v1.16) ──────────────────────────────────
+puts ""
+puts "── 53. String#scan + Hash#deep_merge (v1.16) ──"
+
+log_line = "ERROR at 14:22:03 on 2026-05-24, ERROR at 14:23:01 on 2026-05-24"
+errors = log_line.scan(/ERROR at \d{2}:\d{2}:\d{2}/)
+puts "errors found: #{errors.length}"
+
+html = "<a href='https://frankie.dev'>Frankie</a> and <a href='https://anthropic.com'>Anthropic</a>"
+links = html.scan(/href='([^']+)'/)
+puts "links: #{links}"
+
+base_cfg = {
+  server:   {host: "localhost", port: 3000, workers: 4},
+  database: {host: "localhost", port: 5432, name: "dev_db"},
+  logging:  {level: "debug", file: "app.log"}
+}
+prod_overrides = {
+  server:   {host: "0.0.0.0", workers: 8},
+  database: {host: "prod-db.example.com", name: "prod_db"}
+}
+final_cfg = base_cfg.deep_merge(prod_overrides)
+puts "server.host:    #{final_cfg["server"]["host"]}"
+puts "server.workers: #{final_cfg["server"]["workers"]}"
+puts "db.port:        #{final_cfg["database"]["port"]}"  # kept from base
+puts "db.name:        #{final_cfg["database"]["name"]}"
+
+# ── 54. frankiecli stitch (v1.16) ──────────────────────────────────────────────
+puts ""
+puts "── 54. frankiecli stitch (v1.16) ──"
+
+stitch "frankiecli"
+
+fake_args = ["deploy", "--env", "production", "--workers=4", "--verbose", "--no-dry-run"]
+cli = cli_parse(fake_args)
+puts "command:  #{cli["command"]}"
+puts "env:      #{cli_get(cli, "env", "development")}"
+puts "workers:  #{cli_get(cli, "workers", "1")}"
+puts "verbose:  #{cli_flag(cli, "verbose")}"
+puts "dry_run:  #{cli_flag(cli, "dry_run")}"
+
+# ── 55. frankiecache stitch (v1.16) ────────────────────────────────────────────
+puts ""
+puts "── 55. frankiecache stitch (v1.16) ──"
+
+stitch "frankiecache"
+
+cache_set("config", {debug: false, log: "info"})
+cache_set("session:001", {user: "Alice", role: "admin"}, ttl: 300)
+cache_set("session:002", {user: "Bob",   role: "viewer"}, ttl: 300)
+
+puts "size: #{cache_size()}"
+
+cfg = cache_get("config")
+puts "config.debug = #{cfg["debug"]}"
+
+puts "session:001 alive? #{cache_set?("session:001")}"
+puts "session:999 alive? #{cache_set?("session:999")}"
+
+cache_delete("session:002")
+puts "after delete, size: #{cache_size()}"
+
+cache_clear()
+puts "after clear, size: #{cache_size()}"
+
+puts ""
+puts "Frankie v1.16 is alive and kicking! 🧟⚡"

@@ -1,0 +1,178 @@
+# whats_new_v116.fk — Runnable tour of every Frankie v1.16 feature
+# Run: frankiec run examples/whats_new_v116.fk
+
+puts "=== Frankie v1.16 — What's New ==="
+puts ""
+
+# ──────────────────────────────────────────────
+# 1. shell() — run OS commands, get structured output
+# ──────────────────────────────────────────────
+puts "--- shell() ---"
+result = shell("echo Hello from the shell!")
+if result["ok"]
+  puts result["stdout"].strip
+else
+  puts "Error #{result["exit_code"]}: #{result["stderr"]}"
+end
+
+# Check exit code for a failing command
+bad = shell("exit 1")
+puts "exit_code = #{bad["exit_code"]}, ok = #{bad["ok"]}"
+puts ""
+
+# ──────────────────────────────────────────────
+# 2. dotenv() — load .env file into the environment
+# ──────────────────────────────────────────────
+puts "--- dotenv() ---"
+# Create a temporary .env file for the demo
+file_write(".env.demo", "DEMO_NAME=Frankie\nDEMO_VER=1.16\n")
+loaded = dotenv(".env.demo")
+puts "Loaded: #{loaded.keys.join(", ")}"
+puts "DEMO_NAME=#{env("DEMO_NAME")}"
+puts "DEMO_VER=#{env("DEMO_VER")}"
+puts ""
+
+# ──────────────────────────────────────────────
+# 3. loop do...end — infinite loop, exit via break
+# ──────────────────────────────────────────────
+puts "--- loop do...end ---"
+counter = 0
+loop do
+  counter += 1
+  break if counter >= 5
+end
+puts "loop ran #{counter} times"
+
+# Loop with complex exit condition
+found = nil
+items = ["cat", "dog", "frankie", "bat"]
+idx = 0
+loop do
+  if items[idx] == "frankie"
+    found = items[idx]
+    break
+  end
+  idx += 1
+  break if idx >= items.length
+end
+puts "found: #{found}"
+puts ""
+
+# ──────────────────────────────────────────────
+# 4. ||= — nil-coalescing assignment
+# ──────────────────────────────────────────────
+puts "--- ||= ---"
+cache = nil
+cache ||= {}
+puts "cache initialized: #{cache.inspect}"
+
+cache["user:1"] ||= {name: "Alice"}
+cache["user:1"] ||= {name: "Bob"}   # no-op — already set
+puts "user:1 = #{cache["user:1"]["name"]}"   # Alice
+
+score = 0
+score ||= 99   # 0 is truthy, so no assignment in Ruby semantics
+puts "score = #{score}"   # 0 ... wait — Frankie uses Ruby semantics: 0 is truthy
+puts ""
+
+# ──────────────────────────────────────────────
+# 5. Hash#transform_values
+# ──────────────────────────────────────────────
+puts "--- Hash#transform_values ---"
+prices = {apple: 1.0, banana: 0.5, cherry: 2.5}
+doubled  = prices.transform_values do |v| v * 2 end
+taxed    = prices.transform_values do |v| round(v * 1.08, 2) end
+puts "doubled: #{doubled}"
+puts "taxed:   #{taxed}"
+puts ""
+
+# ──────────────────────────────────────────────
+# 6. Hash#transform_keys
+# ──────────────────────────────────────────────
+puts "--- Hash#transform_keys ---"
+data = {first_name: "Alice", last_name: "Smith"}
+upcased = data.transform_keys do |k| k.upcase end
+puts "upcased keys: #{upcased}"
+puts ""
+
+# ──────────────────────────────────────────────
+# 7. String#scan — extract all regex matches
+# ──────────────────────────────────────────────
+puts "--- String#scan ---"
+text = "Contact alice@example.com or bob@test.org for support."
+emails = text.scan(/[\w.]+@[\w.]+/)
+puts "emails found: #{emails}"
+
+log = "ERROR 404 at /foo, ERROR 500 at /bar, WARNING at /baz"
+codes = log.scan(/ERROR \d+/)
+puts "error codes: #{codes}"
+puts ""
+
+# ──────────────────────────────────────────────
+# 8. Hash#deep_merge — recursive nested merge
+# ──────────────────────────────────────────────
+puts "--- Hash#deep_merge ---"
+defaults = {
+  db:    {host: "localhost", port: 5432, pool: 5},
+  app:   {debug: false, log_level: "info"},
+  cache: {ttl: 300}
+}
+overrides = {
+  db:  {host: "prod-db.example.com"},
+  app: {debug: true}
+}
+config = defaults.deep_merge(overrides)
+puts "db.host    = #{config["db"]["host"]}"
+puts "db.port    = #{config["db"]["port"]}"    # kept from defaults
+puts "app.debug  = #{config["app"]["debug"]}"
+puts "cache.ttl  = #{config["cache"]["ttl"]}"  # kept from defaults
+puts ""
+
+# ──────────────────────────────────────────────
+# 9. frankiecli stitch — CLI argument parsing
+# ──────────────────────────────────────────────
+puts "--- frankiecli stitch ---"
+stitch "frankiecli"
+
+# Simulate argv for the demo (normally you'd use argv())
+fake_args = ["greet", "--name", "Blag", "--verbose", "--count=3"]
+cli = cli_parse(fake_args)
+
+puts "command  = #{cli["command"]}"
+puts "name     = #{cli_get(cli, "name", "World")}"
+puts "verbose  = #{cli_flag(cli, "verbose")}"
+puts "count    = #{cli_get(cli, "count", "1")}"
+puts ""
+
+# ──────────────────────────────────────────────
+# 10. frankiecache stitch — in-memory TTL cache
+# ──────────────────────────────────────────────
+puts "--- frankiecache stitch ---"
+stitch "frankiecache"
+
+cache_set("user:42", {name: "Alice", role: "admin"})
+cache_set("session:abc", {user: "Alice"}, ttl: 300)
+cache_set("tmp", "gone", ttl: 0)   # no expiry
+
+user = cache_get("user:42")
+puts "user:42  = #{user["name"]} (#{user["role"]})"
+puts "cache size = #{cache_size()}"
+
+cache_delete("user:42")
+puts "after delete, size = #{cache_size()}"
+
+puts "hit? session:abc = #{cache_set?("session:abc")}"
+puts "hit? user:42     = #{cache_set?("user:42")}"
+puts ""
+
+# ──────────────────────────────────────────────
+# 11. frankiemail stitch (usage demo — won't send without SMTP)
+# ──────────────────────────────────────────────
+puts "--- frankiemail stitch ---"
+stitch "frankiemail"
+puts "frankiemail loaded — send_mail() is available"
+puts "Usage: send_mail(to: \"...\", subject: \"...\", body: \"...\","
+puts "                 smtp: env(\"SMTP_HOST\"), user: env(\"SMTP_USER\"), pass: env(\"SMTP_PASS\"))"
+puts ""
+
+puts "=== v1.16 tour complete ==="

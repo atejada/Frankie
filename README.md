@@ -7,7 +7,7 @@
  |  _|| | | (_| | | | |   <| |  __/
  |_|  |_|  \__,_|_| |_|_|\_\_|\___|
 
- The Frankie Language v1.15
+ The Frankie Language v1.16
  Stitched together from Ruby • Python • R • Fortran
 ```
 
@@ -92,6 +92,77 @@ begin
 rescue e
   puts "Caught: #{e}"
 end
+```
+
+---
+
+## v1.16 Highlights
+
+```ruby
+# shell() — run any OS command, get structured output
+result = shell("git log --oneline -5")
+if result["ok"]
+  puts result["stdout"]
+else
+  puts "Exit #{result["exit_code"]}: #{result["stderr"]}"
+end
+
+# dotenv() — load .env files into the environment
+dotenv()                        # loads .env by default
+dotenv(".env.production")       # or any path
+puts env("DATABASE_URL")        # now available via env()
+
+# loop do...end — infinite loops, exit with break
+i = 0
+loop do
+  puts "tick #{i}"
+  i += 1
+  break if i >= 3
+end
+
+# ||= — assign only if nil or false (Ruby-compatible)
+config = nil
+config ||= load_defaults()
+cache ||= {}
+
+# Hash#transform_values and transform_keys
+prices = {apple: 1.0, banana: 0.5}
+doubled = prices.transform_values do |v| v * 2 end
+upper   = prices.transform_keys   do |k| k.upcase end
+
+# String#scan — extract all pattern matches
+emails = "Send to alice@example.com and bob@test.org".scan(/[\w.]+@[\w.]+/)
+puts emails   # [alice@example.com, bob@test.org]
+
+# Hash#deep_merge — recursive merge for nested configs
+defaults = {db: {host: "localhost", port: 5432}, debug: false}
+overrides = {db: {host: "prod-db"}, debug: true}
+config = defaults.deep_merge(overrides)
+# => {db: {host: prod-db, port: 5432}, debug: true}
+
+# frankiemail stitch — send email via SMTP (zero extra deps)
+stitch "frankiemail"
+send_mail(
+  to:      "alice@example.com",
+  subject: "Hello from Frankie!",
+  body:    "Script finished successfully.",
+  smtp:    env("SMTP_HOST", "smtp.gmail.com"),
+  user:    env("SMTP_USER"),
+  pass:    env("SMTP_PASS")
+)
+
+# frankiecli stitch — structured CLI argument parsing
+stitch "frankiecli"
+cli = cli_parse(argv())
+name  = cli_get(cli,  "name",    "World")
+debug = cli_flag(cli, "verbose")
+puts "Hello, #{name}!"
+
+# frankiecache stitch — in-memory TTL cache
+stitch "frankiecache"
+cache_set("user:42", {name: "Alice"}, ttl: 300)
+user = cache_get("user:42")   # nil after 300 seconds
+puts cache_size()
 ```
 
 ---

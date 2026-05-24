@@ -120,6 +120,8 @@ class TT(Enum):
     SPAWN        = auto()  # spawn
     TIMEOUT      = auto()  # timeout
     AWAIT        = auto()  # await
+    LOOP         = auto()  # loop
+    OR_ASSIGN    = auto()  # ||=
 
 
 KEYWORDS = {
@@ -167,6 +169,7 @@ KEYWORDS = {
     'spawn':            TT.SPAWN,
     'timeout':          TT.TIMEOUT,
     'await':            TT.AWAIT,
+    'loop':             TT.LOOP,
 }
 
 
@@ -581,6 +584,10 @@ class Lexer:
             elif ch == '|':
                 if self.match('>'):
                     self.add_token(TT.PIPE_ARROW, '|>')
+                elif self.peek() == '|' and self.peek(1) == '=':
+                    self.advance()  # consume second |
+                    self.advance()  # consume =
+                    self.add_token(TT.OR_ASSIGN, '||=')
                 else:
                     self.add_token(TT.PIPE, '|')
             elif ch == '(':

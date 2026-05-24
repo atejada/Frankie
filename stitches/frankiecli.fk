@@ -1,0 +1,116 @@
+# frankiecli — Structured CLI argument and flag parsing for Frankie scripts.
+# Zero dependencies — pure .fk, built on argv().
+#
+# Usage:
+#
+#   stitch "frankiecli"
+#
+#   cli = cli_parse(argv())
+#
+#   # Positional arguments
+#   puts cli["args"][0]              # first positional arg
+#
+#   # Flags and named options
+#   puts cli["flags"]["verbose"]     # true if --verbose was passed
+#   puts cli["options"]["output"]    # value of --output=file.txt or --output file.txt
+#
+#   # With defaults
+#   name   = cli_get(cli, "output", "result.txt")
+#   debug  = cli_flag(cli, "verbose")
+#
+#   # Subcommands
+#   cmd = cli["command"]             # first positional arg treated as subcommand
+
+## `cli_parse(args)` — parse a raw argv() vector into a structured hash.
+##
+## Returns:
+##   {
+##     args:    [...],        # positional arguments (non-flag values)
+##     flags:   {...},        # boolean flags: {verbose: true, dry_run: true}
+##     options: {...},        # named values:  {output: "file.txt", port: "8080"}
+##     command: "..."         # first positional arg (or nil), for subcommand CLIs
+##   }
+##
+## Supported formats:
+##   --flag                  → flags["flag"] = true
+##   --no-flag               → flags["flag"] = false
+##   --key value             → options["key"] = "value"
+##   --key=value             → options["key"] = "value"
+##   -f                      → flags["f"] = true
+##   positional              → pushed to args
+
+def cli_parse(args)
+  parsed_args = []
+  parsed_flags = {}
+  parsed_options = {}
+  i = 0
+  while i < args.length
+    arg = args[i]
+    if arg.start_with?("--")
+      key = arg[2..-1]
+      if key.include?("=")
+        parts = key.split("=")
+        k = parts[0].gsub("-", "_")
+        v = parts[1..-1].join("=")
+        parsed_options[k] = v
+      elsif key.start_with?("no-")
+        real_key = key[3..-1].gsub("-", "_")
+        parsed_flags[real_key] = false
+      elsif i + 1 < args.length and not args[i + 1].start_with?("-")
+        k = key.gsub("-", "_")
+        parsed_options[k] = args[i + 1]
+        i += 1
+      else
+        k = key.gsub("-", "_")
+        parsed_flags[k] = true
+      end
+    elsif arg.start_with?("-") and arg.length == 2
+      parsed_flags[arg[1]] = true
+    else
+      parsed_args.push(arg)
+    end
+    i += 1
+  end
+  cmd = nil
+  if parsed_args.length > 0
+    cmd = parsed_args[0]
+  end
+  return {args: parsed_args, flags: parsed_flags, options: parsed_options, command: cmd}
+end
+
+## `cli_get(cli, key, default)` — get a named option value, or default if missing.
+def cli_get(cli, key, default)
+  v = cli["options"][key.gsub("-", "_")]
+  if v == nil
+    return default
+  end
+  return v
+end
+
+## `cli_flag(cli, name)` — check if a boolean flag was passed (false if absent).
+def cli_flag(cli, name)
+  v = cli["flags"][name.gsub("-", "_")]
+  if v == nil
+    return false
+  end
+  return v
+end
+
+## `cli_arg(cli, index, default)` — get a positional argument by index, or default.
+def cli_arg(cli, index, default)
+  args = cli["args"]
+  if index >= args.length
+    return default
+  end
+  return args[index]
+end
+
+## `cli_require(cli, key, msg)` — halt with a usage error if option is missing.
+def cli_require(cli, key, msg)
+  v = cli["options"][key.gsub("-", "_")]
+  if v == nil
+    puts "Error: #{msg}"
+    exit(1)
+  end
+  return v
+end

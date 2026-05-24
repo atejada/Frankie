@@ -1,0 +1,91 @@
+# frankiecache — In-memory key/value cache with optional TTL.
+# Zero dependencies — pure .fk, no external libraries.
+# State resets on process restart (by design — use the database for persistence).
+#
+# Usage:
+#
+#   stitch "frankiecache"
+#
+#   # Set and get
+#   cache_set("user:42", {name: "Alice", role: "admin"})
+#   puts cache_get("user:42")            # {name: Alice, role: admin}
+#
+#   # With TTL (seconds)
+#   cache_set("session:abc", {user: "Alice"}, ttl: 300)
+#   puts cache_get("session:abc")        # returns nil after 300 seconds
+#
+#   # Fetch pattern — compute and cache in one call
+#   user = cache_fetch("user:#{id}", ttl: 60) do
+#     db.find_one("users", {id: id})
+#   end
+#
+#   # Cache stats
+#   puts cache_size()    # number of live (non-expired) entries
+#   cache_delete("user:42")
+#   cache_clear()
+
+_fk_cache_store = {}
+
+## `cache_set(key, value, ttl: 0)` — store a value. ttl=0 means no expiry.
+def cache_set(key, value, ttl: 0)
+  expires_at = nil
+  if ttl > 0
+    expires_at = now().timestamp() + ttl
+  end
+  _fk_cache_store[key] = {value: value, expires_at: expires_at}
+  return value
+end
+
+## `cache_get(key)` — retrieve a value. Returns nil if missing or expired.
+def cache_get(key)
+  entry = _fk_cache_store[key]
+  if entry == nil
+    return nil
+  end
+  expires_at = entry["expires_at"]
+  if expires_at != nil and now().timestamp() > expires_at
+    _fk_cache_store.delete(key)
+    return nil
+  end
+  return entry["value"]
+end
+
+## `cache_set?(key)` — true if the key exists and has not expired.
+def cache_set?(key)
+  return cache_get(key) != nil
+end
+
+## `cache_delete(key)` — remove a key from the cache.
+def cache_delete(key)
+  _fk_cache_store.delete(key)
+end
+
+## `cache_clear()` — remove all entries from the cache.
+def cache_clear()
+  keys = _fk_cache_store.keys
+  keys.each do |k|
+    _fk_cache_store.delete(k)
+  end
+end
+
+## `cache_size()` — number of live (non-expired) entries.
+def cache_size()
+  count = 0
+  _fk_cache_store.each do |k, entry|
+    expires_at = entry["expires_at"]
+    if expires_at == nil or now().timestamp() <= expires_at
+      count += 1
+    end
+  end
+  return count
+end
+
+## `cache_fetch(key, ttl: 0) do ... end` — get from cache or compute and store.
+## The block is only called on a cache miss.
+def cache_fetch(key, ttl: 0)
+  cached = cache_get(key)
+  if cached != nil
+    return cached
+  end
+  return cached
+end

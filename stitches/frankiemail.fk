@@ -1,0 +1,66 @@
+# frankiemail — Send email via SMTP. Zero dependencies (uses Python's smtplib).
+#
+# Usage:
+#
+#   stitch "frankiemail"
+#
+#   # Simple send (TLS on port 587 — works with Gmail, SendGrid, Mailgun, etc.)
+#   result = send_mail(
+#     to:      "alice@example.com",
+#     subject: "Hello from Frankie!",
+#     body:    "This was sent by a Frankie script.",
+#     from:    env("MAIL_FROM", "bot@example.com"),
+#     smtp:    env("SMTP_HOST", "smtp.gmail.com"),
+#     port:    587,
+#     user:    env("SMTP_USER", ""),
+#     pass:    env("SMTP_PASS", "")
+#   )
+#
+#   if result["ok"]
+#     puts "Sent!"
+#   else
+#     puts "Failed: #{result["error"]}"
+#   end
+#
+#   # HTML email
+#   send_mail(to: "bob@example.com", subject: "Report", body: "<h1>Done</h1>", html: true)
+#
+#   # With CC / BCC
+#   send_mail(to: "alice@example.com", cc: "boss@example.com", bcc: "log@example.com",
+#             subject: "FYI", body: "See attached.")
+
+## `send_mail(opts)` — send an email. All options are keyword args with defaults.
+##
+## | Option    | Default                | Description |
+## |-----------|------------------------|-------------|
+## | `to`      | `""`                   | Recipient address |
+## | `subject` | `""`                   | Email subject |
+## | `body`    | `""`                   | Plain-text or HTML body |
+## | `from`    | `"frankie@localhost"`  | Sender address |
+## | `smtp`    | `"localhost"`          | SMTP server hostname |
+## | `port`    | `587`                  | SMTP port (587 = TLS, 465 = SSL, 25 = plain) |
+## | `user`    | `""`                   | SMTP username (leave blank for no auth) |
+## | `pass`    | `""`                   | SMTP password |
+## | `html`    | `false`                | Set `true` for HTML body |
+## | `cc`      | `""`                   | CC address |
+## | `bcc`     | `""`                   | BCC address |
+##
+## Returns `{ok: true}` on success or `{ok: false, error: "..."}` on failure.
+
+def send_mail(to: "", subject: "", body: "", from: "frankie@localhost",
+              smtp: "localhost", port: 587, user: "", pass: "",
+              html: false, cc: "", bcc: "")
+  return smtp_send({
+    to:      to,
+    subject: subject,
+    body:    body,
+    from:    from,
+    smtp:    smtp,
+    port:    port,
+    user:    user,
+    pass:    pass,
+    html:    html,
+    cc:      cc,
+    bcc:     bcc
+  })
+end

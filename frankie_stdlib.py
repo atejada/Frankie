@@ -2685,3 +2685,127 @@ def _fk_hash_delete(h, key):
     """Hash .delete(key) — remove key, return the modified hash."""
     h.pop(key, None)
     return h
+
+
+# ─── v1.16 stdlib additions ───────────────────────────────────────────────────
+
+def _fk_shell(cmd):
+    """shell(cmd) — run a shell command; returns {stdout, stderr, exit_code, ok}."""
+    import subprocess as _sp
+    result = _sp.run(cmd, shell=True, capture_output=True, text=True)
+    return {
+        'stdout':    result.stdout.rstrip('\n'),
+        'stderr':    result.stderr.rstrip('\n'),
+        'exit_code': result.returncode,
+        'ok':        result.returncode == 0,
+    }
+
+
+def _fk_dotenv(path='.env'):
+    """dotenv(path) — parse a .env file and load vars into the environment.
+    Returns a hash of the key/value pairs that were loaded.
+    Lines starting with # are comments. Blank lines are skipped.
+    Values may be quoted with " or '.
+    """
+    import os as _os
+    import re as _re_env
+    loaded = {}
+    try:
+        with open(path, 'r', encoding='utf-8') as _f:
+            for line in _f:
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                m = _re_env.match(r'^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)', line)
+                if not m:
+                    continue
+                key, val = m.group(1), m.group(2)
+                # Strip surrounding quotes
+                if (val.startswith('"') and val.endswith('"')) or \
+                   (val.startswith("'") and val.endswith("'")):
+                    val = val[1:-1]
+                _os.environ[key] = val
+                loaded[key] = val
+    except FileNotFoundError:
+        pass   # silently return empty hash if file doesn't exist
+    return loaded
+
+
+def _fk_hash_transform_values(h, fn):
+    """Hash .transform_values do |v| ... end — new hash with each value replaced by block result."""
+    return {k: fn(v) for k, v in h.items()}
+
+
+def _fk_hash_transform_keys(h, fn):
+    """Hash .transform_keys do |k| ... end — new hash with each key replaced by block result."""
+    return {fn(k): v for k, v in h.items()}
+
+
+def _fk_hash_deep_merge(h1, h2):
+    """Hash .deep_merge(other) — recursive merge; nested hashes are merged rather than replaced."""
+    result = dict(h1)
+    for k, v in h2.items():
+        if k in result and isinstance(result[k], dict) and isinstance(v, dict):
+            result[k] = _fk_hash_deep_merge(result[k], v)
+        else:
+            result[k] = v
+    return result
+
+
+def _fk_smtp_send(opts):
+    """Internal stdlib hook for frankiemail stitch — sends email via smtplib."""
+    import smtplib as _smtp
+    from email.mime.text import MIMEText as _MIMEText
+    from email.mime.multipart import MIMEMultipart as _MIMEMultipart
+    to      = opts.get('to', '')
+    subject = opts.get('subject', '')
+    body    = opts.get('body', '')
+    from_   = opts.get('from', 'frankie@localhost')
+    smtp    = opts.get('smtp', 'localhost')
+    port    = int(opts.get('port', 587))
+    user    = opts.get('user', '')
+    pw      = opts.get('pass', '')
+    html    = opts.get('html', False)
+    cc      = opts.get('cc', '')
+    bcc     = opts.get('bcc', '')
+    try:
+        if html:
+            msg = _MIMEMultipart('alternative')
+            msg.attach(_MIMEText(body, 'html'))
+        else:
+            msg = _MIMEText(body)
+        msg['Subject'] = subject
+        msg['From']    = from_
+        msg['To']      = to
+        if cc:  msg['Cc']  = cc
+        recipients = [r.strip() for r in [to, cc, bcc] if r.strip()]
+        with _smtp.SMTP(smtp, port) as s:
+            s.ehlo()
+            s.starttls()
+            if user:
+                s.login(user, pw)
+            s.sendmail(from_, recipients, msg.as_string())
+        return {'ok': True, 'error': None}
+    except Exception as e:
+        return {'ok': False, 'error': str(e)}
+
+
+def _fk_str_scan(s, pattern):
+    """String .scan(pattern) — return all capture groups from all matches.
+    If the pattern has groups, returns a vector of vectors (one per match).
+    If no groups, returns a vector of full match strings (like match_all).
+    """
+    import re as _re_scan
+    try:
+        compiled = _re_scan.compile(pattern)
+    except Exception:
+        return []
+    matches = compiled.findall(s)
+    # findall returns strings if no groups, tuples if >1 group, strings if 1 group
+    result = []
+    for m in matches:
+        if isinstance(m, tuple):
+            result.append(list(m))
+        else:
+            result.append(m)
+    return result

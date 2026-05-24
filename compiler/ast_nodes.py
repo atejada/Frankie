@@ -393,3 +393,16 @@ class HashDestructAssign(Node):
     """{name, age} = user — pull hash keys into local variables"""
     keys: List[str]
     value: Node
+
+# ─── v1.16 ────────────────────────────────────────────────────────────────────
+
+@dataclass
+class LoopStmt(Node):
+    """loop do ... end — infinite loop, exits only via break"""
+    body: List[Node]
+
+@dataclass
+class OrAssign(Node):
+    """x ||= value — assign value only if x is currently nil"""
+    name: str
+    value: Node
