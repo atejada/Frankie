@@ -275,6 +275,7 @@ class BeginRescue(Node):
 @dataclass
 class RaiseStmt(Node):
     message: Optional[Node]
+    error_type: Optional[str] = None   # v1.17: raise TimeoutError, "msg"
 
 # ─── Multi-file ───────────────────────────────────────────────────────────────
 
@@ -406,3 +407,16 @@ class OrAssign(Node):
     """x ||= value — assign value only if x is currently nil"""
     name: str
     value: Node
+
+# ─── v1.17 ────────────────────────────────────────────────────────────────────
+
+@dataclass
+class ErrorDef(Node):
+    """error TimeoutError — declare a user-defined error type"""
+    name: str
+
+@dataclass
+class ImportStmt(Node):
+    """import "lib/math" as math — namespaced module import"""
+    path: Node
+    alias: Optional[str] = None   # defaults to basename of path

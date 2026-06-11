@@ -122,6 +122,7 @@ class TT(Enum):
     AWAIT        = auto()  # await
     LOOP         = auto()  # loop
     OR_ASSIGN    = auto()  # ||=
+    FAT_ARROW    = auto()  # =>  (rescue TimeoutError => e)
 
 
 KEYWORDS = {
@@ -556,6 +557,8 @@ class Lexer:
                     self.add_token(TT.EQ, '==')
                 elif self.match('~'):
                     self.add_token(TT.MATCH_OP, '=~')
+                elif self.match('>'):
+                    self.add_token(TT.FAT_ARROW, '=>')
                 else:
                     self.add_token(TT.ASSIGN, '=')
             elif ch == '!':

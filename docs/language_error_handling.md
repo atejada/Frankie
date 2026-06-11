@@ -213,3 +213,37 @@ items.each do |item|
   end
 end
 ```
+
+---
+
+## User-Defined Error Types (v1.17)
+
+Declare your own error types with `error`, raise them with
+`raise TypeName, "message"`, and catch them with Ruby-style binding:
+
+```ruby
+error TimeoutError
+error ValidationError
+
+def save_user(u)
+  raise ValidationError, "email is required" unless u.has_key?("email")
+end
+
+begin
+  save_user({name: "Blag"})
+rescue ValidationError => e
+  puts "Invalid: #{e}"
+rescue TimeoutError => e
+  puts "Too slow: #{e}"
+rescue e
+  puts "Something else: #{e}"
+end
+```
+
+Notes:
+
+- `raise TypeName("message")` also works.
+- A typed `raise` auto-declares its type, so simple scripts can skip `error`.
+- Generic `rescue e` still catches typed errors.
+- `assert_raises_typed(fn, "ValidationError")` understands user types.
+- The older `rescue TypeName e` binding (no `=>`) keeps working.

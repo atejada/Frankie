@@ -43,8 +43,10 @@ REPL Commands:
   vars              Show all currently defined variables
   load <file.fk>    Load and run a .fk file into this session
   help              Show this message
+  help <function>   Show documentation for a stdlib or user function
 
 Tips:
+  - Expressions echo their result, and `_` holds the last result
   - Arrow keys, history search (Ctrl+R), and line editing are supported
   - History is saved to ~/.frankie_history across sessions
   - Multi-line blocks are recalled as a single history entry
@@ -74,6 +76,9 @@ COMPLETIONS = [
     'db_open', 'web_app', 'today', 'now', 'template', 'zip',
     'env', 'argv', 'exit', 'sleep', 'times', 'map_with_index',
     'pp', 'encode', 'decode',
+    # v1.17
+    'import ', 'error ', 'test ', 'to_vec', 'step', 'parallel_map',
+    'tcp_connect', 'tcp_listen', 'tcp_serve', 'stub', 'unstub',
 ]
 
 
@@ -176,11 +181,33 @@ def _compile_and_run(source, exec_globals):
     from compiler.lexer import Lexer, LexError
     from compiler.parser import Parser, ParseError
     from compiler.codegen import CodeGen, CodeGenError
+    from compiler import ast_nodes as A
 
+    # v1.17: when the input is a single bare expression, capture its value
+    # into `_` and echo it (like the Python and Ruby REPLs).
+    _EXPR_NODES = (A.IntLiteral, A.FloatLiteral, A.StringLiteral, A.BoolLiteral,
+                   A.NilLiteral, A.VectorLiteral, A.HashLiteral, A.RangeLiteral,
+                   A.Identifier, A.BinOp, A.UnaryOp, A.IndexAccess, A.FuncCall,
+                   A.MethodCall, A.SafeNavCall, A.PipeOp, A.MatchOp,
+                   A.TernaryExpr, A.IfExpr, A.LambdaLiteral)
+
+    echo_result = False
     try:
         tokens = Lexer(source).tokenize()
         ast = Parser(tokens).parse()
-        py_source = CodeGen().generate(ast, repl_mode=True)
+        py_source = None
+        if len(ast.body) == 1 and isinstance(ast.body[0], _EXPR_NODES):
+            cg = CodeGen()
+            try:
+                expr_code = cg.gen_expr(ast.body[0])
+            except CodeGenError:
+                expr_code = ""
+            if expr_code:
+                prelude = "\n".join(cg.output)
+                py_source = (prelude + "\n" if prelude else "") + f"_ = {expr_code}"
+                echo_result = True
+        if py_source is None:
+            py_source = CodeGen().generate(ast, repl_mode=True)
     except LexError as e:
         return None, str(e)
     except ParseError as e:
@@ -194,6 +221,11 @@ def _compile_and_run(source, exec_globals):
     error = None
     try:
         exec(compile(py_source, '<repl>', 'exec'), exec_globals)
+        if echo_result and error is None:
+            result = exec_globals.get('_')
+            if result is not None:
+                _to_str = exec_globals.get('_fk_to_str', repr)
+                print(f"=> {_to_str(result)}")
     except SystemExit:
         sys.stdout = old_stdout
         raise
@@ -203,6 +235,33 @@ def _compile_and_run(source, exec_globals):
         sys.stdout = old_stdout
 
     return buf.getvalue(), error
+
+
+def _show_help_for(name, exec_globals):
+    """help <name> — show the docstring/signature of a function (v1.17)."""
+    import inspect
+    obj = exec_globals.get(name)
+    if obj is None:
+        # Try common codegen aliases (shell → _fk_shell, etc.)
+        obj = exec_globals.get('_fk_' + name)
+    if obj is None:
+        print(f"  No function named {name!r} is defined.")
+        return
+    if callable(obj):
+        try:
+            sig = str(inspect.signature(obj))
+        except (ValueError, TypeError):
+            sig = "(...)"
+        print(f"  {name}{sig}")
+        doc = inspect.getdoc(obj)
+        if doc:
+            for doc_line in doc.splitlines():
+                print(f"    {doc_line}")
+        else:
+            print("    (no documentation)")
+    else:
+        _to_str = exec_globals.get('_fk_to_str', repr)
+        print(f"  {name} = {_to_str(obj)}")
 
 
 def _is_incomplete(lines):
@@ -292,6 +351,9 @@ def run_repl(no_banner=False):
                     break
                 if stripped == 'help':
                     print(HELP)
+                    continue
+                if stripped.startswith('help '):
+                    _show_help_for(stripped[5:].strip().rstrip('()'), exec_globals)
                     continue
                 if stripped == 'clear':
                     exec_globals.clear()

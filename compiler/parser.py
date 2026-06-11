@@ -74,8 +74,30 @@ class Parser:
 
     def parse_statement(self) -> Optional[Node]:
         self.skip_newlines()
+        src_line = self.current().line  # capture before any token consumption
+        node = self._parse_statement_dispatch(src_line)
+        if node is not None and not hasattr(node, '_src_line'):
+            node._src_line = src_line
+        return node
+
+    def _parse_statement_dispatch(self, src_line) -> Optional[Node]:
         t = self.current()
-        src_line = t.line  # capture before any token consumption
+
+        # v1.17 contextual keywords (kept out of KEYWORDS so they remain
+        # valid identifiers everywhere else):
+        #   error TimeoutError            — user-defined error type
+        #   import "lib/math" as math     — namespaced module import
+        if (t.type == TT.IDENT and t.value == 'error'
+                and self.peek(1).type == TT.IDENT
+                and self.peek(1).value[:1].isupper()):
+            return self.parse_error_def()
+        if (t.type == TT.IDENT and t.value == 'import'
+                and self.peek(1).type == TT.STRING):
+            return self.parse_import()
+        #   test "name" [, tags: [...]] do ... end — paren-less test group
+        if (t.type == TT.IDENT and t.value == 'test'
+                and self.peek(1).type == TT.STRING):
+            return self.parse_test_block()
 
         if t.type == TT.DEF:
             return self.parse_func_def()
@@ -350,10 +372,15 @@ class Parser:
             if (self.check(TT.IDENT)
                     and self.current().value[:1].isupper()):
                 error_type = self.advance().value
+            # Ruby-style binding: rescue TimeoutError => e
+            if self.check(TT.FAT_ARROW):
+                self.advance()  # consume =>
+                rescue_var = self.expect(
+                    TT.IDENT, "Expected variable name after '=>'").value
             # Optional variable binding — only consume as variable if next
             # token is a lowercase identifier followed by newline/EOF/body
             # This lets `rescue TypeError` work without requiring a variable.
-            if (self.check(TT.IDENT)
+            elif (self.check(TT.IDENT)
                     and self.current().value[:1].islower()
                     and self.peek(1).type in (TT.NEWLINE, TT.EOF)):
                 rescue_var = self.advance().value
@@ -376,8 +403,49 @@ class Parser:
         self.expect(TT.RAISE)
         if self.check(TT.NEWLINE) or self.check(TT.EOF):
             return RaiseStmt(message=None)
+        # Typed raise:  raise TimeoutError, "msg"  |  raise TimeoutError
+        # A capitalised identifier in raise position names an error type.
+        if (self.check(TT.IDENT) and self.current().value[:1].isupper()
+                and self.peek(1).type in (TT.COMMA, TT.NEWLINE, TT.EOF,
+                                          TT.IF, TT.UNLESS)):
+            type_name = self.advance().value
+            msg = None
+            if self.match(TT.COMMA):
+                msg = self.parse_expr()
+            return RaiseStmt(message=msg, error_type=type_name)
         msg = self.parse_expr()
+        # raise TimeoutError("msg") — call-style typed raise
+        if (isinstance(msg, FuncCall) and msg.name[:1].isupper()
+                and msg.block is None and len(msg.args) <= 1):
+            inner = msg.args[0] if msg.args else None
+            return RaiseStmt(message=inner, error_type=msg.name)
         return RaiseStmt(message=msg)
+
+    def parse_error_def(self) -> ErrorDef:
+        """Parse:  error TimeoutError  — user-defined error type declaration."""
+        self.advance()  # consume contextual 'error' identifier
+        name_tok = self.expect(TT.IDENT, "Expected error type name after 'error'")
+        return ErrorDef(name=name_tok.value)
+
+    def parse_test_block(self) -> FuncCall:
+        """Parse:  test "name" [, tags: ["slow"]] do ... end
+        Sugar for test("name", tags: [...]) do ... end."""
+        self.advance()  # consume contextual 'test' identifier
+        args = [self.parse_primary()]   # the STRING name
+        while self.match(TT.COMMA):
+            args.append(self.parse_arg())
+        block = self.parse_block()
+        return FuncCall(name='test', args=args, block=block)
+
+    def parse_import(self) -> ImportStmt:
+        """Parse:  import "lib/math" [as math]  — namespaced module import."""
+        self.advance()  # consume contextual 'import' identifier
+        path = self.parse_primary()   # the STRING literal
+        alias = None
+        if (self.check(TT.IDENT) and self.current().value == 'as'):
+            self.advance()  # consume 'as'
+            alias = self._parse_param_name()
+        return ImportStmt(path=path, alias=alias)
 
     def parse_require(self) -> RequireStmt:
         self.expect(TT.REQUIRE)

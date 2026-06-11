@@ -109,7 +109,7 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
 <body>
 
 <nav>
-  <a href="#" class="nav-logo">🧟 Frankie <span>v1.16.2</span></a>
+  <a href="#" class="nav-logo">🧟 Frankie <span>v1.17.0</span></a>
   <ul>
     <li><a href="#features">Features</a></li>
     <li><a href="#syntax">Syntax</a></li>
@@ -138,7 +138,7 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
   </div>
   <div class="ctas">
     <a href="#install" class="btn btn-p">Get Started →</a>
-    <a href="https://github.com/atejada/Frankie/releases" class="btn btn-s">Download v1.16.2</a>
+    <a href="https://github.com/atejada/Frankie/releases" class="btn btn-s">Download v1.17.0</a>
     <a href="https://atejada.github.io/frankielanguage/site/index.html" class="btn btn-s">Go to the Docs</a>
     <a href="https://github.com/atejada/Frankie" class="btn btn-s">★ Star on GitHub</a>
   </div>
@@ -152,6 +152,12 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
   <h2>Everything you need.<br>Nothing you don't.</h2>
   <p style="color:var(--muted);max-width:560px;font-size:.97rem">Proudly procedural — functions, data, loops, logic. No classes, no <code>self</code>, no inheritance. Runs on Python 3.10+ with zero external dependencies.</p>
   <div class="grid">
+    <div class="card"><div class="card-icon">📦</div><h3><code>import "x" as y</code> <span class="new-badge">v1.17</span></h3><p>Namespaced modules: <code>import "lib/geometry" as geo</code> then <code>geo.circle_area(5)</code>, <code>geo.PI</code>. <code>require</code> still merges into your scope for quick scripts.</p></div>
+    <div class="card"><div class="card-icon">🚨</div><h3><code>error TypeName</code> <span class="new-badge">v1.17</span></h3><p>User-defined error types with Ruby-style rescue: <code>raise ValidationError, "bad email"</code> … <code>rescue ValidationError => e</code>. Typed raises auto-declare.</p></div>
+    <div class="card"><div class="card-icon">🩺</div><h3>Static Analysis <span class="new-badge">v1.17</span></h3><p><code>frankiec check</code> now catches undefined variables, typo'd functions, wrong argument counts and unused locals — before the program runs. <code>--strict</code> for CI.</p></div>
+    <div class="card"><div class="card-icon">🔢</div><h3>First-class Ranges <span class="new-badge">v1.17</span></h3><p><code>1..10</code> prints as <code>1..10</code>, converts with <code>.to_vec</code>, strides with <code>.step(3)</code>, and matches membership in <code>case/when 90..100</code>.</p></div>
+    <div class="card"><div class="card-icon">⚡</div><h3><code>parallel_map</code> + TCP Sockets <span class="new-badge">v1.17</span></h3><p>Thread-pool map for I/O-bound work: <code>parallel_map(urls, workers: 8) do |u| http_get(u) end</code>. Plus <code>tcp_connect</code> / <code>tcp_listen</code> / <code>tcp_serve</code> — zero deps.</p></div>
+    <div class="card"><div class="card-icon">🧪</div><h3>Test Groups + Stubs <span class="new-badge">v1.17</span></h3><p><code>test "name", tags: ["slow"] do … end</code> with <code>frankiec test --filter / --tag</code>. <code>stub("http_get", ->(u) { fake })</code> for side-effect-free tests. Plus <code>frankiec stitch install</code>.</p></div>
     <div class="card"><div class="card-icon">🐚</div><h3><code>shell()</code> + <code>dotenv()</code> <span class="new-badge">v1.16</span></h3><p><code>shell("git log")</code> returns <code>{stdout, stderr, exit_code, ok}</code>. <code>dotenv()</code> loads <code>.env</code> files into the environment — zero deps, pure Python stdlib.</p></div>
     <div class="card"><div class="card-icon">🔁</div><h3><code>loop do...end</code> + <code>||=</code> <span class="new-badge">v1.16</span></h3><p>Infinite loops that exit only via <code>break</code> — cleaner than <code>while true</code>. Nil-coalescing assign <code>config ||= load_defaults()</code> — Ruby-compatible.</p></div>
     <div class="card"><div class="card-icon">🔄</div><h3><code>transform_values</code> + <code>transform_keys</code> <span class="new-badge">v1.16</span></h3><p>Map over hash values or keys with a block. <code>prices.transform_values do |v| v * 2 end</code>. Essential for data transformation pipelines.</p></div>
@@ -278,6 +284,27 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
 <span class="cm"># frankiec fmt / docs / readline REPL</span>
 <span class="vr">db</span> = <span class="fn">env</span>(<span class="str">"DB_PATH"</span>, <span class="str">"app.db"</span>)
 <span class="fn">puts</span> <span class="vr">db</span></pre>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head"><span class="cp-title">v1.17.fk <span class="new-badge">v1.17</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
+      <pre><span class="cm"># import — namespaced modules</span>
+<span class="kw">import</span> <span class="str">"lib/geometry"</span> <span class="kw">as</span> <span class="vr">geo</span>
+<span class="fn">puts</span> <span class="vr">geo</span>.<span class="fn">circle_area</span>(<span class="num">5</span>)
+
+<span class="cm"># error — typed exceptions</span>
+<span class="kw">error</span> <span class="vr">ValidationError</span>
+<span class="kw">begin</span>
+  <span class="kw">raise</span> <span class="vr">ValidationError</span>, <span class="str">"bad email"</span>
+<span class="kw">rescue</span> <span class="vr">ValidationError</span> => <span class="vr">e</span>
+  <span class="fn">puts</span> <span class="str">"Invalid: #{e}"</span>
+<span class="kw">end</span>
+
+<span class="cm"># ranges + parallel_map</span>
+<span class="fn">puts</span> (<span class="num">1</span>..<span class="num">10</span>).<span class="fn">step</span>(<span class="num">3</span>)
+<span class="vr">pages</span> = <span class="fn">parallel_map</span>(<span class="vr">urls</span>, workers: <span class="num">8</span>) <span class="kw">do</span> |<span class="vr">u</span>|
+  <span class="fn">http_get</span>(<span class="vr">u</span>)
+<span class="kw">end</span></pre>
     </div>
 
     <div class="cp">
@@ -860,7 +887,8 @@ frankiec test</pre></div>
   <table>
     <thead><tr><th>Version</th><th>Highlights</th><th>Status</th></tr></thead>
     <tbody>
-      <tr><td><strong>v1.16.2</strong></td><td>shell(), dotenv(), loop do...end, ||=, Hash#transform_values/keys, String#scan, Hash#deep_merge, frankiemail, frankiecli, frankiecache</td><td><span class="badge bl">Latest</span></td></tr>
+      <tr><td><strong>v1.17.0</strong></td><td>import "x" as y namespaces, error types + rescue =>, first-class ranges, record dot access, static analysis in check, accurate cross-file tracebacks, parallel_map, TCP sockets, test groups/--filter/--tag, stub/unstub, stitch installer, REPL => echo + help</td><td><span class="badge bl">Latest</span></td></tr>
+      <tr><td><strong>v1.16.2</strong></td><td>shell(), dotenv(), loop do...end, ||=, Hash#transform_values/keys, String#scan, Hash#deep_merge, frankiemail, frankiecli, frankiecache</td><td><span class="badge bs">Stable</span></td></tr>
       <tr><td><strong>v1.15</strong></td><td>ternary operator, keyword default params, splat multi-assign, const keyword, fn.(args) everywhere, json_encode, base64/hmac public, String#format, path helpers, date arithmetic, frankieauth, frankieratelimit, frankiec check/new</td><td><span class="badge bs">Stable</span></td></tr>
       <tr><td><strong>v1.14</strong></td><td>spawn/timeout, async routes, middleware, static files, frankietemplate, frankiecookie, hash destructuring, shape pattern matching, scaffold stitches</td><td><span class="badge bs">Stable</span></td></tr>
       <tr><td>v1.13.1</td><td>frankiestring v2, .sum do / .flat_map do fixes, assert_approx_eq, run_tests() public, session(req,resp), fmt blank lines + idempotency</td><td><span class="badge bs">Stable</span></td></tr>

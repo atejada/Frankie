@@ -1,0 +1,110 @@
+# whats_new_v117.fk — Tour of Frankie v1.17 "Programs that grow"
+# Run with:   frankiec run examples/whats_new_v117.fk
+
+puts "🧟 Frankie v1.17 — Programs that grow"
+puts ""
+
+# ── 1. First-class ranges ─────────────────────────────────────────
+puts "── 1. First-class ranges ──"
+r = 1..10
+puts "r            = #{r}"
+puts "r.to_vec     = #{r.to_vec}"
+puts "r.include?(7) = #{r.include?(7)}"
+puts "(1..10).step(3) = #{(1..10).step(3)}"
+puts "(1..4).sum   = #{(1..4).sum}"
+
+score = 85
+case score
+when 90..100
+  puts "score #{score} → A"
+when 70..89
+  puts "score #{score} → B"
+else
+  puts "score #{score} → C"
+end
+puts ""
+
+# ── 2. User-defined error types ───────────────────────────────────
+puts "── 2. User-defined error types ──"
+error TimeoutError
+error ValidationError
+
+def save_user(u)
+  raise ValidationError, "email is required" unless u.has_key?("email")
+  "saved"
+end
+
+begin
+  save_user({name: "Blag"})
+rescue ValidationError => e
+  puts "ValidationError caught: #{e}"
+rescue TimeoutError => e
+  puts "TimeoutError caught: #{e}"
+end
+puts ""
+
+# ── 3. Namespaced imports ─────────────────────────────────────────
+puts "── 3. Namespaced imports ──"
+file_write("/tmp/_v117_geometry.fk", """PI = 3.14159265
+
+def circle_area(r)
+  PI * r * r
+end
+""")
+import "/tmp/_v117_geometry" as geo
+puts "geo.PI             = #{geo.PI}"
+puts "geo.circle_area(5) = #{geo.circle_area(5)}"
+file_delete("/tmp/_v117_geometry.fk")
+puts ""
+
+# ── 4. Record dot access ──────────────────────────────────────────
+puts "── 4. Record dot access ──"
+record Point(x, y)
+p1 = Point(3, 4)
+puts "p1   = #{p1}"
+puts "p1.x = #{p1.x}, p1.y = #{p1.y}"
+puts ""
+
+# ── 5. parallel_map ───────────────────────────────────────────────
+puts "── 5. parallel_map ──"
+squares = parallel_map([1, 2, 3, 4, 5], workers: 3) do |x|
+  x * x
+end
+puts "parallel squares: #{squares}"
+puts ""
+
+# ── 6. TCP sockets ────────────────────────────────────────────────
+puts "── 6. TCP sockets ──"
+spawn do
+  server = tcp_listen(7917)
+  client = server.accept()
+  line = client.recv_line()
+  client.send_line("echo: #{line}")
+  client.close()
+  server.close()
+end
+sleep(0.3)
+sock = tcp_connect("127.0.0.1", 7917, timeout: 5)
+sock.send_line("hello over TCP")
+puts "server replied: #{sock.recv_line()}"
+sock.close()
+puts ""
+
+# ── 7. Test groups + stubs (see frankiec test --filter / --tag) ──
+puts "── 7. Test groups + stubs ──"
+test "stubbed shell" do
+  stub("shell", ->(cmd) { {ok: true, stdout: "totally real output", exit_code: 0} })
+  r = shell("this_never_runs")
+  assert_eq(r["stdout"], "totally real output", "shell() was stubbed")
+  unstub()
+end
+puts ""
+
+puts "Also in v1.17 (try them yourself):"
+puts "  frankiec check app.fk        — static analysis: typos, arity, unused vars"
+puts "  frankiec test --filter math  — run matching test groups only"
+puts "  frankiec stitch install frankiecolor — fetch stitches from GitHub"
+puts "  fk> 2 + 3                    — REPL echoes => 5, _ holds last result"
+puts "  fk> help parallel_map        — REPL function documentation"
+puts ""
+puts "Frankie v1.17 — It's alive… and growing! 🧟⚡"

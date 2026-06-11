@@ -151,3 +151,21 @@ puts "Connecting to #{db_path}"
 ```
 
 `env(key, default)` returns the default if the variable is not set. `env(key)` with no default returns `nil` if missing.
+
+---
+
+## Namespaced Imports — `import` (v1.17)
+
+`require` merges everything into your scope. For larger programs, `import`
+loads a file into its **own namespace** instead:
+
+```ruby
+import "lib/math_utils" as math
+
+puts math.circle_area(5)     # 78.539...
+puts math.PI                 # 3.14159265358979
+```
+
+- The alias is optional — `import "lib/math_utils"` defines `math_utils`.
+- Modules are cached: importing the same file twice returns the same module.
+- Use `require` for quick scripts, `import` when names start colliding.

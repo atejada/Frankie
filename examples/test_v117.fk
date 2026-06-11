@@ -1,0 +1,131 @@
+# test_v117.fk — Frankie v1.17 "Programs that grow" feature tests
+# Run with: frankiec test examples/test_v117.fk
+
+test "first-class ranges" do
+  r = 1..5
+  assert_eq(to_str(r), "1..5", "ranges print in Frankie syntax")
+  assert_eq(r.to_vec, [1, 2, 3, 4, 5], "to_vec converts to vector")
+  assert_eq((1..3).to_a, [1, 2, 3], "to_a works on ranges too")
+  assert_true(r.include?(3), "include? membership")
+  assert_true(not r.include?(9), "include? rejects outsiders")
+  assert_eq((1..10).step(3).to_vec, [1, 4, 7, 10], "step strides")
+  assert_eq((1..4).sum, 10, "sum works on ranges")
+  assert_eq((1...4).to_vec, [1, 2, 3], "exclusive range")
+
+  grade = nil
+  case 85
+  when 90..100
+    grade = "A"
+  when 70..89
+    grade = "B"
+  else
+    grade = "C"
+  end
+  assert_eq(grade, "B", "case/when matches range membership")
+end
+
+test "user-defined error types" do
+  error ParseFailure
+  error NetworkDown
+
+  caught = nil
+  begin
+    raise ParseFailure, "bad token on line 3"
+  rescue ParseFailure => e
+    caught = e
+  end
+  assert_eq(caught, "bad token on line 3", "rescue catches the declared type")
+
+  order = nil
+  begin
+    raise NetworkDown, "socket closed"
+  rescue ParseFailure => e
+    order = "wrong"
+  rescue NetworkDown => e
+    order = "right"
+  end
+  assert_eq(order, "right", "typed rescue picks the matching clause")
+
+  # Typed errors are still caught by a generic rescue
+  generic = nil
+  begin
+    raise ParseFailure, "boom"
+  rescue e
+    generic = e
+  end
+  assert_eq(generic, "boom", "generic rescue still catches typed errors")
+
+  # Builtin types still work alongside user types
+  builtin = nil
+  begin
+    raise TypeError("not a number")
+  rescue TypeError => e
+    builtin = "yes"
+  end
+  assert_eq(builtin, "yes", "builtin types still rescue correctly")
+
+  assert_raises_typed(->() { raise ParseFailure, "x" }, "ParseFailure",
+                      "assert_raises_typed knows user types")
+end
+
+test "namespaced imports" do
+  file_write("/tmp/_fk117_mod.fk", "PI_ISH = 3.14\ndef triple(x)\n  x * 3\nend\n")
+  import "/tmp/_fk117_mod" as geo
+  assert_eq(geo.triple(7), 21, "module function call")
+  assert_eq(geo.PI_ISH, 3.14, "module constant access")
+  file_delete("/tmp/_fk117_mod.fk")
+end
+
+test "record dot access" do
+  record Point(x, y)
+  pt = Point(3, 4)
+  assert_eq(pt.x, 3, "record field via dot")
+  assert_eq(pt.y, 4, "second field via dot")
+end
+
+test "parallel_map" do
+  doubled = parallel_map([1, 2, 3, 4, 5], workers: 3) do |x|
+    x * 2
+  end
+  assert_eq(doubled, [2, 4, 6, 8, 10], "results come back in order")
+  assert_eq(parallel_map([], workers: 2) do |x| x end, [], "empty vector is fine")
+end
+
+test "tcp sockets", tags: ["network"] do
+  spawn do
+    server = tcp_listen(7917)
+    client = server.accept()
+    line = client.recv_line()
+    client.send_line("pong: #{line}")
+    client.close()
+    server.close()
+  end
+  sleep(0.3)
+  sock = tcp_connect("127.0.0.1", 7917, timeout: 5)
+  sock.send_line("ping")
+  reply = sock.recv_line()
+  sock.close()
+  assert_eq(reply, "pong: ping", "tcp round-trip works")
+end
+
+test "stub and unstub" do
+  stub("shell", ->(cmd) { {ok: true, stdout: "fake output", exit_code: 0} })
+  r = shell("definitely_not_run")
+  assert_eq(r["stdout"], "fake output", "stubbed shell returns fake data")
+  unstub("shell")
+
+  stub("http_get", ->(url) { {body: "cached"} })
+  fake = http_get("http://example.com")
+  assert_eq(fake["body"], "cached", "stubbed http_get")
+  unstub()
+end
+
+test "heredocs still solid" do
+  who = "Frankie"
+  msg = <<~TXT
+    Hello, #{who}!
+      stay stitched
+  TXT
+  assert_match(msg, "Hello, Frankie!", "heredoc interpolation")
+  assert_match(msg, "  stay stitched", "indent stripped to common margin")
+end

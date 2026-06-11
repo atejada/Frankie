@@ -31,6 +31,11 @@ def _fk_to_str(x):
     if isinstance(x, list):
         inner = ", ".join(_fk_to_str(e) for e in x)
         return f"[{inner}]"
+    if isinstance(x, range):
+        # v1.17: ranges print in Frankie syntax — range(1, 11) → "1..10"
+        if x.step == 1:
+            return f"{x.start}..{x.stop - 1}"
+        return _fk_to_str(list(x))
     if isinstance(x, dict):
         # Record type — display as RecordName(field: val, ...)
         if "__type__" in x:
@@ -284,9 +289,27 @@ def _fk_slice(target, start, end, inclusive=True):
     else:
         return target[start:end]
 
+_FK_ATTR_MISSING = object()
+
 def _fk_attr_or_method(obj, name):
-    """Safe nav helper: get obj.name as attribute (property) or zero-arg method call."""
-    val = getattr(obj, name, None)
+    """Unified dot-dispatch (v1.17): obj.name as record field, hash key,
+    module constant, attribute, or zero-arg method call.
+
+    - dict (records & hashes): field/key lookup → obj[name]
+    - everything else: attribute lookup; callables are invoked with no args
+    """
+    if isinstance(obj, dict):
+        if name in obj:
+            return obj[name]
+        native = getattr(obj, name, _FK_ATTR_MISSING)
+        if native is not _FK_ATTR_MISSING and callable(native):
+            return native()   # e.g. h.clear
+        type_name = obj.get('__type__', 'Hash')
+        raise AttributeError(f"[Frankie] {type_name} has no field {name!r}")
+    val = getattr(obj, name, _FK_ATTR_MISSING)
+    if val is _FK_ATTR_MISSING:
+        raise AttributeError(
+            f"[Frankie] {type(obj).__name__} has no method or property {name!r}")
     if callable(val):
         return val()
     return val
@@ -382,7 +405,9 @@ def _fk_require(path):
         _src = _f.read()
     _tokens = Lexer(_src).tokenize()
     _ast = Parser(_tokens).parse()
-    _py_src = CodeGen().generate(_ast)
+    _cg = CodeGen()
+    _py_src = _cg.generate(_ast)
+    _fk_register_line_map(abs_path, _cg.line_map)
     # Execute in caller's global scope (inject stdlib)
     import builtins
     _g = {k: v for k, v in globals().items()}
@@ -439,7 +464,9 @@ def _fk_stitch(name):
         _src = _f.read()
     _tokens = Lexer(_src).tokenize()
     _ast = Parser(_tokens).parse()
-    _py_src = CodeGen().generate(_ast)
+    _cg = CodeGen()
+    _py_src = _cg.generate(_ast)
+    _fk_register_line_map(abs_path, _cg.line_map)
     _g = {k: v for k, v in globals().items()}
     _g['__file__'] = abs_path
     exec(compile(_py_src, abs_path, 'exec'), _g)
@@ -2426,6 +2453,7 @@ class _FKTestSuite:
     def __init__(self):
         self._pass = 0
         self._fail = 0
+        self._skipped = 0   # v1.17: groups skipped by --filter / --tag
         self._errors = []
 
     def assert_true(self, value, msg=None):
@@ -2549,7 +2577,8 @@ class _FKTestSuite:
                 'AttributeError': AttributeError, 'Exception': Exception,
                 'Error': Exception,
             }
-            exc_class = _type_map.get(error_type, Exception)
+            # v1.17: user-defined error types take precedence
+            exc_class = _fk_error_types.get(error_type) or _type_map.get(error_type, Exception)
         else:
             exc_class = error_type
         try:
@@ -2809,3 +2838,363 @@ def _fk_str_scan(s, pattern):
         else:
             result.append(m)
     return result
+
+
+# ═══ v1.17 — "Programs that grow" ═════════════════════════════════════════════
+
+# ─── Range helpers ────────────────────────────────────────────────────────────
+
+def _fk_to_vec(x):
+    """.to_vec / .to_a — convert range/string/hash to a vector.
+    Hashes become a vector of [key, value] pairs (Ruby's Hash#to_a)."""
+    if isinstance(x, dict):
+        return [list(pair) for pair in x.items()]
+    if isinstance(x, str):
+        return list(x)
+    return list(x)
+
+def _fk_range_step(r, step):
+    """(1..10).step(2) — stride over a range (or any vector)."""
+    step = int(step)
+    if step == 0:
+        raise RuntimeError("[Frankie] step: stride cannot be 0")
+    if isinstance(r, range):
+        return range(r.start, r.stop, step)
+    return list(r)[::step]
+
+
+# ─── User-defined error types ────────────────────────────────────────────────
+
+class FrankieError(RuntimeError):
+    """Base class for all user-defined Frankie error types."""
+    _fk_user_error = True
+
+_fk_error_types = {}
+
+def _fk_def_error(name):
+    """error TimeoutError — create (or fetch) a user-defined error class."""
+    if name in _fk_error_types:
+        return _fk_error_types[name]
+    cls = type(name, (FrankieError,), {'_fk_user_error': True})
+    _fk_error_types[name] = cls
+    return cls
+
+_FK_BUILTIN_ERRORS = {
+    'RuntimeError': RuntimeError, 'TypeError': TypeError,
+    'ValueError': ValueError, 'ZeroDivisionError': ZeroDivisionError,
+    'IndexError': IndexError, 'KeyError': KeyError,
+    'IOError': IOError, 'FileNotFoundError': FileNotFoundError,
+    'OverflowError': OverflowError, 'NameError': NameError,
+    'AttributeError': AttributeError, 'StopIteration': StopIteration,
+    'TimeoutError': TimeoutError,
+    'Exception': Exception, 'Error': Exception,
+}
+
+class _FkNeverMatches(Exception):
+    """Returned by _fk_exc for unknown type names so a rescue clause for a
+    never-raised type simply never matches (instead of crashing the handler)."""
+    pass
+
+def _fk_exc(name):
+    """Resolve an error type name → exception class (user types first)."""
+    if name in _fk_error_types:
+        return _fk_error_types[name]
+    if name in _FK_BUILTIN_ERRORS:
+        return _FK_BUILTIN_ERRORS[name]
+    return _FkNeverMatches
+
+def _fk_make_error(name, message):
+    """raise TimeoutError, "msg" — instantiate a typed error."""
+    cls = _fk_error_types.get(name) or _FK_BUILTIN_ERRORS.get(name)
+    if cls is None:
+        # Auto-declare on first raise so simple scripts don't need 'error X'
+        cls = _fk_def_error(name)
+    return cls(message)
+
+
+# ─── Cross-file tracebacks: line-map registry ────────────────────────────────
+# Maps abs .fk path → {generated_py_line: fk_source_line}.
+# Populated by frankiec (main file) and _fk_require/_fk_stitch/_fk_import.
+
+_fk_line_maps = {}
+
+def _fk_register_line_map(abs_path, line_map):
+    _fk_line_maps[abs_path] = dict(line_map)
+
+
+# ─── Namespaced imports: import "lib/math" as math ───────────────────────────
+
+class FrankieModule:
+    """Namespace object returned by import — holds a module's public names."""
+    def __init__(self, name, names):
+        self._fk_module_name = name
+        for k, v in names.items():
+            setattr(self, k, v)
+
+    def __repr__(self):
+        return f"<module {self._fk_module_name}>"
+
+_fk_module_cache = {}
+
+def _fk_import(path):
+    """import "lib/math" as math — load a .fk file into its own namespace.
+
+    Unlike require (which merges everything into the caller's scope),
+    import returns a module object: math.circle_area(5), math.PI.
+    Modules are cached — importing the same file twice returns the same module.
+    """
+    if not path.endswith('.fk'):
+        path = path + '.fk'
+    abs_path = _os.path.abspath(path)
+    if abs_path in _fk_module_cache:
+        return _fk_module_cache[abs_path]
+    if not _os.path.exists(abs_path):
+        raise RuntimeError(f"[Frankie] import: file not found: {path!r}")
+
+    import sys as _sys
+    _frankie_dir = _os.path.dirname(_os.path.abspath(__file__))
+    if _frankie_dir not in _sys.path:
+        _sys.path.insert(0, _frankie_dir)
+    from compiler.lexer import Lexer
+    from compiler.parser import Parser
+    from compiler.codegen import CodeGen
+    with open(abs_path, 'r', encoding='utf-8') as _f:
+        _src = _f.read()
+    _tokens = Lexer(_src).tokenize()
+    _ast = Parser(_tokens).parse()
+    _cg = CodeGen()
+    _py_src = _cg.generate(_ast)
+    _fk_register_line_map(abs_path, _cg.line_map)
+
+    # Execute in an isolated namespace seeded with the stdlib
+    _baseline = {k: v for k, v in globals().items()}
+    _g = dict(_baseline)
+    _g['__file__'] = abs_path
+    exec(compile(_py_src, abs_path, 'exec'), _g)
+
+    # Public names = everything new (or changed) that isn't private
+    module_name = _os.path.basename(abs_path)[:-3]
+    public = {}
+    for k, v in _g.items():
+        if k.startswith('_') or k == '__builtins__':
+            continue
+        if k in _baseline and _baseline[k] is v:
+            continue   # unchanged stdlib symbol
+        public[k] = v
+    mod = FrankieModule(module_name, public)
+    _fk_module_cache[abs_path] = mod
+    return mod
+
+
+# ─── parallel_map — thread-pool map (zero deps) ──────────────────────────────
+
+def parallel_map(vec, fn, workers=4):
+    """parallel_map(vec, workers: 4) do |x| ... end
+
+    Runs the block across a thread pool and returns results in input order.
+    Perfect for I/O-bound work: HTTP calls, shell commands, file reads.
+    The first exception raised by any worker is re-raised.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+    items = list(vec)
+    if not items:
+        return []
+    workers = max(1, int(workers))
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        return list(pool.map(fn, items))
+
+
+# ─── TCP sockets ──────────────────────────────────────────────────────────────
+import socket as _socket
+
+class FrankieSocket:
+    """TCP connection returned by tcp_connect() / server.accept()."""
+    def __init__(self, sock, host=None, port=None):
+        self._sock = sock
+        self._host = host
+        self._port = port
+        self._open = True
+
+    def send(self, data):
+        """Send a string (or vector of byte ints). Returns bytes sent."""
+        if isinstance(data, list):
+            payload = bytes(data)
+        else:
+            payload = str(data).encode('utf-8')
+        self._sock.sendall(payload)
+        return len(payload)
+
+    def send_line(self, data):
+        """Send a string followed by a newline."""
+        return self.send(str(data) + "\n")
+
+    def recv(self, n=4096):
+        """Receive up to n bytes as a string. Returns nil when the peer closes."""
+        chunk = self._sock.recv(int(n))
+        if not chunk:
+            return None
+        return chunk.decode('utf-8', errors='replace')
+
+    def recv_line(self):
+        """Receive until newline (exclusive). Returns nil when the peer closes."""
+        buf = bytearray()
+        while True:
+            ch = self._sock.recv(1)
+            if not ch:
+                return buf.decode('utf-8', errors='replace') if buf else None
+            if ch == b'\n':
+                return buf.decode('utf-8', errors='replace')
+            buf.extend(ch)
+
+    def close(self):
+        if self._open:
+            self._open = False
+            try:
+                self._sock.close()
+            except OSError:
+                pass
+        return None
+
+    def peer(self):
+        """Return "host:port" of the remote end."""
+        try:
+            host, port = self._sock.getpeername()[:2]
+            return f"{host}:{port}"
+        except OSError:
+            return None
+
+    def __repr__(self):
+        state = "open" if self._open else "closed"
+        return f"<tcp {self._host}:{self._port} {state}>"
+
+
+class FrankieServerSocket:
+    """Listening socket returned by tcp_listen()."""
+    def __init__(self, sock, port):
+        self._sock = sock
+        self._port = port
+
+    def accept(self):
+        """Block until a client connects; returns a FrankieSocket."""
+        client, addr = self._sock.accept()
+        return FrankieSocket(client, addr[0], addr[1])
+
+    def close(self):
+        try:
+            self._sock.close()
+        except OSError:
+            pass
+        return None
+
+    def __repr__(self):
+        return f"<tcp-server :{self._port}>"
+
+
+def tcp_connect(host, port, timeout=None):
+    """Open a TCP connection: sock = tcp_connect("example.com", 80)"""
+    s = _socket.create_connection((host, int(port)),
+                                  timeout=float(timeout) if timeout else None)
+    return FrankieSocket(s, host, int(port))
+
+def tcp_listen(port, host="0.0.0.0", backlog=16):
+    """Listen on a port: server = tcp_listen(7777); client = server.accept()"""
+    s = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
+    s.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1)
+    s.bind((host, int(port)))
+    s.listen(int(backlog))
+    return FrankieServerSocket(s, int(port))
+
+def tcp_serve(port, handler, host="0.0.0.0"):
+    """tcp_serve(7777) do |client| ... end — threaded accept loop.
+
+    Each client connection runs the block in its own thread and is closed
+    automatically afterwards. Blocks forever (Ctrl+C to stop).
+    """
+    server = tcp_listen(port, host)
+    print(f"🧟 Frankie TCP server listening on {host}:{port}")
+    try:
+        while True:
+            client = server.accept()
+            def _handle(c=client):
+                try:
+                    handler(c)
+                finally:
+                    c.close()
+            _threading.Thread(target=_handle, daemon=True).start()
+    except KeyboardInterrupt:
+        print("\n[Frankie] TCP server stopped.")
+    finally:
+        server.close()
+
+
+# ─── Test harness extras: groups, tags, filtering, stubs ────────────────────
+
+def test(name, fn, tags=None):
+    """test "name" do ... end — a named, filterable test group.
+
+    Filtering (set by `frankiec test --filter X --tag Y`):
+      FRANKIE_TEST_FILTER — substring match on the group name
+      FRANKIE_TEST_TAG    — group must carry the tag
+    """
+    flt = _os.environ.get('FRANKIE_TEST_FILTER', '')
+    tag = _os.environ.get('FRANKIE_TEST_TAG', '')
+    tag_list = [str(t) for t in (tags or [])]
+    if flt and flt.lower() not in str(name).lower():
+        _fk_test_suite._skipped += 1
+        return None
+    if tag and tag not in tag_list:
+        _fk_test_suite._skipped += 1
+        return None
+    label = f"{name}" + (f"  [{', '.join(tag_list)}]" if tag_list else "")
+    print(f"  ── {label}")
+    fn()
+    return None
+
+_fk_stubs = {}
+
+# Codegen rewrites some public stdlib names to internal helpers; stubbing
+# the public name must patch the internal one too.
+_FK_STUB_ALIASES = {
+    'shell': '_fk_shell', 'exec_cmd': '_fk_shell', 'dotenv': '_fk_dotenv',
+    'smtp_send': '_fk_smtp_send', 'sum': '_fk_sum', 'mean': '_fk_mean',
+    'min': '_fk_min', 'max': '_fk_max', 'length': '_fk_length',
+}
+
+def _fk_stub_targets(name):
+    targets = [name]
+    if name in _FK_STUB_ALIASES:
+        targets.append(_FK_STUB_ALIASES[name])
+    return targets
+
+def stub(name, replacement):
+    """stub("http_get", ->(url) { fake_response }) — swap a global function.
+
+    Replaces `name` in the calling script's scope, remembering the original.
+    Restore with unstub("http_get") or unstub() for all.
+    """
+    import inspect as _insp
+    frame = _insp.currentframe().f_back
+    g = frame.f_globals
+    for target in _fk_stub_targets(name):
+        if target not in _fk_stubs:
+            _fk_stubs[target] = g.get(target)
+        g[target] = replacement
+    return None
+
+def unstub(name=None):
+    """unstub("http_get") — restore a stubbed function (or all with no args)."""
+    import inspect as _insp
+    frame = _insp.currentframe().f_back
+    g = frame.f_globals
+    if name:
+        names = _fk_stub_targets(name)
+    else:
+        names = list(_fk_stubs.keys())
+    for n in names:
+        if n in _fk_stubs:
+            original = _fk_stubs.pop(n)
+            if original is None:
+                g.pop(n, None)
+            else:
+                g[n] = original
+    return None

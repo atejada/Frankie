@@ -1,7 +1,7 @@
 # showcase.fk — Everything Frankie can do in one program
 
 puts "╔══════════════════════════════════════╗"
-puts "║     Frankie v1.16.2 — Full Showcase     ║"
+puts "║     Frankie v1.17.0 — Full Showcase     ║"
 puts "╚══════════════════════════════════════╝"
 puts ""
 
@@ -911,5 +911,88 @@ puts "after delete, size: #{cache_size()}"
 cache_clear()
 puts "after clear, size: #{cache_size()}"
 
+# ── 56. First-class ranges (v1.17) ─────────────────────────────────────────────
+
+puts "── 56. First-class Ranges (v1.17) ──"
+r = 1..10
+puts "range: #{r}, to_vec: #{(1..5).to_vec}"
+puts "include?(7): #{r.include?(7)}, step(3): #{(1..10).step(3)}"
+grade = 85
+case grade
+when 90..100
+  puts "case range match: A"
+when 70..89
+  puts "case range match: B"
+end
 puts ""
-puts "Frankie v1.16.2 is alive and kicking! 🧟⚡"
+
+# ── 57. User-defined error types (v1.17) ───────────────────────────────────────
+
+puts "── 57. User-defined Error Types (v1.17) ──"
+error ShowcaseError
+begin
+  raise ShowcaseError, "stitched on purpose"
+rescue ShowcaseError => e
+  puts "rescued ShowcaseError: #{e}"
+end
+puts ""
+
+# ── 58. Namespaced imports (v1.17) ─────────────────────────────────────────────
+
+puts "── 58. Namespaced Imports (v1.17) ──"
+file_write("/tmp/_showcase_mod.fk", """GREETING = \"hello from a module\"
+
+def shout(s)
+  s.upcase
+end
+""")
+import "/tmp/_showcase_mod" as mod
+puts "mod.GREETING     = #{mod.GREETING}"
+puts "mod.shout(\"hi\") = #{mod.shout("hi")}"
+file_delete("/tmp/_showcase_mod.fk")
+puts ""
+
+# ── 59. Record dot access (v1.17) ──────────────────────────────────────────────
+
+puts "── 59. Record Dot Access (v1.17) ──"
+record Vec2(x, y)
+v = Vec2(6, 8)
+puts "v.x = #{v.x}, v.y = #{v.y}"
+puts ""
+
+# ── 60. parallel_map (v1.17) ───────────────────────────────────────────────────
+
+puts "── 60. parallel_map (v1.17) ──"
+cubes = parallel_map([1, 2, 3, 4], workers: 2) do |n|
+  n ** 3
+end
+puts "parallel cubes: #{cubes}"
+puts ""
+
+# ── 61. TCP sockets (v1.17) ────────────────────────────────────────────────────
+
+puts "── 61. TCP Sockets (v1.17) ──"
+spawn do
+  srv = tcp_listen(7918)
+  c = srv.accept()
+  c.send_line("hi #{c.recv_line()}")
+  c.close()
+  srv.close()
+end
+sleep(0.3)
+sock = tcp_connect("127.0.0.1", 7918, timeout: 5)
+sock.send_line("showcase")
+puts "tcp reply: #{sock.recv_line()}"
+sock.close()
+puts ""
+
+# ── 62. Test stubs (v1.17) ─────────────────────────────────────────────────────
+
+puts "── 62. Test Stubs (v1.17) ──"
+stub("shell", ->(cmd) { {ok: true, stdout: "stub says hi", exit_code: 0} })
+puts "stubbed shell: #{shell("anything")["stdout"]}"
+unstub()
+puts ""
+
+puts ""
+puts "Frankie v1.17.0 is alive and kicking! 🧟⚡"

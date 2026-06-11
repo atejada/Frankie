@@ -1,5 +1,101 @@
 # Changelog
 
+## v1.17.0 (2026)
+
+### Theme: "Programs that grow" — namespacing, real checking, typed errors
+
+---
+
+### New Language Features
+
+**Namespaced imports — `import "lib/math" as math`**
+- Loads a `.fk` file into its own namespace: `math.circle_area(5)`, `math.PI`
+- Alias optional — `import "lib/math"` defines `math`
+- Modules are cached; `require` is unchanged and still merges into scope
+
+**User-defined error types — `error TypeName`**
+- `error TimeoutError` declares a type; `raise TimeoutError, "msg"` raises it
+- New Ruby-style rescue binding: `rescue TimeoutError => e` (old `rescue Type e` still works)
+- Typed raises auto-declare their type; generic `rescue` still catches everything
+- `assert_raises_typed` understands user-defined types
+- User types take precedence over Python builtins of the same name
+
+**First-class ranges**
+- Ranges print in Frankie syntax: `1..10` (not `range(1, 11)`)
+- `.to_vec` / `.to_a`, `.include?`, `.step(n)`, `.sum`, `.first`, `.last`
+- `case/when` with a range value now tests membership: `when 90..100`
+
+**Record dot access — `p.x`**
+- `record Point(x, y)` instances now support `p1.x` (previously `p1["x"]` only)
+- Same dispatch powers module constants and zero-arg methods uniformly
+
+**`test` blocks — `test "name", tags: ["slow"] do ... end`**
+- Named, filterable test groups for the built-in harness (contextual keyword)
+
+---
+
+### New Stdlib
+
+**`parallel_map(vec, workers: 4) do |x| ... end`**
+- Thread-pool map via `concurrent.futures` — results in input order, first
+  worker exception re-raised. Built for I/O-bound work.
+
+**TCP sockets — `tcp_connect` / `tcp_listen` / `tcp_serve`**
+- `tcp_connect(host, port, timeout: 5)` → socket with `send`, `send_line`,
+  `recv(n)`, `recv_line`, `peer`, `close`
+- `tcp_listen(port)` → server with `accept` / `close`
+- `tcp_serve(port) do |client| ... end` — threaded accept loop, auto-close
+
+**`stub(name, fn)` / `unstub(name)`**
+- Swap any global function (`shell`, `http_get`, ...) during tests; restore
+  with `unstub(name)` or `unstub()`
+
+---
+
+### Tooling
+
+**`frankiec check` — real static analysis**
+- Undefined variables/functions and wrong argument counts → errors (exit 1)
+- Unused local variables → warnings; `--strict` fails on warnings (CI mode)
+- Resolves `require`/`stitch`/`import` targets; checks `#{interpolation}` too
+- New module: `compiler/analyzer.py`
+
+**Accurate cross-file tracebacks**
+- CodeGen now emits a precise py→fk line map for every compiled file
+- Runtime errors in `require`d files, imports and stitches point at the
+  right file and the right line (previously: wrong line, main file only)
+
+**`frankiec test --filter <name> --tag <tag>`**
+- Run a subset of `test` groups; skipped groups reported in the summary
+
+**`frankiec stitch install <name> [--global]` / `frankiec stitch list`**
+- Installs stitches from the Frankie GitHub registry into `./stitches/`
+  or `~/.frankie/stitches/` — stdlib HTTP only, zero dependencies
+
+**REPL upgrades**
+- Bare expressions echo their value: `fk> 2 + 3` → `=> 5`
+- `_` holds the last result
+- `help <function>` prints the signature + docs of any function
+
+---
+
+### Fixes
+
+- `raise` as the last statement of a function, lambda or block no longer
+  crashes codegen ("Unknown expression node: RaiseStmt")
+- Generated f-strings avoid nested quotes — compiled output now runs on
+  Python 3.8–3.11, not just 3.12+ (fixes `whats_new_v115.fk`)
+- `Integer#chr`, `String#hex`, `String#oct` wired into codegen
+  (fixes `whats_new_v112.fk`)
+- `TimeoutError` added to the rescue type map and builtin error registry
+- Generic zero-arg method calls dispatch through `_fk_attr_or_method`,
+  with a clear error message for missing fields/methods
+- Function-call blocks now respect the block's exact parameter count, and
+  keyword arguments order correctly around blocks:
+  `parallel_map(urls, workers: 4) do |u| ... end`
+
+---
+
 ## v1.15.0 (2026)
 
 ### Theme: Language Polish & Developer Ergonomics

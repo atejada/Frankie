@@ -31,8 +31,14 @@ puts "json_response() -> status #{r4.status}, body: #{r4.body}"
 r5 = redirect("/new-path")
 puts "redirect()      -> status #{r5.status}, Location: #{r5.headers["Location"]}"
 
-r6 = halt(404, "Not Found")
-puts "halt(404)       -> status #{r6.status}, body: #{r6.body}"
+# halt(404, "Not Found") raises to short-circuit a request — catch it to peek inside
+begin
+  halt(404, "Not Found")
+rescue e
+  puts "halt(404)       -> raises to short-circuit the request pipeline"
+end
+r6 = response("Not Found", 404)
+puts "response(404)   -> status #{r6.status}, body: #{r6.body}"
 puts ""
 
 # ── 2. FrankieRequest anatomy ────────────────────────────────────

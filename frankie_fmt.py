@@ -26,6 +26,11 @@ class Formatter:
     def __init__(self, source: str = ""):
         self._depth = 0
         self._lines = []
+        # Heredoc re-emission is only safe when the string is the whole
+        # value of a statement (msg = <<~X / puts <<~X / return <<~X).
+        # Inside argument lists or operators the terminator line would
+        # swallow the trailing tokens — use escaped quotes there instead.
+        self._heredoc_ok = False
         # Pre-compute set of line numbers that have a blank line immediately above them.
         # Line numbers are 1-based, matching Token.line.
         self._blank_before: set = set()
@@ -46,6 +51,16 @@ class Formatter:
 
     def _indent(self):  self._depth += 1
     def _dedent(self):  self._depth -= 1
+
+    def _fmt_value(self, node) -> str:
+        """Format a statement-level value, where heredoc form is safe."""
+        if isinstance(node, StringLiteral):
+            self._heredoc_ok = True
+            try:
+                return self._fmt_string(node)
+            finally:
+                self._heredoc_ok = False
+        return self._fmt_expr(node)
 
     def format(self, program: Program) -> str:
         for i, node in enumerate(program.body):
@@ -71,8 +86,13 @@ class Formatter:
         elif isinstance(node, ReturnStmt):    self._fmt_return(node)
         elif isinstance(node, PrintStmt):     self._fmt_print(node)
         elif isinstance(node, DebugPrint):    self._emit(f"p {self._fmt_expr(node.value)}")
-        elif isinstance(node, Assign):        self._emit(f"{node.name} = {self._fmt_expr(node.value)}")
-        elif isinstance(node, ConstAssign):   self._emit(f"{node.name} = {self._fmt_expr(node.value)}")
+        elif isinstance(node, Assign):        self._emit(f"{node.name} = {self._fmt_value(node.value)}")
+        elif isinstance(node, ConstAssign):
+            # Preserve the explicit const keyword for non-ALL_CAPS names
+            # (ALL_CAPS assignment re-parses as a constant on its own)
+            kw = "" if node.name == node.name.upper() else "const "
+            self._emit(f"{kw}{node.name} = {self._fmt_expr(node.value)}")
+        elif isinstance(node, OrAssign):      self._emit(f"{node.name} ||= {self._fmt_expr(node.value)}")
         elif isinstance(node, CompoundAssign):self._emit(f"{node.name} {node.op}= {self._fmt_expr(node.value)}")
         elif isinstance(node, IndexAssign):
             t = self._fmt_expr(node.target)
@@ -85,18 +105,53 @@ class Formatter:
             v = self._fmt_expr(node.value)
             self._emit(f"{t}[{i}] {node.op}= {v}")
         elif isinstance(node, DestructAssign):
-            names = ", ".join(node.names)
+            names = ", ".join(
+                ("*" + n if i == node.splat_index else n)
+                for i, n in enumerate(node.names))
             self._emit(f"{names} = {self._fmt_expr(node.value)}")
+        elif isinstance(node, HashDestructAssign):
+            keys = ", ".join(node.keys)
+            self._emit(f"{{{keys}}} = {self._fmt_expr(node.value)}")
         elif isinstance(node, PostfixIf):
             kw = "unless" if node.negated else "if"
             self._emit(f"{self._fmt_expr(node.stmt)} {kw} {self._fmt_expr(node.condition)}")
         elif isinstance(node, BeginRescue):   self._fmt_begin_rescue(node)
         elif isinstance(node, RaiseStmt):
-            if node.message:
+            if getattr(node, 'error_type', None):
+                if node.message is not None:
+                    self._emit(f"raise {node.error_type}, {self._fmt_expr(node.message)}")
+                else:
+                    self._emit(f"raise {node.error_type}")
+            elif node.message:
                 self._emit(f"raise {self._fmt_expr(node.message)}")
             else:
                 self._emit("raise")
         elif isinstance(node, RequireStmt):   self._emit(f"require {self._fmt_expr(node.path)}")
+        elif isinstance(node, StitchStmt):    self._emit(f"stitch {self._fmt_expr(node.name)}")
+        elif isinstance(node, ErrorDef):      self._emit(f"error {node.name}")
+        elif isinstance(node, ImportStmt):
+            alias = f" as {node.alias}" if node.alias else ""
+            self._emit(f"import {self._fmt_expr(node.path)}{alias}")
+        elif isinstance(node, RecordDef):
+            self._emit(f"record {node.name}({', '.join(node.fields)})")
+        elif isinstance(node, LoopStmt):
+            self._emit("loop do")
+            self._indent()
+            self._fmt_body(node.body)
+            self._dedent()
+            self._emit("end")
+        elif isinstance(node, SpawnBlock):
+            self._emit("spawn do")
+            self._indent()
+            self._fmt_body(node.body)
+            self._dedent()
+            self._emit("end")
+        elif isinstance(node, TimeoutBlock):
+            self._emit(f"timeout({self._fmt_expr(node.seconds)}) do")
+            self._indent()
+            self._fmt_body(node.body)
+            self._dedent()
+            self._emit("end")
         elif isinstance(node, CaseStmt):      self._fmt_case(node)
         elif isinstance(node, NextStmt):      self._emit("next")
         elif isinstance(node, BreakStmt):
@@ -190,13 +245,13 @@ class Formatter:
 
     def _fmt_return(self, node: ReturnStmt):
         if node.value:
-            self._emit(f"return {self._fmt_expr(node.value)}")
+            self._emit(f"return {self._fmt_value(node.value)}")
         else:
             self._emit("return")
 
     def _fmt_print(self, node: PrintStmt):
         kw = "puts" if node.newline else "print"
-        self._emit(f"{kw} {self._fmt_expr(node.value)}")
+        self._emit(f"{kw} {self._fmt_value(node.value)}")
 
     def _fmt_begin_rescue(self, node: BeginRescue):
         self._emit("begin")
@@ -288,6 +343,23 @@ class Formatter:
             then = self._fmt_expr(node.then_expr)
             els  = self._fmt_expr(node.else_expr) if node.else_expr is not None else "nil"
             return f"if {cond} then {then} else {els} end"
+        if isinstance(node, TernaryExpr):
+            cond = self._fmt_expr(node.condition)
+            then = self._fmt_expr(node.then_expr)
+            els  = self._fmt_expr(node.else_expr)
+            return f"{cond} ? {then} : {els}"
+        if isinstance(node, CompoundAssign):
+            return f"{node.name} {node.op}= {self._fmt_expr(node.value)}"
+        if isinstance(node, OrAssign):
+            return f"{node.name} ||= {self._fmt_expr(node.value)}"
+        if isinstance(node, IndexAssign):
+            return (f"{self._fmt_expr(node.target)}[{self._fmt_expr(node.index)}]"
+                    f" = {self._fmt_expr(node.value)}")
+        if isinstance(node, IndexCompoundAssign):
+            return (f"{self._fmt_expr(node.target)}[{self._fmt_expr(node.index)}]"
+                    f" {node.op}= {self._fmt_expr(node.value)}")
+        if isinstance(node, AwaitExpr):
+            return f"await {self._fmt_expr(node.expr)}"
         # Fallback for statement nodes used as expressions
         return "nil"
 
@@ -295,6 +367,18 @@ class Formatter:
         # Check if this originated from a heredoc (multi-line literal with leading newline pattern)
         has_interp = any(k == 'interp' for k, _ in node.parts)
         raw_text = "".join(v for k, v in node.parts if k == 'literal')
+
+        # Multi-line string in a nested position (call args, operators, ...):
+        # heredoc form is unsafe there — emit an escaped quoted string.
+        if '\n' in raw_text and not self._heredoc_ok:
+            result = '"'
+            for kind, val in node.parts:
+                if kind == 'literal':
+                    result += (val.replace('\\', '\\\\').replace('"', '\\"')
+                                  .replace('\n', '\\n').replace('\t', '\\t'))
+                else:
+                    result += '#{' + val.strip() + '}'
+            return result + '"'
 
         # Heredoc detection: literal content contains newlines and was indented
         # We preserve the body verbatim and re-emit as <<~HEREDOC
@@ -373,10 +457,28 @@ class Formatter:
 
     def _fmt_func_call(self, node: FuncCall) -> str:
         args = ", ".join(self._fmt_expr(a) for a in node.args)
-        return f"{node.name}({args})"
+        block = ""
+        if node.block:
+            block = self._fmt_block(node.block)
+        # test "name" do ... end sugar — keep the paren-less canonical form
+        if (node.name == 'test' and node.args
+                and isinstance(node.args[0], StringLiteral) and node.block):
+            return f"test {args}{block}"
+        return f"{node.name}({args}){block}"
+
+    # Receivers that bind looser than `.` must be parenthesized:
+    # (1..10).step(3), (a + b).abs, (cond ? x : y).to_s ...
+    _PAREN_RECV = None  # populated below the class (needs node classes)
+
+    def _fmt_receiver(self, receiver) -> str:
+        recv = self._fmt_expr(receiver)
+        if isinstance(receiver, (RangeLiteral, BinOp, UnaryOp, TernaryExpr,
+                                 IfExpr, PipeOp, MatchOp, Assign, LambdaLiteral)):
+            return f"({recv})"
+        return recv
 
     def _fmt_method_call(self, node: MethodCall) -> str:
-        recv = self._fmt_expr(node.receiver)
+        recv = self._fmt_receiver(node.receiver)
         args = ""
         if node.args:
             args = "(" + ", ".join(self._fmt_expr(a) for a in node.args) + ")"
@@ -386,7 +488,7 @@ class Formatter:
         return f"{recv}.{node.method}{args}{block}"
 
     def _fmt_safe_nav(self, node: SafeNavCall) -> str:
-        recv = self._fmt_expr(node.receiver)
+        recv = self._fmt_receiver(node.receiver)
         args = ""
         if node.args:
             args = "(" + ", ".join(self._fmt_expr(a) for a in node.args) + ")"

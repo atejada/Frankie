@@ -7,7 +7,7 @@
  |  _|| | | (_| | | | |   <| |  __/
  |_|  |_|  \__,_|_| |_|_|\_\_|\___|
 
- The Frankie Language v1.16.2
+ The Frankie Language v1.17.0
  Stitched together from Ruby • Python • R • Fortran
 ```
 
@@ -92,6 +92,84 @@ begin
 rescue e
   puts "Caught: #{e}"
 end
+```
+
+---
+
+## v1.17 Highlights — "Programs that grow"
+
+```ruby
+# import — namespaced modules (require still merges into your scope)
+import "lib/geometry" as geo
+puts geo.circle_area(5)
+puts geo.PI
+
+# error — user-defined error types, with Ruby-style rescue binding
+error TimeoutError
+error ValidationError
+
+begin
+  raise ValidationError, "email is required"
+rescue ValidationError => e
+  puts "Invalid: #{e}"
+rescue TimeoutError => e
+  puts "Too slow: #{e}"
+end
+
+# First-class ranges — print, convert, stride, and match
+r = 1..10
+puts r                  # 1..10
+puts r.to_vec           # [1, 2, ..., 10]
+puts r.include?(7)      # true
+puts (1..10).step(3)    # [1, 4, 7, 10]
+
+case score
+when 90..100
+  puts "A"
+when 70..89
+  puts "B"
+end
+
+# Records now support dot access
+record Point(x, y)
+p1 = Point(3, 4)
+puts p1.x               # 3
+
+# parallel_map — thread-pool map for I/O-bound work
+pages = parallel_map(urls, workers: 8) do |u|
+  http_get(u)
+end
+
+# TCP sockets — terminal-native networking, zero deps
+tcp_serve(7777) do |client|
+  msg = client.recv_line()
+  client.send_line("echo: #{msg}")
+end
+
+# Static analysis — catch bugs before running
+#   frankiec check app.fk
+#   ✗ app.fk:12 — Undefined function: 'greeet'
+#   ✗ app.fk:30 — greet() expects 1..2 argument(s), got 3
+#   ⚠ app.fk:3  — Unused variable 'tmp' in function 'greet'
+
+# Test groups with filtering, tags, and stubs
+test "api parsing", tags: ["fast"] do
+  stub("http_get", ->(url) { {body: "{}"} })
+  assert_eq(http_get("x")["body"], "{}")
+  unstub()
+end
+#   frankiec test --filter api
+#   frankiec test --tag fast
+
+# Stitch installer — fetch community stitches from GitHub
+#   frankiec stitch install frankiecolor
+#   frankiec stitch list
+
+# Accurate cross-file tracebacks — errors in require'd files now point
+# at the right file AND the right line.
+
+# REPL: expressions echo their value, `_` holds the last result,
+# and `help <function>` shows documentation.
 ```
 
 ---
@@ -572,10 +650,12 @@ db.close
 frankiec                    # launch the REPL
 frankiec run   <file.fk>    # run a program
 frankiec build <file.fk>    # compile to Python source
-frankiec check <file.fk>    # syntax check only
-frankiec test  [file.fk]    # run test suite (default: test.fk)
+frankiec check [--strict] <file.fk>    # syntax check + static analysis
+frankiec test  [file.fk] [--filter <name>] [--tag <tag>]   # run test suite
 frankiec fmt   [--write] [--check] <file.fk>   # auto-format
 frankiec docs  [--output out.md] <file.fk>     # generate docs
+frankiec stitch install <name> [--global]      # install a stitch from GitHub
+frankiec stitch list        # list installed + available stitches
 frankiec repl               # interactive REPL
 frankiec version            # show version
 frankiec --help             # full usage

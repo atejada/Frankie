@@ -482,3 +482,43 @@ Every function, method, and operator available in Frankie v1.12. All are availab
 | `...` | Exclusive range |
 | `+=` `-=` `*=` `/=` `//=` `**=` `%=` | Compound assignment |
 | `#{}` | String interpolation |
+
+---
+
+## Concurrency & Networking (v1.17)
+
+| Function | Description |
+|---|---|
+| `parallel_map(vec, workers: 4) do \|x\| ... end` | Thread-pool map, results in input order |
+| `tcp_connect(host, port, timeout: nil)` | Open a TCP connection |
+| `tcp_listen(port, host: "0.0.0.0")` | Listen on a port; `.accept()` returns a client socket |
+| `tcp_serve(port) do \|client\| ... end` | Threaded accept loop, auto-closes clients |
+| `sock.send(s)` / `sock.send_line(s)` | Send a string (newline appended by send_line) |
+| `sock.recv(n)` / `sock.recv_line()` | Receive a string — `nil` when peer closes |
+| `sock.peer` / `sock.close()` | Remote "host:port" / close the connection |
+
+## Testing Extras (v1.17)
+
+| Function | Description |
+|---|---|
+| `test "name", tags: ["slow"] do ... end` | Named, filterable test group |
+| `stub(name, fn)` | Replace a global function (e.g. `"shell"`, `"http_get"`) |
+| `unstub(name)` / `unstub()` | Restore one / all stubbed functions |
+
+## Modules & Errors (v1.17)
+
+| Syntax | Description |
+|---|---|
+| `import "lib/math" as math` | Load a `.fk` file into its own namespace |
+| `error TypeName` | Declare a user-defined error type |
+| `raise TypeName, "msg"` | Raise a typed error |
+| `rescue TypeName => e` | Catch a typed error (Ruby-style binding) |
+
+## Range Methods (v1.17)
+
+| Method | Description |
+|---|---|
+| `(1..10).to_vec` / `.to_a` | Convert to a vector |
+| `(1..10).include?(x)` | Membership test |
+| `(1..10).step(n)` | Stride: `[1, 4, 7, 10]` |
+| `when 90..100` | Range membership in `case/when` |
