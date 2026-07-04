@@ -109,7 +109,7 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
 <body>
 
 <nav>
-  <a href="#" class="nav-logo">🧟 Frankie <span>v1.17.0</span></a>
+  <a href="#" class="nav-logo">🧟 Frankie <span>v1.18.0</span></a>
   <ul>
     <li><a href="#features">Features</a></li>
     <li><a href="#syntax">Syntax</a></li>
@@ -138,7 +138,7 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
   </div>
   <div class="ctas">
     <a href="#install" class="btn btn-p">Get Started →</a>
-    <a href="https://github.com/atejada/Frankie/releases" class="btn btn-s">Download v1.17.0</a>
+    <a href="https://github.com/atejada/Frankie/releases" class="btn btn-s">Download v1.18.0</a>
     <a href="https://atejada.github.io/frankielanguage/site/index.html" class="btn btn-s">Go to the Docs</a>
     <a href="https://github.com/atejada/Frankie" class="btn btn-s">★ Star on GitHub</a>
   </div>
@@ -152,6 +152,12 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
   <h2>Everything you need.<br>Nothing you don't.</h2>
   <p style="color:var(--muted);max-width:560px;font-size:.97rem">Proudly procedural — functions, data, loops, logic. No classes, no <code>self</code>, no inheritance. Runs on Python 3.10+ with zero external dependencies.</p>
   <div class="grid">
+    <div class="card"><div class="card-icon">🩻</div><h3>Language Server <span class="new-badge">v1.18</span></h3><p><code>frankiec lsp</code> — live diagnostics, completion and hover docs in VS Code, Neovim, Helix, Zed… anything that speaks LSP. Pure Python stdlib, zero dependencies.</p></div>
+    <div class="card"><div class="card-icon">🚢</div><h3><code>frankiec bundle</code> <span class="new-badge">v1.18</span></h3><p>Ship your program as ONE self-contained .py — stdlib inlined, requires/imports/stitches pre-compiled. <code>python3 app.py</code> runs anywhere, no Frankie needed.</p></div>
+    <div class="card"><div class="card-icon">🔌</div><h3>WebSockets <span class="new-badge">v1.18</span></h3><p><code>app.websocket("/ws/:room") do |ws| … end</code> on the built-in server plus a <code>ws_connect</code> client — hand-rolled RFC 6455, zero deps.</p></div>
+    <div class="card"><div class="card-icon">🐞</div><h3><code>breakpoint</code> <span class="new-badge">v1.18</span></h3><p>Pause into a scoped debug REPL: inspect <code>vars</code>, evaluate any Frankie expression against the paused scope, then <code>c</code> to resume. Skips politely in CI.</p></div>
+    <div class="card"><div class="card-icon">🎯</div><h3><code>enum</code> + <code>benchmark</code> <span class="new-badge">v1.18</span></h3><p><code>enum Status(pending, active, done)</code> for named symbolic values. <code>benchmark "label" do … end</code> times a block and returns the milliseconds.</p></div>
+    <div class="card"><div class="card-icon">🔒</div><h3>Lockfile + Project Tooling <span class="new-badge">v1.18</span></h3><p><code>stitch.lock</code> pins installs by sha256 (<code>verify</code> / <code>update</code>). <code>frankiec check .</code> and <code>fmt --check .</code> sweep whole projects — CI in one line.</p></div>
     <div class="card"><div class="card-icon">📦</div><h3><code>import "x" as y</code> <span class="new-badge">v1.17</span></h3><p>Namespaced modules: <code>import "lib/geometry" as geo</code> then <code>geo.circle_area(5)</code>, <code>geo.PI</code>. <code>require</code> still merges into your scope for quick scripts.</p></div>
     <div class="card"><div class="card-icon">🚨</div><h3><code>error TypeName</code> <span class="new-badge">v1.17</span></h3><p>User-defined error types with Ruby-style rescue: <code>raise ValidationError, "bad email"</code> … <code>rescue ValidationError => e</code>. Typed raises auto-declare.</p></div>
     <div class="card"><div class="card-icon">🩺</div><h3>Static Analysis <span class="new-badge">v1.17</span></h3><p><code>frankiec check</code> now catches undefined variables, typo'd functions, wrong argument counts and unused locals — before the program runs. <code>--strict</code> for CI.</p></div>
@@ -284,6 +290,27 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
 <span class="cm"># frankiec fmt / docs / readline REPL</span>
 <span class="vr">db</span> = <span class="fn">env</span>(<span class="str">"DB_PATH"</span>, <span class="str">"app.db"</span>)
 <span class="fn">puts</span> <span class="vr">db</span></pre>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head"><span class="cp-title">v1.18.fk <span class="new-badge">v1.18</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
+      <pre><span class="cm"># WebSockets on the built-in server</span>
+<span class="vr">app</span>.<span class="fn">websocket</span>(<span class="str">"/ws/:room"</span>) <span class="kw">do</span> |<span class="vr">ws</span>|
+  <span class="vr">ws</span>.<span class="fn">send</span>(<span class="str">"welcome to #{ws.params["room"]}"</span>)
+<span class="kw">end</span>
+
+<span class="cm"># enum + benchmark + set ops</span>
+<span class="kw">enum</span> <span class="vr">Status</span>(<span class="vr">pending</span>, <span class="vr">active</span>, <span class="vr">done</span>)
+<span class="vr">ms</span> = <span class="kw">benchmark</span> <span class="str">"crunch"</span> <span class="kw">do</span>
+  <span class="fn">heavy_work</span>()
+<span class="kw">end</span>
+<span class="fn">puts</span> [<span class="num">1</span>, <span class="num">2</span>].<span class="fn">union</span>([<span class="num">2</span>, <span class="num">3</span>])
+
+<span class="cm"># pause into a debug REPL</span>
+<span class="kw">breakpoint</span>
+
+<span class="cm"># then ship it:</span>
+<span class="cm">#   frankiec bundle app.fk -o app.py</span></pre>
     </div>
 
     <div class="cp">
@@ -887,7 +914,8 @@ frankiec test</pre></div>
   <table>
     <thead><tr><th>Version</th><th>Highlights</th><th>Status</th></tr></thead>
     <tbody>
-      <tr><td><strong>v1.17.0</strong></td><td>import "x" as y namespaces, error types + rescue =>, first-class ranges, record dot access, static analysis in check, accurate cross-file tracebacks, parallel_map, TCP sockets, test groups/--filter/--tag, stub/unstub, stitch installer, REPL => echo + help</td><td><span class="badge bl">Latest</span></td></tr>
+      <tr><td><strong>v1.18.0</strong></td><td>frankiec lsp (Language Server), frankiec bundle (one-file ship), WebSockets, breakpoint debug REPL, enum, benchmark, set ops, numeric underscores + 1e6, stitch.lock verify/update, check/fmt on directories</td><td><span class="badge bl">Latest</span></td></tr>
+      <tr><td><strong>v1.17.0</strong></td><td>import "x" as y namespaces, error types + rescue =>, first-class ranges, record dot access, static analysis in check, accurate cross-file tracebacks, parallel_map, TCP sockets, test groups/--filter/--tag, stub/unstub, stitch installer, REPL => echo + help</td><td><span class="badge bs">Stable</span></td></tr>
       <tr><td><strong>v1.16.2</strong></td><td>shell(), dotenv(), loop do...end, ||=, Hash#transform_values/keys, String#scan, Hash#deep_merge, frankiemail, frankiecli, frankiecache</td><td><span class="badge bs">Stable</span></td></tr>
       <tr><td><strong>v1.15</strong></td><td>ternary operator, keyword default params, splat multi-assign, const keyword, fn.(args) everywhere, json_encode, base64/hmac public, String#format, path helpers, date arithmetic, frankieauth, frankieratelimit, frankiec check/new</td><td><span class="badge bs">Stable</span></td></tr>
       <tr><td><strong>v1.14</strong></td><td>spawn/timeout, async routes, middleware, static files, frankietemplate, frankiecookie, hash destructuring, shape pattern matching, scaffold stitches</td><td><span class="badge bs">Stable</span></td></tr>

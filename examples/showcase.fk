@@ -1,7 +1,7 @@
 # showcase.fk — Everything Frankie can do in one program
 
 puts "╔══════════════════════════════════════╗"
-puts "║     Frankie v1.17.0 — Full Showcase     ║"
+puts "║     Frankie v1.18.0 — Full Showcase     ║"
 puts "╚══════════════════════════════════════╝"
 puts ""
 
@@ -994,5 +994,56 @@ puts "stubbed shell: #{shell("anything")["stdout"]}"
 unstub()
 puts ""
 
+# ── 63. Numeric underscores + scientific notation (v1.18) ──────────────────────
+
+puts "── 63. Numeric Literals (v1.18) ──"
+puts "1_000_000 = #{1_000_000}"
+puts "2.5e-3    = #{2.5e-3}"
 puts ""
-puts "Frankie v1.17.0 is alive and kicking! 🧟⚡"
+
+# ── 64. Set operations (v1.18) ──────────────────────────────────────────────────
+
+puts "── 64. Set Operations (v1.18) ──"
+puts [1, 2, 3].union([3, 4])
+puts [1, 2, 3].intersect([2, 9])
+puts [1, 2, 3].difference([2])
+puts ""
+
+# ── 65. enum (v1.18) ────────────────────────────────────────────────────────────
+
+puts "── 65. enum (v1.18) ──"
+enum Priority(low, medium, high)
+puts Priority
+puts "high? #{Priority.include?("high")}"
+puts ""
+
+# ── 66. benchmark (v1.18) ───────────────────────────────────────────────────────
+
+puts "── 66. benchmark (v1.18) ──"
+benchmark "tiny loop" do
+  total = 0
+  for i in 1..10_000
+    total += i
+  end
+end
+puts ""
+
+# ── 67. WebSockets (v1.18) ──────────────────────────────────────────────────────
+
+puts "── 67. WebSockets (v1.18) ──"
+wsapp = web_app()
+wsapp.websocket("/live") do |ws|
+  ws.send("hi #{ws.recv()}")
+end
+spawn do
+  wsapp.run(3197)
+end
+sleep(0.6)
+wsock = ws_connect("ws://127.0.0.1:3197/live", timeout: 5)
+wsock.send("showcase")
+puts "ws says: #{wsock.recv()}"
+wsock.close()
+puts ""
+
+puts ""
+puts "Frankie v1.18.0 is alive and kicking! 🧟⚡"

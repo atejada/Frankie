@@ -134,6 +134,10 @@ class Formatter:
             self._emit(f"import {self._fmt_expr(node.path)}{alias}")
         elif isinstance(node, RecordDef):
             self._emit(f"record {node.name}({', '.join(node.fields)})")
+        elif isinstance(node, EnumDef):
+            self._emit(f"enum {node.name}({', '.join(node.members)})")
+        elif isinstance(node, BreakpointStmt):
+            self._emit("breakpoint")
         elif isinstance(node, LoopStmt):
             self._emit("loop do")
             self._indent()
@@ -299,7 +303,7 @@ class Formatter:
         if node is None:
             return "nil"
         if isinstance(node, IntLiteral):    return str(node.value)
-        if isinstance(node, FloatLiteral):  return repr(node.value)
+        if isinstance(node, FloatLiteral):  return repr(node.value)  # 1e-06 etc. lex fine since v1.18
         if isinstance(node, BoolLiteral):   return "true" if node.value else "false"
         if isinstance(node, NilLiteral):    return "nil"
         if isinstance(node, Identifier):    return node.name
@@ -324,7 +328,7 @@ class Formatter:
             return f"not {self._fmt_expr(node.operand)}"
         if isinstance(node, Assign):        return f"{node.name} = {self._fmt_expr(node.value)}"
         if isinstance(node, IndexAccess):
-            t = self._fmt_expr(node.target)
+            t = self._fmt_receiver(node.target)   # parens around (a | b)["x"] etc.
             i = self._fmt_expr(node.index)
             return f"{t}[{i}]"
         if isinstance(node, FuncCall):      return self._fmt_func_call(node)
@@ -460,10 +464,12 @@ class Formatter:
         block = ""
         if node.block:
             block = self._fmt_block(node.block)
-        # test "name" do ... end sugar — keep the paren-less canonical form
+        # test "name" do / benchmark ["label"] do — keep paren-less form
         if (node.name == 'test' and node.args
                 and isinstance(node.args[0], StringLiteral) and node.block):
             return f"test {args}{block}"
+        if node.name == 'benchmark' and node.block:
+            return f"benchmark {args}{block}" if args else f"benchmark{block}"
         return f"{node.name}({args}){block}"
 
     # Receivers that bind looser than `.` must be parenthesized:

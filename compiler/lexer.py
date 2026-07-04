@@ -335,14 +335,36 @@ class Lexer:
     def read_number(self):
         start = self.pos
         is_float = False
-        while self.pos < len(self.source) and self.peek().isdigit():
-            self.advance()
+
+        def _digit_run():
+            # v1.18: allow _ separators between digits — 1_000_000
+            while self.pos < len(self.source):
+                ch = self.peek()
+                if ch.isdigit():
+                    self.advance()
+                elif (ch == '_' and self.peek(1) is not None
+                        and self.peek(1).isdigit()):
+                    self.advance()  # consume '_', digits continue
+                else:
+                    break
+
+        _digit_run()
         if self.peek() == '.' and self.peek(1) and self.peek(1).isdigit():
             is_float = True
             self.advance()  # consume dot
-            while self.pos < len(self.source) and self.peek().isdigit():
-                self.advance()
-        raw = self.source[start:self.pos]
+            _digit_run()
+        # v1.18: scientific notation — 1e6, 2.5e-3, 1E+9
+        if self.peek() in ('e', 'E'):
+            nxt = self.peek(1)
+            nxt2 = self.peek(2)
+            if (nxt is not None and nxt.isdigit()) or (
+                    nxt in ('+', '-') and nxt2 is not None and nxt2.isdigit()):
+                is_float = True
+                self.advance()          # consume e/E
+                if self.peek() in ('+', '-'):
+                    self.advance()      # consume sign
+                _digit_run()
+        raw = self.source[start:self.pos].replace('_', '')
         if is_float:
             return TT.FLOAT, float(raw)
         return TT.INTEGER, int(raw)

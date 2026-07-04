@@ -522,3 +522,28 @@ Every function, method, and operator available in Frankie v1.12. All are availab
 | `(1..10).include?(x)` | Membership test |
 | `(1..10).step(n)` | Stride: `[1, 4, 7, 10]` |
 | `when 90..100` | Range membership in `case/when` |
+
+---
+
+## WebSockets (v1.18)
+
+| Function | Description |
+|---|---|
+| `app.websocket("/ws/:room") do \|ws\| ... end` | WebSocket route on the built-in server |
+| `ws_connect(url, timeout: nil)` | Client connection (`ws://` URLs) |
+| `ws.send(msg)` / `ws.recv()` | Text messages — `recv` returns `nil` on close |
+| `ws.close()` / `ws.params` / `ws.path` / `ws.peer` | Lifecycle + route metadata |
+
+## v1.18 Additions
+
+| Feature | Description |
+|---|---|
+| `vec.union(v)` / `.intersect(v)` / `.difference(v)` | Order-preserving set operations |
+| `enum Status(pending, active, done)` | Named symbolic values (`.values`, `.include?`) |
+| `benchmark ["label"] do ... end` | Time a block, returns elapsed ms |
+| `breakpoint` | Pause into a scoped debug REPL (skipped when not a tty) |
+| `1_000_000`, `2.5e-3` | Numeric underscores + scientific notation |
+| `frankiec bundle app.fk` | One self-contained .py — no Frankie needed to run |
+| `frankiec lsp` | Language Server for any LSP-capable editor |
+| `frankiec stitch verify` / `update` | sha256-pinned stitches via `stitch.lock` |
+| `frankiec check .` / `fmt --write .` | Project-wide analysis and formatting |

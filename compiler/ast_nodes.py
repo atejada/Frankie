@@ -420,3 +420,16 @@ class ImportStmt(Node):
     """import "lib/math" as math — namespaced module import"""
     path: Node
     alias: Optional[str] = None   # defaults to basename of path
+
+# ─── v1.18 ────────────────────────────────────────────────────────────────────
+
+@dataclass
+class EnumDef(Node):
+    """enum Status(pending, active, done) — named set of symbolic values"""
+    name: str
+    members: List[str]
+
+@dataclass
+class BreakpointStmt(Node):
+    """breakpoint — pause execution and drop into a scoped debug REPL"""
+    pass

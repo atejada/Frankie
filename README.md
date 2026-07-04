@@ -7,7 +7,7 @@
  |  _|| | | (_| | | | |   <| |  __/
  |_|  |_|  \__,_|_| |_|_|\_\_|\___|
 
- The Frankie Language v1.17.0
+ The Frankie Language v1.18.0
  Stitched together from Ruby • Python • R • Fortran
 ```
 
@@ -92,6 +92,65 @@ begin
 rescue e
   puts "Caught: #{e}"
 end
+```
+
+---
+
+## v1.18 Highlights — "From projects to products"
+
+```ruby
+# LSP — live diagnostics, completion & hover docs in any editor
+#   frankiec lsp          (VS Code, Neovim, Helix, Zed — anything with LSP)
+
+# frankiec bundle — ship your program as ONE self-contained .py
+#   frankiec bundle app.fk -o app.py
+#   python3 app.py        (runs anywhere — no Frankie installation needed)
+
+# WebSockets — on the built-in web server, zero deps
+app.websocket("/ws/:room") do |ws|
+  ws.send("welcome to #{ws.params["room"]}")
+  loop do
+    msg = ws.recv()
+    break if msg == nil
+    ws.send("echo: #{msg}")
+  end
+end
+
+sock = ws_connect("ws://localhost:3000/ws/lobby")
+sock.send("hello")
+puts sock.recv()
+
+# breakpoint — pause into a scoped debug REPL
+def price(qty)
+  total = qty * unit_price
+  breakpoint          # (fkdb) vars · where · any Frankie expression · c
+  total
+end
+
+# enum — named sets of symbolic values
+enum Status(pending, active, done)
+puts Status.pending           # pending
+puts Status.include?("done")  # true
+
+# benchmark — time anything, get the milliseconds back
+ms = benchmark "crunch" do
+  heavy_work()
+end                   # ⏱  crunch: 132.4ms
+
+# Set operations + numeric underscores + scientific notation
+puts [1, 2, 3].union([3, 4])        # [1, 2, 3, 4]
+puts [1, 2, 3].intersect([2, 9])    # [2]
+puts [1, 2, 3].difference([2])      # [1, 3]
+budget = 1_250_000
+tiny   = 2.5e-3
+
+# Project-wide tooling — one line of CI
+#   frankiec check .          frankiec fmt --check .
+
+# Stitch lockfile — reproducible installs
+#   frankiec stitch install frankiecolor   → writes stitch.lock (sha256-pinned)
+#   frankiec stitch verify                 → detects tampering
+#   frankiec stitch update                 → refresh + re-pin
 ```
 
 ---
@@ -650,12 +709,16 @@ db.close
 frankiec                    # launch the REPL
 frankiec run   <file.fk>    # run a program
 frankiec build <file.fk>    # compile to Python source
-frankiec check [--strict] <file.fk>    # syntax check + static analysis
+frankiec bundle <file.fk> [-o out.py]  # bundle into ONE self-contained .py
+frankiec check [--strict] <file.fk|dir>   # syntax check + static analysis
 frankiec test  [file.fk] [--filter <name>] [--tag <tag>]   # run test suite
-frankiec fmt   [--write] [--check] <file.fk>   # auto-format
+frankiec fmt   [--write] [--check] <file.fk|dir>   # auto-format
 frankiec docs  [--output out.md] <file.fk>     # generate docs
-frankiec stitch install <name> [--global]      # install a stitch from GitHub
+frankiec stitch install <name> [--global]      # install a stitch (writes stitch.lock)
 frankiec stitch list        # list installed + available stitches
+frankiec stitch verify      # check stitches against stitch.lock
+frankiec stitch update      # re-fetch + re-pin stitches
+frankiec lsp                # start the Language Server (LSP over stdio)
 frankiec repl               # interactive REPL
 frankiec version            # show version
 frankiec --help             # full usage

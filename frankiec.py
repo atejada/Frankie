@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 """
-frankiec — The Frankie Language Compiler & Interpreter v1.17.0
+frankiec — The Frankie Language Compiler & Interpreter v1.18.0
 Usage:
     frankiec new    <project>      Scaffold a new Frankie project
     frankiec run    <file.fk>      Run a Frankie program
     frankiec build  <file.fk>      Compile to Python source
-    frankiec check  <file.fk>      Syntax check + static analysis
+    frankiec bundle <file.fk> [-o out.py]  Bundle into ONE self-contained .py
+    frankiec check  [--strict] <file.fk|dir>  Syntax check + static analysis
     frankiec test   [file.fk] [--filter <name>] [--tag <tag>]  Run test suite
     frankiec fmt    [--write] [--check] <file.fk>  Auto-format source
     frankiec docs   [--output <out.md>] <file.fk>  Generate documentation
     frankiec stitch install <name> [--global]      Install a stitch from the registry
-    frankiec stitch list                           List installed stitches
+    frankiec stitch list | verify | update         Manage stitches + stitch.lock
+    frankiec lsp                   Start the Language Server (LSP over stdio)
     frankiec repl   [--no-banner]  Start the interactive REPL
     frankiec watch  <file.fk> [--test]  Re-run on save
     frankiec version               Show version info
@@ -28,7 +30,7 @@ from compiler.lexer import Lexer, LexError
 from compiler.parser import Parser, ParseError
 from compiler.codegen import CodeGen, CodeGenError
 
-FRANKIE_VERSION = "1.17.0"
+FRANKIE_VERSION = "1.18.0"
 FRANKIE_BANNER = r"""
   _____                 _    _
  |  ___| __ __ _ _ __ | | _(_) ___
@@ -290,6 +292,166 @@ def build_file(fk_file: str, output: str = None):
     print(f"[Frankie] Compiled: {fk_file} → {output}")
 
 
+def _expand_fk_targets(targets):
+    """Expand files/directories into a flat list of .fk files (v1.18).
+    Directories are walked recursively; hidden dirs and stitches caches
+    are skipped. Order is deterministic."""
+    out = []
+    for t in targets:
+        if os.path.isdir(t):
+            for root, dirs, files in os.walk(t):
+                dirs[:] = sorted(d for d in dirs if not d.startswith('.'))
+                for f in sorted(files):
+                    if f.endswith('.fk'):
+                        out.append(os.path.join(root, f))
+        else:
+            out.append(t)
+    return out
+
+
+def bundle_file(fk_file: str, output: str = None):
+    """frankiec bundle — compile a program and everything it requires,
+    imports and stitches into ONE self-contained .py file (v1.18).
+
+    The bundle inlines the Frankie stdlib and pre-compiles every statically
+    referenced .fk file, so it runs anywhere with `python3 bundle.py` —
+    no Frankie installation needed. Zero dependencies, one file.
+    """
+    from compiler.ast_nodes import (RequireStmt, ImportStmt, StitchStmt,
+                                    StringLiteral, Node)
+
+    if not os.path.exists(fk_file):
+        print(f"[Frankie] Error: File not found: {fk_file}", file=sys.stderr)
+        sys.exit(1)
+
+    def _literal(node):
+        if isinstance(node, StringLiteral) and all(
+                k == 'literal' for k, _ in node.parts):
+            return "".join(v for _, v in node.parts)
+        return None
+
+    def _walk_nodes(node):
+        yield node
+        for value in vars(node).values():
+            if isinstance(value, Node):
+                yield from _walk_nodes(value)
+            elif isinstance(value, (list, tuple)):
+                for item in value:
+                    if isinstance(item, Node):
+                        yield from _walk_nodes(item)
+                    elif isinstance(item, tuple):
+                        for sub in item:
+                            if isinstance(sub, Node):
+                                yield from _walk_nodes(sub)
+                            elif isinstance(sub, list):
+                                for s2 in sub:
+                                    if isinstance(s2, Node):
+                                        yield from _walk_nodes(s2)
+
+    bundled = {}     # registry key → compiled python source
+    warnings = []
+
+    def _compile_fk(path):
+        with open(path, 'r', encoding='utf-8') as f:
+            src = f.read()
+        tokens = Lexer(src).tokenize()
+        ast = Parser(tokens).parse()
+        return ast, CodeGen().generate(ast, repl_mode=True)
+
+    def _collect(ast, base_dir):
+        for node in _walk_nodes(ast):
+            if isinstance(node, (RequireStmt, ImportStmt)):
+                raw = _literal(node.path)
+                if raw is None:
+                    warnings.append("dynamic require/import path — left unresolved")
+                    continue
+                key = raw if raw.endswith('.fk') else raw + '.fk'
+                if key in bundled:
+                    continue
+                target = None
+                for cand in (os.path.join(base_dir, key),
+                             os.path.join(os.getcwd(), key)):
+                    if os.path.exists(cand):
+                        target = cand
+                        break
+                if target is None:
+                    warnings.append(f"cannot resolve {raw!r} — left unresolved")
+                    continue
+                sub_ast, sub_py = _compile_fk(target)
+                bundled[key] = sub_py
+                _collect(sub_ast, os.path.dirname(os.path.abspath(target)))
+            elif isinstance(node, StitchStmt):
+                raw = _literal(node.name)
+                if raw is None:
+                    warnings.append("dynamic stitch name — left unresolved")
+                    continue
+                key = f"stitch:{raw}"
+                if key in bundled:
+                    continue
+                target = None
+                for cand in (os.path.join(os.getcwd(), 'stitches', raw + '.fk'),
+                             os.path.join(os.path.expanduser('~'),
+                                          '.frankie', 'stitches', raw + '.fk')):
+                    if os.path.exists(cand):
+                        target = cand
+                        break
+                if target is None:
+                    warnings.append(f"stitch {raw!r} not found — left unresolved")
+                    continue
+                sub_ast, sub_py = _compile_fk(target)
+                bundled[key] = sub_py
+                _collect(sub_ast, os.path.dirname(os.path.abspath(target)))
+
+    try:
+        main_ast, main_py = _compile_fk(fk_file)
+        _collect(main_ast, os.path.dirname(os.path.abspath(fk_file)))
+    except (LexError, ParseError, CodeGenError) as e:
+        print(str(e), file=sys.stderr)
+        sys.exit(1)
+
+    stdlib_dir = os.path.dirname(os.path.abspath(__file__))
+    with open(os.path.join(stdlib_dir, 'frankie_stdlib.py'), 'r',
+              encoding='utf-8') as f:
+        stdlib_src = f.read()
+
+    if output is None:
+        output = os.path.splitext(os.path.basename(fk_file))[0] + '_bundle.py'
+
+    parts = [
+        "#!/usr/bin/env python3",
+        f"# ── Frankie bundle — compiled from {fk_file} by frankiec v{FRANKIE_VERSION} ──",
+        "# Self-contained: run with `python3 " + os.path.basename(output) + "` — no Frankie needed.",
+        "",
+        "# ═══ Frankie stdlib (inlined) " + "═" * 40,
+        stdlib_src,
+        "",
+    ]
+    if bundled:
+        parts.append("# ═══ Bundled modules " + "═" * 48)
+        parts.append("_fk_bundled_compiled.update({")
+        for key in sorted(bundled):
+            parts.append(f"    {key!r}: {bundled[key]!r},")
+        parts.append("})")
+        parts.append("")
+    parts.append("# ═══ Main program " + "═" * 52)
+    parts.append(main_py)
+    parts.append("")
+
+    with open(output, 'w', encoding='utf-8') as f:
+        f.write("\n".join(parts))
+    try:
+        os.chmod(output, 0o755)
+    except OSError:
+        pass
+
+    size_kb = os.path.getsize(output) / 1024
+    n = len(bundled)
+    mods = f", {n} module(s)" if n else ""
+    print(f"[Frankie] 📦 Bundled: {fk_file} → {output} ({size_kb:.0f} KB{mods})")
+    for w in warnings:
+        print(f"[Frankie] ⚠ bundle: {w}", file=sys.stderr)
+
+
 def check_file(fk_file: str, strict: bool = False):
     """Syntax check + static analysis (v1.17).
 
@@ -437,10 +599,12 @@ HELP_TEXT = {
     'run':     "frankiec run <file.fk>\n  Compile and execute a Frankie program.\n  Exit code is propagated from exit(n) calls in Frankie code.",
     'repl':    "frankiec repl [--no-banner]\n  Start the interactive REPL with readline, tab completion, and\n  persistent history at ~/.frankie_history.\n  --no-banner   Skip the ASCII art header (useful when piping or embedding).",
     'test':    "frankiec test [file.fk] [--filter <name>] [--tag <tag>]\n  Run a Frankie test suite. Defaults to test.fk in the current directory.\n  Uses assert_eq, assert_true, assert_match, assert_nil, assert_raises, assert_raises_typed.\n  Group tests with: test \"name\", tags: [\"slow\"] do ... end\n  --filter  Only run test groups whose name contains the substring.\n  --tag     Only run test groups carrying the tag.",
-    'stitch':  "frankiec stitch install <name> [--global]\n  Download a stitch from the Frankie registry (GitHub) into ./stitches/\n  (or ~/.frankie/stitches with --global). Zero dependencies — uses the\n  Python stdlib HTTP client.\nfrankiec stitch list\n  Show installed stitches and what's available in the registry.",
+    'stitch':  "frankiec stitch install <name> [--global]\n  Download a stitch from the Frankie registry (GitHub) into ./stitches/\n  (or ~/.frankie/stitches with --global). Project installs are pinned in\n  stitch.lock (sha256). Zero dependencies — Python stdlib HTTP client.\nfrankiec stitch list\n  Show installed stitches and what's available in the registry.\nfrankiec stitch verify\n  Check ./stitches against stitch.lock — exit 1 on missing/modified.\nfrankiec stitch update [name]\n  Re-fetch stitches from the registry and re-pin them in stitch.lock.",
     'fmt':     "frankiec fmt [--write] [--check] <file.fk>\n  Auto-format Frankie source using the AST.\n  --write   Reformat file in-place.\n  --check   Exit 1 if the file is not already formatted (CI mode).",
     'docs':    "frankiec docs [--output <out.md>] <file.fk|dir>\n  Extract ## doc-comments from .fk source and render to Markdown.\n  --output  Write to a file instead of stdout.\n  Supports @param, @return, and @example tags.",
     'build':   "frankiec build <file.fk> [output.py]\n  Compile a .fk file to Python source without executing it.",
+    'bundle':  "frankiec bundle <file.fk> [-o out.py]\n  Bundle a program and everything it requires/imports/stitches into ONE\n  self-contained .py with the Frankie stdlib inlined.\n  Run it anywhere with: python3 out.py — no Frankie installation needed.\n  Dynamic (non-literal) paths can't be bundled and produce a warning.",
+    'lsp':     "frankiec lsp\n  Start the Frankie Language Server (LSP over stdio) — live diagnostics,\n  completion, and hover docs for any LSP-capable editor.\n  See docs/20_v118_features.md for VS Code / Neovim / Helix setup.",
     'check':   "frankiec check [--strict] <file.fk>\n  Syntax check + static analysis without executing.\n  Finds undefined variables/functions, wrong argument counts, and\n  unused local variables. require/stitch/import are resolved.\n  Exit 0 = OK, 1 = errors found (--strict: warnings fail too).",
     'new':     "frankiec new <project_name>\n  Scaffold a new Frankie project with main.fk, test.fk, lib/, data/, .env.example.",
     'watch':   "frankiec watch <file.fk> [--test]\n  Watch a file for changes and re-run it automatically on save.\n  --test   Run as a test suite (frankiec test) instead of frankiec run.\n  Polls file modification time — zero dependencies, works everywhere.",
@@ -490,13 +654,41 @@ STITCH_REGISTRY_RAW = "https://raw.githubusercontent.com/atejada/Frankie/main/st
 STITCH_REGISTRY_API = "https://api.github.com/repos/atejada/Frankie/contents/stitches"
 
 
+def _stitch_lock_path():
+    return os.path.join(os.getcwd(), 'stitch.lock')
+
+
+def _stitch_lock_read():
+    import json as _json
+    try:
+        with open(_stitch_lock_path(), 'r', encoding='utf-8') as f:
+            return _json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+
+def _stitch_lock_write(lock):
+    import json as _json
+    with open(_stitch_lock_path(), 'w', encoding='utf-8') as f:
+        _json.dump(lock, f, indent=2, sort_keys=True)
+        f.write('\n')
+
+
+def _stitch_sha256(path):
+    import hashlib
+    with open(path, 'rb') as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
 def _stitch_command(args):
-    """frankiec stitch install <name> [--global] | frankiec stitch list"""
+    """frankiec stitch install <name> [--global] | list | verify | update"""
     import urllib.request, urllib.error, json as _json
 
-    if not args or args[0] not in ('install', 'list'):
+    if not args or args[0] not in ('install', 'list', 'verify', 'update'):
         print("[Frankie] Usage: frankiec stitch install <name> [--global]\n"
-              "         frankiec stitch list", file=sys.stderr)
+              "         frankiec stitch list\n"
+              "         frankiec stitch verify\n"
+              "         frankiec stitch update [name]", file=sys.stderr)
         sys.exit(1)
 
     local_dir  = os.path.join(os.getcwd(), 'stitches')
@@ -532,14 +724,55 @@ def _stitch_command(args):
         print()
         return
 
-    # install
+    # verify — compare ./stitches/*.fk against stitch.lock hashes
+    if args[0] == 'verify':
+        lock = _stitch_lock_read()
+        if not lock:
+            print("[Frankie] No stitch.lock found — install a stitch first "
+                  "(frankiec stitch install <name>).")
+            return
+        problems = 0
+        for name, entry in sorted(lock.items()):
+            path = os.path.join(local_dir, f"{name}.fk")
+            if not os.path.exists(path):
+                problems += 1
+                print(f"  \033[31m✗\033[0m  {name} — missing "
+                      f"(run: frankiec stitch install {name})")
+            elif _stitch_sha256(path) != entry.get('sha256'):
+                problems += 1
+                print(f"  \033[33m⚠\033[0m  {name} — modified locally "
+                      f"(hash differs from stitch.lock)")
+            else:
+                print(f"  \033[32m✓\033[0m  {name}")
+        # Untracked stitches (present on disk, absent from the lock)
+        if os.path.isdir(local_dir):
+            for f in sorted(os.listdir(local_dir)):
+                if f.endswith('.fk') and f[:-3] not in lock:
+                    print(f"  \033[36m?\033[0m  {f[:-3]} — not in stitch.lock")
+        if problems:
+            print(f"\n[Frankie] stitch verify — {problems} problem(s)")
+            sys.exit(1)
+        print(f"\n[Frankie] stitch verify — all good ✓")
+        return
+
+    # install / update
+    use_global = '--global' in args
     names = [a for a in args[1:] if not a.startswith('--')]
-    if not names:
+    if args[0] == 'update':
+        lock = _stitch_lock_read()
+        if not names:
+            names = sorted(lock.keys())
+        if not names:
+            print("[Frankie] Nothing to update — stitch.lock is empty.")
+            return
+        use_global = False   # updates always target the project
+    elif not names:
         print("[Frankie] Usage: frankiec stitch install <name> [--global]", file=sys.stderr)
         sys.exit(1)
-    use_global = '--global' in args
+
     dest_dir = global_dir if use_global else local_dir
     os.makedirs(dest_dir, exist_ok=True)
+    lock = _stitch_lock_read()
 
     ok = True
     for name in names:
@@ -550,10 +783,23 @@ def _stitch_command(args):
             req = urllib.request.Request(url, headers={'User-Agent': 'frankiec'})
             with urllib.request.urlopen(req, timeout=10) as resp:
                 content = resp.read().decode('utf-8')
+            old_hash = lock.get(name, {}).get('sha256')
             with open(dest, 'w', encoding='utf-8') as f:
                 f.write(content)
             where = "~/.frankie/stitches" if use_global else "./stitches"
-            print(f"[Frankie] 🧵 Installed stitch {name!r} → {where}/{name}.fk")
+            verb = "Updated" if args[0] == 'update' else "Installed"
+            if not use_global:
+                import datetime as _dt
+                new_hash = _stitch_sha256(dest)
+                lock[name] = {
+                    'sha256': new_hash,
+                    'source': url,
+                    'size': len(content.encode('utf-8')),
+                    'installed': _dt.date.today().isoformat(),
+                }
+                if args[0] == 'update' and old_hash == new_hash:
+                    verb = "Already up to date:"
+            print(f"[Frankie] 🧵 {verb} stitch {name!r} → {where}/{name}.fk")
         except urllib.error.HTTPError as e:
             ok = False
             if e.code == 404:
@@ -563,6 +809,10 @@ def _stitch_command(args):
         except Exception as e:
             ok = False
             print(f"[Frankie] Failed to install {name!r}: {e}", file=sys.stderr)
+
+    if not use_global and lock:
+        _stitch_lock_write(lock)
+        print(f"[Frankie] 🔒 stitch.lock updated ({len(lock)} stitch(es) pinned)")
     if not ok:
         sys.exit(1)
 
@@ -603,6 +853,10 @@ def main():
         no_banner = '--no-banner' in sys.argv[2:]
         run_repl(no_banner=no_banner)
 
+    elif cmd == 'lsp':
+        from frankie_lsp import run_lsp
+        run_lsp()
+
     elif cmd == 'watch':
         args = sys.argv[2:]
         test_mode = '--test' in args
@@ -626,13 +880,34 @@ def main():
         out = sys.argv[3] if len(sys.argv) > 3 else None
         build_file(sys.argv[2], out)
 
+    elif cmd == 'bundle':
+        args = sys.argv[2:]
+        output = None
+        if '-o' in args:
+            idx = args.index('-o')
+            if idx + 1 >= len(args):
+                print("[Frankie] -o requires a filename", file=sys.stderr)
+                sys.exit(1)
+            output = args[idx + 1]
+            args = args[:idx] + args[idx + 2:]
+        if not args:
+            print("[Frankie] Usage: frankiec bundle <file.fk> [-o out.py]", file=sys.stderr)
+            sys.exit(1)
+        bundle_file(args[0], output)
+
     elif cmd == 'check':
         args = sys.argv[2:]
         strict = '--strict' in args
-        files = [a for a in args if not a.startswith('--')]
-        if not files:
-            print("[Frankie] Usage: frankiec check [--strict] <file.fk>", file=sys.stderr)
+        targets = [a for a in args if not a.startswith('--')]
+        if not targets:
+            print("[Frankie] Usage: frankiec check [--strict] <file.fk|dir>", file=sys.stderr)
             sys.exit(1)
+        files = _expand_fk_targets(targets)
+        if not files:
+            print("[Frankie] No .fk files found.", file=sys.stderr)
+            sys.exit(1)
+        if len(files) > 1:
+            print(f"[Frankie] Checking {len(files)} file(s)…")
         for f in files:
             check_file(f, strict=strict)
 
@@ -664,9 +939,13 @@ def main():
         args = sys.argv[2:]
         write = '--write' in args
         check = '--check' in args
-        files = [a for a in args if not a.startswith('--')]
+        targets = [a for a in args if not a.startswith('--')]
+        if not targets:
+            print("[Frankie] Usage: frankiec fmt [--write] [--check] <file.fk|dir>", file=sys.stderr)
+            sys.exit(1)
+        files = _expand_fk_targets(targets)
         if not files:
-            print("[Frankie] Usage: frankiec fmt [--write] [--check] <file.fk>", file=sys.stderr)
+            print("[Frankie] No .fk files found.", file=sys.stderr)
             sys.exit(1)
         ok = True
         for f in files:

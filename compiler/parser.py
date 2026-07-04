@@ -98,6 +98,23 @@ class Parser:
         if (t.type == TT.IDENT and t.value == 'test'
                 and self.peek(1).type == TT.STRING):
             return self.parse_test_block()
+        # v1.18 contextual keywords:
+        #   enum Status(pending, active, done)
+        if (t.type == TT.IDENT and t.value == 'enum'
+                and self.peek(1).type == TT.IDENT
+                and self.peek(1).value[:1].isupper()
+                and self.peek(2).type == TT.LPAREN):
+            return self.parse_enum_def()
+        #   benchmark ["label"] do ... end — paren-less timing block
+        if (t.type == TT.IDENT and t.value == 'benchmark'
+                and self.peek(1).type in (TT.STRING, TT.DO)):
+            return self.parse_benchmark_block()
+        #   breakpoint — debug pause (bare statement, postfix if/unless OK)
+        if (t.type == TT.IDENT and t.value == 'breakpoint'
+                and self.peek(1).type in (TT.NEWLINE, TT.EOF,
+                                          TT.IF, TT.UNLESS)):
+            self.advance()  # consume 'breakpoint'
+            return self._maybe_postfix(BreakpointStmt())
 
         if t.type == TT.DEF:
             return self.parse_func_def()
@@ -426,6 +443,29 @@ class Parser:
         self.advance()  # consume contextual 'error' identifier
         name_tok = self.expect(TT.IDENT, "Expected error type name after 'error'")
         return ErrorDef(name=name_tok.value)
+
+    def parse_enum_def(self) -> EnumDef:
+        """Parse:  enum Status(pending, active, done)"""
+        self.advance()  # consume contextual 'enum' identifier
+        name_tok = self.expect(TT.IDENT, "Expected enum name after 'enum'")
+        self.expect(TT.LPAREN, "Expected '(' after enum name")
+        members = []
+        if not self.check(TT.RPAREN):
+            members.append(self._parse_param_name())
+            while self.match(TT.COMMA):
+                members.append(self._parse_param_name())
+        self.expect(TT.RPAREN, "Expected ')' to close enum member list")
+        return EnumDef(name=name_tok.value, members=members)
+
+    def parse_benchmark_block(self) -> FuncCall:
+        """Parse:  benchmark ["label"] do ... end
+        Sugar for benchmark("label") do ... end."""
+        self.advance()  # consume contextual 'benchmark' identifier
+        args = []
+        if self.check(TT.STRING):
+            args.append(self.parse_primary())
+        block = self.parse_block()
+        return FuncCall(name='benchmark', args=args, block=block)
 
     def parse_test_block(self) -> FuncCall:
         """Parse:  test "name" [, tags: ["slow"]] do ... end
@@ -983,6 +1023,12 @@ class Parser:
                 self.expect(TT.RPAREN)
                 return FuncCall(name=name, args=args)
             return Identifier(name=name)
+
+        # v1.18: benchmark ["label"] do ... end also works as an expression
+        # (ms = benchmark "label" do ... end)
+        if (t.type == TT.IDENT and t.value == 'benchmark'
+                and self.peek(1).type in (TT.STRING, TT.DO)):
+            return self.parse_benchmark_block()
 
         if t.type == TT.IDENT:
             name = self.advance().value

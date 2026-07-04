@@ -382,11 +382,40 @@ import importlib.util as _ilu
 
 _fk_loaded_files = set()
 
+# v1.18: `frankiec bundle` embeds pre-compiled modules here, keyed by the
+# path string as written in the source ("lib/utils.fk", stitch names, ...).
+# require/import/stitch check this registry before touching the filesystem.
+_fk_bundled_compiled = {}
+
+def _fk_exec_bundled(key, propagate_frames=1):
+    """Execute a bundled pre-compiled module; returns its globals dict."""
+    import inspect as _insp
+    _g = {k: v for k, v in globals().items()}
+    _g['__file__'] = f"<bundle:{key}>"
+    exec(compile(_fk_bundled_compiled[key], f"<bundle:{key}>", 'exec'), _g)
+    if propagate_frames:
+        _frame = _insp.currentframe()
+        for _ in range(propagate_frames + 1):
+            _frame = _frame.f_back
+            if _frame is None:
+                return _g
+        _frame.f_globals.update({k: v for k, v in _g.items()
+                                  if not k.startswith('_fk_') and k not in ('__builtins__',)})
+    return _g
+
+
 def _fk_require(path):
     """Load and execute another .fk file, once only (like Ruby's require)."""
     # Resolve path relative to cwd, add .fk if no extension
     if not path.endswith('.fk'):
         path = path + '.fk'
+    # Bundled program? Serve from the embedded registry.
+    if path in _fk_bundled_compiled:
+        if path in _fk_loaded_files:
+            return False
+        _fk_loaded_files.add(path)
+        _fk_exec_bundled(path)
+        return True
     abs_path = _os.path.abspath(path)
     if abs_path in _fk_loaded_files:
         return False   # already loaded
@@ -435,6 +464,15 @@ def _fk_stitch(name):
     """
     import inspect as _insp
     filename = f"{name}.fk"
+
+    # Bundled program? Serve from the embedded registry.
+    _bkey = f"stitch:{name}"
+    if _bkey in _fk_bundled_compiled:
+        if _bkey in _fk_loaded_files:
+            return False
+        _fk_loaded_files.add(_bkey)
+        _fk_exec_bundled(_bkey)
+        return True
 
     # 1. Project-local
     abs_path = _os.path.join(_os.getcwd(), "stitches", filename)
@@ -1882,6 +1920,7 @@ class FrankieApp:
         self._not_found = None # custom 404 handler
         self._static    = []   # [(url_prefix, fs_root), ...]
         self._middleware = []  # [(handler,), ...] — app.use stack
+        self._ws_routes = []   # v1.18: [(regex, param_names, handler), ...]
 
     # ── Route registration ──────────────────────────────────────────────────
 
@@ -1895,6 +1934,25 @@ class FrankieApp:
     def put(self, pattern, handler):    self._register('PUT',    pattern, handler)
     def delete(self, pattern, handler): self._register('DELETE', pattern, handler)
     def patch(self, pattern, handler):  self._register('PATCH',  pattern, handler)
+
+    def websocket(self, pattern, handler):
+        """v1.18: app.websocket("/ws/:room") do |ws| ... end
+
+        The handler receives a FrankieWebSocket with .send / .recv / .close,
+        plus .params (path parameters) and .path. It runs in its own thread;
+        the connection closes automatically when the handler returns.
+        """
+        param_names = _re.findall(r':([a-zA-Z_][a-zA-Z0-9_]*)', pattern)
+        regex_str   = _re.sub(r':([a-zA-Z_][a-zA-Z0-9_]*)', r'([^/]+)', pattern)
+        self._ws_routes.append((_re.compile('^' + regex_str + '$'),
+                                param_names, handler))
+
+    def _match_ws(self, path):
+        for regex, param_names, handler in self._ws_routes:
+            m = regex.match(path)
+            if m:
+                return dict(zip(param_names, m.groups())), handler
+        return None, None
 
     # Async route variants — in Frankie's threading model each request already
     # runs in its own thread, so async routes are identical to sync ones.
@@ -2035,6 +2093,20 @@ class FrankieApp:
             def _serve(self):
                 import urllib.parse as _up
                 parsed  = _up.urlparse(self.path)
+
+                # v1.18: WebSocket upgrade — hijack the connection
+                if (self.command == 'GET'
+                        and 'websocket' in self.headers.get('Upgrade', '').lower()
+                        and 'upgrade' in self.headers.get('Connection', '').lower()):
+                    params, ws_handler = app._match_ws(parsed.path)
+                    if ws_handler is not None:
+                        _fk_ws_serve_upgrade(self, parsed.path, params, ws_handler)
+                        self.close_connection = True
+                        return
+                    self.send_response(404)
+                    self.end_headers()
+                    return
+
                 length  = int(self.headers.get('Content-Length', 0))
                 body    = self.rfile.read(length).decode('utf-8', errors='replace') if length else ''
                 resp    = app._dispatch(self.command, parsed.path,
@@ -2945,6 +3017,18 @@ def _fk_import(path):
     """
     if not path.endswith('.fk'):
         path = path + '.fk'
+    # Bundled program? Serve from the embedded registry.
+    if path in _fk_bundled_compiled:
+        if path in _fk_module_cache:
+            return _fk_module_cache[path]
+        _g = _fk_exec_bundled(path, propagate_frames=0)
+        module_name = _os.path.basename(path)[:-3]
+        public = {k: v for k, v in _g.items()
+                  if not k.startswith('_') and k != '__builtins__'
+                  and (k not in globals() or globals()[k] is not v)}
+        mod = FrankieModule(module_name, public)
+        _fk_module_cache[path] = mod
+        return mod
     abs_path = _os.path.abspath(path)
     if abs_path in _fk_module_cache:
         return _fk_module_cache[abs_path]
@@ -3198,3 +3282,366 @@ def unstub(name=None):
             else:
                 g[n] = original
     return None
+
+
+# ═══ v1.18 — "From projects to products" ═════════════════════════════════════
+
+# ─── Set operations on vectors (order-preserving, deduped) ───────────────────
+
+def _fk_union(a, b):
+    """[1,2,3].union([3,4]) → [1, 2, 3, 4] — order-preserving, deduped."""
+    out, seen = [], set()
+    for x in list(a) + list(b):
+        key = repr(x)
+        if key not in seen:
+            seen.add(key)
+            out.append(x)
+    return out
+
+def _fk_intersect(a, b):
+    """[1,2,3].intersect([2,3,4]) → [2, 3] — keeps a's order, deduped."""
+    b_keys = {repr(x) for x in b}
+    out, seen = [], set()
+    for x in a:
+        key = repr(x)
+        if key in b_keys and key not in seen:
+            seen.add(key)
+            out.append(x)
+    return out
+
+def _fk_difference(a, b):
+    """[1,2,3].difference([2]) → [1, 3] — keeps a's order, deduped."""
+    b_keys = {repr(x) for x in b}
+    out, seen = [], set()
+    for x in a:
+        key = repr(x)
+        if key not in b_keys and key not in seen:
+            seen.add(key)
+            out.append(x)
+    return out
+
+
+# ─── benchmark do ... end ─────────────────────────────────────────────────────
+
+def benchmark(label_or_fn, fn=None):
+    """benchmark ["label"] do ... end — time a block, return elapsed ms.
+
+    Prints a friendly timing line and returns the elapsed milliseconds
+    (rounded to 0.1ms), so you can assert on it or collect it.
+    """
+    if fn is None:
+        run, label = label_or_fn, "benchmark"
+    else:
+        run, label = fn, str(label_or_fn)
+    t0 = _time.perf_counter()
+    run()
+    ms = round((_time.perf_counter() - t0) * 1000, 1)
+    print(f"⏱  {label}: {ms}ms")
+    return ms
+
+
+# ─── enum Status(pending, active, done) ──────────────────────────────────────
+
+class FrankieEnum:
+    """Named set of symbolic values created by `enum Name(a, b, c)`.
+
+    Status.pending  → "pending"
+    Status.values   → ["pending", "active", "done"]
+    Status.include?("active") → true    (via `in`)
+    """
+    def __init__(self, name, members):
+        self._fk_enum_name = name
+        self._fk_members = list(members)
+        for m in members:
+            setattr(self, m, m)
+
+    def values(self):
+        return list(self._fk_members)
+
+    def __contains__(self, x):
+        return x in self._fk_members
+
+    def __iter__(self):
+        return iter(self._fk_members)
+
+    def __len__(self):
+        return len(self._fk_members)
+
+    def __repr__(self):
+        return f"{self._fk_enum_name}({', '.join(self._fk_members)})"
+
+def _fk_def_enum(name, members):
+    return FrankieEnum(name, members)
+
+
+# ─── breakpoint — debugger-lite ───────────────────────────────────────────────
+
+def _fk_breakpoint(file, line, g, l):
+    """Pause execution and drop into a scoped debug REPL.
+
+    Commands:  c / continue   resume the program
+               vars           list local variables
+               where          show the current location
+               exit           abort the program
+    Anything else is evaluated as a Frankie expression in the current scope.
+    """
+    import sys as _s
+    if not _s.stdin.isatty():
+        print(f"[Frankie] breakpoint at {file}:{line} skipped (stdin is not a terminal)")
+        return None
+
+    # Merged view of the paused scope (function locals shadow globals)
+    scope = dict(g)
+    scope.update(l)
+
+    src_line = ""
+    try:
+        with open(file, 'r', encoding='utf-8') as _f:
+            lines = _f.read().splitlines()
+        if 0 < line <= len(lines):
+            src_line = lines[line - 1].strip()
+    except OSError:
+        pass
+
+    print(f"\n🧟 breakpoint — {file}:{line}")
+    if src_line:
+        print(f"   ──▶ {line} │ {src_line}")
+    print("   (c)ontinue · vars · where · exit · or type any Frankie expression\n")
+
+    from repl import _compile_and_run
+    while True:
+        try:
+            cmd = input("(fkdb) ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            return None
+        if cmd in ('c', 'continue', ''):
+            return None
+        if cmd == 'exit':
+            raise SystemExit(1)
+        if cmd == 'where':
+            print(f"  {file}:{line}" + (f"  →  {src_line}" if src_line else ""))
+            continue
+        if cmd == 'vars':
+            user_vars = {k: v for k, v in l.items()
+                         if not k.startswith('_') and k not in ('__builtins__',)}
+            if not user_vars:
+                print("  (no local variables)")
+            for k in sorted(user_vars):
+                print(f"  {k} = {_fk_to_str(user_vars[k])}")
+            continue
+        out, err = _compile_and_run(cmd, scope)
+        if out:
+            print(out, end='' if out.endswith('\n') else '\n')
+        if err:
+            print(f"  {err}")
+        elif not out and scope.get('_') is not None:
+            print(f"  => {_fk_to_str(scope['_'])}")
+
+
+# ─── WebSockets — RFC 6455, hand-rolled on the stdlib (v1.18) ─────────────────
+
+_WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+
+def _fk_ws_accept_key(key):
+    import hashlib as _hl, base64 as _b64
+    digest = _hl.sha1((key + _WS_GUID).encode('ascii')).digest()
+    return _b64.b64encode(digest).decode('ascii')
+
+
+class FrankieWebSocket:
+    """A WebSocket connection (server- or client-side).
+
+    ws.send("hello")     — send a text message
+    ws.recv()            — receive the next text message (nil when closed)
+    ws.close()           — send a close frame and shut the connection
+    ws.params            — path parameters (server-side routes)
+    ws.path              — request path
+    ws.peer              — remote "host:port"
+    """
+    def __init__(self, sock, rfile=None, client_side=False,
+                 path=None, params=None):
+        self._sock = sock
+        self._rfile = rfile if rfile is not None else sock.makefile('rb')
+        self._client_side = client_side
+        self._open = True
+        self.path = path
+        self.params = params or {}
+
+    # ── Receiving ────────────────────────────────────────────────────────────
+
+    def _read_exact(self, n):
+        data = self._rfile.read(n)
+        if data is None or len(data) < n:
+            raise ConnectionError("websocket: connection closed mid-frame")
+        return data
+
+    def recv(self):
+        """Block until the next text/binary message. Returns nil on close.
+        Ping frames are answered automatically."""
+        if not self._open:
+            return None
+        buffer = bytearray()
+        try:
+            while True:
+                b1, b2 = self._read_exact(2)
+                fin    = b1 & 0x80
+                opcode = b1 & 0x0F
+                masked = b2 & 0x80
+                length = b2 & 0x7F
+                if length == 126:
+                    import struct as _st
+                    length = _st.unpack('>H', self._read_exact(2))[0]
+                elif length == 127:
+                    import struct as _st
+                    length = _st.unpack('>Q', self._read_exact(8))[0]
+                mask = self._read_exact(4) if masked else None
+                payload = self._read_exact(length) if length else b''
+                if mask:
+                    payload = bytes(b ^ mask[i % 4] for i, b in enumerate(payload))
+
+                if opcode == 0x8:                    # close
+                    self._send_raw(0x8, payload[:2] if payload else b'')
+                    self._shutdown()
+                    return None
+                if opcode == 0x9:                    # ping → pong
+                    self._send_raw(0xA, payload)
+                    continue
+                if opcode == 0xA:                    # pong → ignore
+                    continue
+                buffer.extend(payload)
+                if fin:
+                    return buffer.decode('utf-8', errors='replace')
+        except (ConnectionError, OSError):
+            self._shutdown()
+            return None
+
+    # ── Sending ──────────────────────────────────────────────────────────────
+
+    def _send_raw(self, opcode, payload):
+        import struct as _st, os as _o
+        if not self._open:
+            return
+        header = bytes([0x80 | opcode])
+        mask_bit = 0x80 if self._client_side else 0x00
+        n = len(payload)
+        if n < 126:
+            header += bytes([mask_bit | n])
+        elif n < 65536:
+            header += bytes([mask_bit | 126]) + _st.pack('>H', n)
+        else:
+            header += bytes([mask_bit | 127]) + _st.pack('>Q', n)
+        if self._client_side:
+            mask = _o.urandom(4)
+            payload = bytes(b ^ mask[i % 4] for i, b in enumerate(payload))
+            data = header + mask + payload
+        else:
+            data = header + payload
+        try:
+            self._sock.sendall(data)
+        except OSError:
+            self._shutdown()
+
+    def send(self, message):
+        """Send a text message (anything non-string is stringified)."""
+        self._send_raw(0x1, _fk_to_str(message).encode('utf-8')
+                       if not isinstance(message, str)
+                       else message.encode('utf-8'))
+        return None
+
+    def close(self, code=1000):
+        if self._open:
+            import struct as _st
+            self._send_raw(0x8, _st.pack('>H', int(code)))
+            self._shutdown()
+        return None
+
+    def _shutdown(self):
+        self._open = False
+        try:
+            self._sock.close()
+        except OSError:
+            pass
+
+    def peer(self):
+        try:
+            host, port = self._sock.getpeername()[:2]
+            return f"{host}:{port}"
+        except OSError:
+            return None
+
+    def __repr__(self):
+        state = "open" if self._open else "closed"
+        return f"<websocket {self.path or ''} {state}>"
+
+
+def _fk_ws_serve_upgrade(handler, path, params, ws_handler):
+    """Complete the server-side handshake on a BaseHTTPRequestHandler,
+    then hand the connection to the Frankie websocket handler."""
+    key = handler.headers.get('Sec-WebSocket-Key', '')
+    if not key:
+        handler.send_response(400)
+        handler.end_headers()
+        return
+    accept = _fk_ws_accept_key(key)
+    raw = ("HTTP/1.1 101 Switching Protocols\r\n"
+           "Upgrade: websocket\r\n"
+           "Connection: Upgrade\r\n"
+           f"Sec-WebSocket-Accept: {accept}\r\n\r\n")
+    handler.connection.sendall(raw.encode('ascii'))
+    ws = FrankieWebSocket(handler.connection, rfile=handler.rfile,
+                          client_side=False, path=path, params=params)
+    try:
+        ws_handler(ws)
+    finally:
+        ws.close()
+
+
+def ws_connect(url, timeout=None):
+    """Open a WebSocket client connection: ws = ws_connect("ws://host:port/path")
+
+    Returns a FrankieWebSocket. Only ws:// is supported (no TLS) — Frankie's
+    zero-dependency mantra, stitched to your terminal.
+    """
+    import base64 as _b64, os as _o
+    from urllib.parse import urlparse as _parse
+    parsed = _parse(url)
+    if parsed.scheme != 'ws':
+        raise RuntimeError(f"[Frankie] ws_connect: only ws:// URLs are supported, got {parsed.scheme!r}")
+    host = parsed.hostname
+    port = parsed.port or 80
+    path = parsed.path or '/'
+    if parsed.query:
+        path += '?' + parsed.query
+
+    sock = _socket.create_connection((host, port),
+                                     timeout=float(timeout) if timeout else None)
+    key = _b64.b64encode(_o.urandom(16)).decode('ascii')
+    request = (f"GET {path} HTTP/1.1\r\n"
+               f"Host: {host}:{port}\r\n"
+               "Upgrade: websocket\r\n"
+               "Connection: Upgrade\r\n"
+               f"Sec-WebSocket-Key: {key}\r\n"
+               "Sec-WebSocket-Version: 13\r\n\r\n")
+    sock.sendall(request.encode('ascii'))
+
+    rfile = sock.makefile('rb')
+    status_line = rfile.readline().decode('latin-1').strip()
+    parts = status_line.split()
+    if len(parts) < 2 or parts[1] != '101':
+        sock.close()
+        raise RuntimeError(f"[Frankie] ws_connect: handshake rejected: {status_line}")
+    headers = {}
+    while True:
+        line = rfile.readline().decode('latin-1').strip()
+        if not line:
+            break
+        if ':' in line:
+            k, _, v = line.partition(':')
+            headers[k.strip().lower()] = v.strip()
+    expected = _fk_ws_accept_key(key)
+    if headers.get('sec-websocket-accept') != expected:
+        sock.close()
+        raise RuntimeError("[Frankie] ws_connect: invalid Sec-WebSocket-Accept from server")
+    sock.settimeout(None)
+    return FrankieWebSocket(sock, rfile=rfile, client_side=True, path=path)

@@ -133,6 +133,11 @@ class Analyzer:
         if isinstance(node, ErrorDef):
             self._define(scope, node.name, node)
             return
+        if isinstance(node, EnumDef):
+            self._define(scope, node.name, node)
+            return
+        if isinstance(node, BreakpointStmt):
+            return
         if isinstance(node, ImportStmt):
             alias = node.alias
             if alias is None and isinstance(node.path, StringLiteral):
@@ -405,7 +410,7 @@ class Analyzer:
             return
 
         if isinstance(node, (RequireStmt, StitchStmt, ImportStmt,
-                             RecordDef, ErrorDef)):
+                             RecordDef, ErrorDef, EnumDef, BreakpointStmt)):
             return   # handled during collection
 
         if isinstance(node, BeginRescue):

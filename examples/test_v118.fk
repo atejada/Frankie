@@ -1,0 +1,98 @@
+# test_v118.fk — Frankie v1.18 "From projects to products" feature tests
+# Run with: frankiec test examples/test_v118.fk
+
+test "numeric literal underscores" do
+  assert_eq(1_000_000, 1000000, "integer underscores")
+  assert_eq(1_2_3, 123, "any grouping works")
+  assert_approx_eq(3.141_592, 3.141592, 0.000001, "float underscores")
+  assert_eq(1_000 + 2_000, 3000, "arithmetic unaffected")
+end
+
+test "set operations on vectors" do
+  a = [1, 2, 3]
+  assert_eq(a.union([3, 4, 5]), [1, 2, 3, 4, 5], "union dedupes, keeps order")
+  assert_eq(a.intersect([2, 3, 9]), [2, 3], "intersect keeps a's order")
+  assert_eq(a.difference([2]), [1, 3], "difference removes b's elements")
+  assert_eq([].union([1]), [1], "union with empty left")
+  assert_eq(["x", "y"].intersect(["y"]), ["y"], "works with strings")
+  assert_eq([1, 1, 2].union([]), [1, 2], "union dedupes duplicates in a")
+end
+
+test "enum" do
+  enum Status(pending, active, done)
+  assert_eq(Status.pending, "pending", "member access via dot")
+  assert_eq(Status.values, ["pending", "active", "done"], "values in order")
+  assert_true(Status.include?("active"), "membership check")
+  assert_true(not Status.include?("nope"), "non-member rejected")
+  assert_eq(to_str(Status), "Status(pending, active, done)", "friendly repr")
+
+  s = "done"
+  result = nil
+  case s
+  when Status.done
+    result = "finished"
+  end
+  assert_eq(result, "finished", "enum members work in case/when")
+end
+
+test "benchmark" do
+  ms = benchmark "tiny loop" do
+    total = 0
+    for i in 1..1_000
+      total += i
+    end
+  end
+  assert_true(ms >= 0, "returns elapsed milliseconds")
+  ms2 = benchmark do
+    x = 1 + 1
+  end
+  assert_true(ms2 >= 0, "label is optional")
+end
+
+test "breakpoint skips without a terminal" do
+  hit = 0
+  breakpoint
+  hit = 1
+  assert_eq(hit, 1, "execution continues after non-tty breakpoint")
+end
+
+test "websockets", tags: ["network"] do
+  app = web_app()
+  app.websocket("/ws/:room") do |ws|
+    ws.send("hello #{ws.params["room"]}")
+    loop do
+      msg = ws.recv()
+      break if msg == nil
+      break if msg == "bye"
+      ws.send("echo: #{msg}")
+    end
+  end
+  spawn do
+    app.run(3199)
+  end
+  sleep(0.8)
+
+  sock = ws_connect("ws://127.0.0.1:3199/ws/lab", timeout: 5)
+  assert_eq(sock.recv(), "hello lab", "handshake + path params + first frame")
+  sock.send("ping")
+  assert_eq(sock.recv(), "echo: ping", "round-trip text frame")
+  sock.send("padding: " + "x" * 300)
+  assert_eq(sock.recv().length, 315, "extended (126+) payload framing")
+  sock.send("bye")
+  sock.close()
+end
+
+test "v1.17 features still solid" do
+  assert_eq((1..4).to_vec, [1, 2, 3, 4], "ranges")
+  error StillWorks
+  caught = nil
+  begin
+    raise StillWorks, "yes"
+  rescue StillWorks => e
+    caught = e
+  end
+  assert_eq(caught, "yes", "typed errors")
+  record P(x, y)
+  assert_eq(P(1, 2).x, 1, "record dot access")
+  assert_eq(parallel_map([1, 2], workers: 2) do |n| n + 1 end, [2, 3], "parallel_map")
+end

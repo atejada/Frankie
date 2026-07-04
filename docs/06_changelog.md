@@ -1,5 +1,83 @@
 # Changelog
 
+## v1.18.0 (2026)
+
+### Theme: "From projects to products" — edit, ship, connect, debug
+
+---
+
+### Tooling
+
+**Language Server — `frankiec lsp`** *(new file: `frankie_lsp.py`)*
+- LSP over stdio, pure Python stdlib — live diagnostics (via the v1.17
+  analyzer + lex/parse errors), completion (stdlib, user symbols,
+  keywords) and hover docs (`##` doc-comments included)
+- VS Code extension (`editors/vscode/`) upgraded from grammar-only to a
+  full client; Neovim/Helix/Zed setups documented in `20_v118_features.md`
+
+**`frankiec bundle <file.fk> [-o out.py]`**
+- Compiles a program plus every statically referenced `require`/`import`/
+  `stitch` into ONE self-contained `.py` with the stdlib inlined
+- Runs anywhere with `python3 out.py` — no Frankie installation needed
+- Runtime registry hooks: `_fk_bundled_compiled` checked before the
+  filesystem in `_fk_require`/`_fk_import`/`_fk_stitch`
+
+**Stitch lockfile**
+- `frankiec stitch install` writes `stitch.lock` (sha256, source, size, date)
+- `frankiec stitch verify` — ✓ pinned / ⚠ modified / ✗ missing, exit 1 on
+  problems (CI-ready); `frankiec stitch update [name]` re-fetches + re-pins
+
+**Project-wide `check` and `fmt`**
+- Both commands accept directories and recurse into `.fk` files:
+  `frankiec check .`, `frankiec fmt --write .`
+
+---
+
+### New Language Features
+
+**WebSockets — `app.websocket` + `ws_connect`**
+- `app.websocket("/ws/:room") do |ws| ... end` on the built-in server —
+  hand-rolled RFC 6455 (handshake, framing, ping/pong, close), one thread
+  per connection, auto-close on handler return
+- `ws_connect("ws://host:port/path")` client; `ws.send` / `ws.recv` /
+  `ws.close` / `ws.params` / `ws.path` / `ws.peer`
+
+**`breakpoint` — debugger-lite**
+- Pauses into a scoped REPL: `vars`, `where`, `exit`, `c`, or any Frankie
+  expression evaluated against the paused scope
+- Skipped with a notice when stdin isn't a terminal — CI never hangs
+- Postfix conditions work: `breakpoint if qty > 100`
+
+**`enum Status(pending, active, done)`**
+- Members are their own names as strings: `Status.pending` → `"pending"`
+- `Status.values`, `Status.include?(x)`, iteration and `case/when` matching
+- Contextual keyword — `enum` stays valid as a variable name
+
+**`benchmark ["label"] do ... end`**
+- Times a block, prints `⏱ label: 12.3ms`, returns the elapsed ms
+- Works as an expression: `ms = benchmark "x" do ... end`
+
+**Numeric literals**
+- Underscore separators: `1_000_000`, `3.141_592`
+- Scientific notation: `1e6`, `2.5e-3`, `1E+9`
+
+**Set operations on vectors**
+- `.union(v)` / `.intersect(v)` / `.difference(v)` — order-preserving,
+  deduplicating
+
+---
+
+### Fixes
+
+- Formatter: parenthesizes indexed expressions correctly — `(a | b)["x"]`
+  no longer loses its parens on reformat
+- Formatter emits floats the lexer can always re-read (`1e-06` now lexes
+  thanks to scientific-notation support)
+- `loop`/`spawn`/`record`/`import` etc. are now valid as the last
+  statement of a web route handler (previously: codegen crash)
+
+---
+
 ## v1.17.0 (2026)
 
 ### Theme: "Programs that grow" — namespacing, real checking, typed errors

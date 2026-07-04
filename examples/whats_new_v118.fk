@@ -1,0 +1,83 @@
+# whats_new_v118.fk — Tour of Frankie v1.18 "From projects to products"
+# Run with:   frankiec run examples/whats_new_v118.fk
+
+puts "🧟 Frankie v1.18 — From projects to products"
+puts ""
+
+# ── 1. Numeric underscores + scientific notation ─────────────────
+puts "── 1. Numeric literals ──"
+budget = 1_250_000
+tiny = 2.5e-3
+big = 1e6
+puts "budget = #{budget}"
+puts "tiny   = #{tiny}"
+puts "big    = #{big}"
+puts ""
+
+# ── 2. Set operations on vectors ─────────────────────────────────
+puts "── 2. Set operations ──"
+a = [1, 2, 3]
+puts "union:      #{a.union([3, 4, 5])}"
+puts "intersect:  #{a.intersect([2, 3, 9])}"
+puts "difference: #{a.difference([2])}"
+puts ""
+
+# ── 3. enum ───────────────────────────────────────────────────────
+puts "── 3. enum ──"
+enum Status(pending, active, done)
+puts "Status        = #{Status}"
+puts "Status.active = #{Status.active}"
+puts "values        = #{Status.values}"
+puts "include done? #{Status.include?("done")}"
+puts ""
+
+# ── 4. benchmark ──────────────────────────────────────────────────
+puts "── 4. benchmark ──"
+ms = benchmark "sum 100k" do
+  total = 0
+  for i in 1..100_000
+    total += i
+  end
+end
+puts "returned #{ms}ms — assert on it, chart it, brag about it"
+puts ""
+
+# ── 5. WebSockets ─────────────────────────────────────────────────
+puts "── 5. WebSockets ──"
+app = web_app()
+app.websocket("/ws/:room") do |ws|
+  ws.send("welcome to #{ws.params["room"]}")
+  loop do
+    msg = ws.recv()
+    break if msg == nil
+    break if msg == "bye"
+    ws.send("echo: #{msg}")
+  end
+end
+spawn do
+  app.run(3198)
+end
+sleep(0.8)
+sock = ws_connect("ws://127.0.0.1:3198/ws/demo", timeout: 5)
+puts sock.recv()
+sock.send("it's alive!")
+puts sock.recv()
+sock.send("bye")
+sock.close()
+puts ""
+
+# ── 6. breakpoint (skips politely when not in a terminal) ────────
+puts "── 6. breakpoint ──"
+secret = 42
+breakpoint
+puts "resumed — secret was #{secret}"
+puts ""
+
+puts "Also in v1.18 (try them yourself):"
+puts "  frankiec lsp                  — diagnostics/completion/hover in your editor"
+puts "  frankiec bundle app.fk        — ship ONE self-contained .py"
+puts "  frankiec check .              — analyze the whole project"
+puts "  frankiec fmt --check .        — formatting gate for CI"
+puts "  frankiec stitch verify        — sha256-pinned stitches via stitch.lock"
+puts ""
+puts "Frankie v1.18 — It's alive… and shipping! 🧟📦"
