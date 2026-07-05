@@ -948,4 +948,14 @@ frankiec test</pre></div>
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 function switchLang(lang) {
   document.querySelectorAll('.lang-tab').forEach(function(t) { t.classList.remove('active'); });
-  document.que
+  document.querySelectorAll('.lang-panel').forEach(function(p) { p.classList.remove('active'); });
+  document.getElementById('panel-' + lang).classList.add('active');
+  // Activate the tab that was clicked (match by its switchLang argument)
+  document.querySelectorAll('.lang-tab').forEach(function(t) {
+    var on = t.getAttribute('onclick') || '';
+    if (on.indexOf("'" + lang + "'") !== -1) { t.classList.add('active'); }
+  });
+}
+</script>
+</body>
+</html>
