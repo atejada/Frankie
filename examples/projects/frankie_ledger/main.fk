@@ -1,0 +1,219 @@
+## Frankie Ledger — a terminal expense tracker in one Frankie file.
+##
+##   frankiec run main.fk add 12.50 lunch tacos al pastor
+##   frankiec run main.fk add 899 tech mechanical keyboard
+##   frankiec run main.fk list
+##   frankiec run main.fk report
+##   frankiec run main.fk export july.csv
+##
+## Storage is SQLite (./ledger.db — override with LEDGER_DB). The three
+## stitches it uses (frankiecli, frankietable, frankiecolor) ship in this
+## project's own stitches/ folder, pinned by stitch.lock — a real Frankie
+## project layout.
+##
+## Ship it:  frankiec bundle main.fk -o ledger.py   →   alias ledger="python3 ~/bin/ledger.py"
+
+stitch "frankiecli"
+stitch "frankietable"
+stitch "frankiecolor"
+
+const DB_PATH = env("LEDGER_DB", "ledger.db")
+const BAR_WIDTH = 32
+
+db = db_open(DB_PATH)
+db.exec("""CREATE TABLE IF NOT EXISTS expenses (
+  id       INTEGER PRIMARY KEY AUTOINCREMENT,
+  amount   REAL NOT NULL,
+  category TEXT NOT NULL,
+  note     TEXT DEFAULT '',
+  spent_on TEXT NOT NULL
+)""")
+
+# ── helpers ──────────────────────────────────────────────────────────────────
+
+## argv() includes "run main.fk" under frankiec but not in a bundle —
+## normalize so commands work identically in both worlds.
+def script_args()
+  raw = argv()
+  if raw.length >= 2 and raw[0] == "run" and raw[1].end_with?(".fk")
+    return raw[2..-1]
+  end
+  raw
+end
+
+def money(x)
+  sprintf("%.2f", x)
+end
+
+def this_month()
+  today().format("%Y-%m")
+end
+
+def fetch_rows(db, month, category)
+  sql = "SELECT id, spent_on, category, amount, note FROM expenses"
+  where = []
+  params = []
+  if month != nil
+    where.push("spent_on LIKE ?")
+    params.push("#{month}%")
+  end
+  if category != nil
+    where.push("category = ?")
+    params.push(category)
+  end
+  if where.length > 0
+    sql = "#{sql} WHERE #{where.join(" AND ")}"
+  end
+  db.query("#{sql} ORDER BY spent_on, id", params)
+end
+
+def amounts_of(rows)
+  rows.map do |r| r["amount"] end
+end
+
+# ── commands ─────────────────────────────────────────────────────────────────
+
+def cmd_add(db, cli)
+  args = cli["args"]
+  if args.length < 3
+    puts red("usage: add <amount> <category> [note…]  (--date YYYY-MM-DD)")
+    exit(1)
+  end
+  amount = 0.0
+  begin
+    amount = to_float(args[1])
+  rescue
+    puts red("'#{args[1]}' is not an amount I understand")
+    exit(1)
+  end
+  category = args[2].downcase
+  note = args[3..-1].join(" ")
+  spent_on = cli_get(cli, "date", today().format("%Y-%m-%d"))
+  db.insert("expenses", {amount: amount, category: category,
+                         note: note, spent_on: spent_on})
+  detail = note.length > 0 ? " — #{note}" : ""
+  puts "#{green("✓")} #{money(amount)} on #{bold(category)}#{detail} #{dim("(#{spent_on})")}"
+end
+
+def cmd_list(db, cli)
+  month = cli_get(cli, "month", this_month())
+  month = nil if month == "all"
+  rows = fetch_rows(db, month, cli_get(cli, "category", nil))
+  if rows.length == 0
+    puts dim("no expenses recorded#{month != nil ? " for #{month}" : ""} — add one:  add 12.50 lunch tacos")
+    return nil
+  end
+  pretty = rows.map do |r|
+    {id: r["id"], date: r["spent_on"], category: r["category"],
+     amount: money(r["amount"]), note: r["note"]}
+  end
+  puts table(pretty, ["id", "date", "category", "amount", "note"])
+  scope = month != nil ? ", #{month}" : ""
+  puts "#{bold("  total: #{money(amounts_of(rows).sum)}")} #{dim("(#{rows.length} entries#{scope})")}"
+end
+
+def cmd_report(db, cli)
+  month = cli_get(cli, "month", this_month())
+  month = nil if month == "all"
+  label = month != nil ? month : "all time"
+  rows = fetch_rows(db, month, nil)
+  if rows.length == 0
+    puts dim("nothing to report for #{label}")
+    return nil
+  end
+
+  amounts = amounts_of(rows)
+  total = amounts.sum
+
+  puts ""
+  puts bold("🧟 Frankie Ledger — #{label}")
+  puts ""
+
+  # Category totals with a terminal bar chart
+  totals = {}
+  rows.group_by do |r| r["category"] end.each do |cat, entries|
+    totals[cat] = amounts_of(entries).sum
+  end
+  biggest = totals.values.max
+  totals.to_a.sort_by do |pair| -pair[1] end.each do |pair|
+    cat, t = pair
+    bar = "█" * max(1, to_int(BAR_WIDTH * t / biggest))
+    share = to_int(100 * t / total)
+    puts "  #{cat.ljust(12)} #{money(t).rjust(10)}  #{green(bar)} #{dim("#{share}%")}"
+  end
+
+  # R-donor statistics
+  puts ""
+  spread = amounts.length > 1 ? "   stdev: #{money(stdev(amounts))}" : ""
+  stats = "  entries: #{rows.length}   total: #{bold(money(total))}   mean: #{money(mean(amounts))}   median: #{money(median(amounts))}"
+  puts "#{stats}#{spread}"
+
+  # Outliers: 3× the median catches big splurges even in small datasets,
+  # where mean + 2·stdev hides behind the outlier itself
+  if amounts.length >= 3
+    threshold = 3 * median(amounts)
+    weird = rows.select do |r| r["amount"] > threshold end
+    if weird.length > 0
+      puts ""
+      puts yellow("  ⚡ unusual spending (> 3× the median, #{money(threshold)}):")
+      weird.each do |r|
+        puts yellow("     #{r["spent_on"]}  #{money(r["amount"]).rjust(9)}  #{r["category"]}  #{r["note"]}")
+      end
+    end
+  end
+  puts ""
+end
+
+def cmd_export(db, cli)
+  args = cli["args"]
+  out = args.length > 1 ? args[1] : "ledger.csv"
+  month = cli_get(cli, "month", nil)
+  month = nil if month == "all"
+  rows = fetch_rows(db, month, nil)
+  file_write(out, csv_dump(rows, ["id", "spent_on", "category", "amount", "note"]))
+  puts "#{green("✓")} exported #{rows.length} entries → #{bold(out)}"
+end
+
+def cmd_categories(db)
+  rows = db.query("""SELECT category, COUNT(*) AS n, SUM(amount) AS total
+                     FROM expenses GROUP BY category ORDER BY total DESC""", [])
+  if rows.length == 0
+    puts dim("no categories yet")
+    return nil
+  end
+  pretty = rows.map do |r|
+    {category: r["category"], entries: r["n"], total: money(r["total"])}
+  end
+  puts table(pretty, ["category", "entries", "total"])
+end
+
+def usage()
+  puts bold("🧟 Frankie Ledger") + dim(" — expenses that stay dead until you reanimate the report")
+  puts ""
+  puts "  add <amount> <category> [note…]   record an expense (--date YYYY-MM-DD)"
+  puts "  list [--month YYYY-MM|all]        show entries (--category filters)"
+  puts "  report [--month YYYY-MM|all]      totals, bars, stats, outliers"
+  puts "  export [file.csv] [--month …]     dump to CSV"
+  puts "  categories                        lifetime totals per category"
+end
+
+# ── dispatch ─────────────────────────────────────────────────────────────────
+
+cli = cli_parse(script_args())
+
+case cli["command"]
+when "add"
+  cmd_add(db, cli)
+when "list"
+  cmd_list(db, cli)
+when "report"
+  cmd_report(db, cli)
+when "export"
+  cmd_export(db, cli)
+when "categories"
+  cmd_categories(db)
+else
+  usage()
+end
+
+db.close()

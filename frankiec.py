@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-frankiec — The Frankie Language Compiler & Interpreter v1.18.0
+frankiec — The Frankie Language Compiler & Interpreter v1.19.0
 Usage:
     frankiec new    <project>      Scaffold a new Frankie project
-    frankiec run    <file.fk>      Run a Frankie program
+    frankiec run    [--debug] <file.fk>  Run a Frankie program
     frankiec build  <file.fk>      Compile to Python source
     frankiec bundle <file.fk> [-o out.py]  Bundle into ONE self-contained .py
     frankiec check  [--strict] <file.fk|dir>  Syntax check + static analysis
-    frankiec test   [file.fk] [--filter <name>] [--tag <tag>]  Run test suite
+    frankiec test   [file.fk] [--filter] [--tag] [--coverage]  Run test suite
     frankiec fmt    [--write] [--check] <file.fk>  Auto-format source
-    frankiec docs   [--output <out.md>] <file.fk>  Generate documentation
+    frankiec docs   [--html] [--output <out>] <file.fk>  Generate documentation
     frankiec stitch install <name> [--global]      Install a stitch from the registry
     frankiec stitch list | verify | update         Manage stitches + stitch.lock
     frankiec lsp                   Start the Language Server (LSP over stdio)
@@ -30,7 +30,7 @@ from compiler.lexer import Lexer, LexError
 from compiler.parser import Parser, ParseError
 from compiler.codegen import CodeGen, CodeGenError
 
-FRANKIE_VERSION = "1.18.0"
+FRANKIE_VERSION = "1.19.0"
 FRANKIE_BANNER = r"""
   _____                 _    _
  |  ___| __ __ _ _ __ | | _(_) ___
@@ -79,7 +79,7 @@ def compile_source_with_map(source: str, filename: str = "<stdin>"):
     return py_source, cg.line_map
 
 
-def run_file(fk_file: str):
+def run_file(fk_file: str, debug: bool = False):
     """Compile and execute a .fk file."""
     if not os.path.exists(fk_file):
         print(f"[Frankie] Error: File not found: {fk_file}", file=sys.stderr)
@@ -118,6 +118,11 @@ def run_file(fk_file: str):
 
     # Register the main file's line map for accurate tracebacks (v1.17)
     stdlib_mod._fk_register_line_map(os.path.abspath(fk_file), line_map)
+
+    # v1.19: --debug breaks at the first Frankie line
+    if debug:
+        print(f"[Frankie] 🔬 debug mode — breaking at the first line of {fk_file}")
+        stdlib_mod._fk_debug_start()
 
     # Execute generated Python
     try:
@@ -508,7 +513,59 @@ def check_file(fk_file: str, strict: bool = False):
         sys.exit(1)
 
 
-def run_tests(fk_file: str = None, test_filter: str = None, test_tag: str = None):
+def _coverage_report(cov_data, line_maps, main_file):
+    """Render the coverage table + write .frankie_coverage.json (v1.19)."""
+    import json as _json
+
+    def _runs(lines):
+        """[3,4,5,9] → "3-5, 9" """
+        out, start, prev = [], None, None
+        for n in lines:
+            if start is None:
+                start = prev = n
+            elif n == prev + 1:
+                prev = n
+            else:
+                out.append(f"{start}-{prev}" if prev > start else f"{start}")
+                start = prev = n
+        if start is not None:
+            out.append(f"{start}-{prev}" if prev > start else f"{start}")
+        return ", ".join(out)
+
+    report = {}
+    print(f"╠══ Coverage ═══════════════════════════════════════════")
+    total_exec = total_cov = 0
+    for path in sorted(line_maps.keys()):
+        executable = set(line_maps[path].values())
+        if not executable:
+            continue
+        covered = cov_data.get(path, set()) & executable
+        missed = sorted(executable - covered)
+        pct = 100.0 * len(covered) / len(executable)
+        total_exec += len(executable)
+        total_cov += len(covered)
+        name = os.path.relpath(path) if os.path.isabs(path) else path
+        color = "\033[32m" if pct >= 90 else ("\033[33m" if pct >= 60 else "\033[31m")
+        print(f"║  {color}{pct:5.1f}%\033[0m  {name}"
+              + (f"  \033[2mmissing: {_runs(missed)}\033[0m" if missed else ""))
+        report[name] = {'percent': round(pct, 1),
+                        'covered': len(covered),
+                        'executable': len(executable),
+                        'missing': missed}
+    if total_exec:
+        overall = 100.0 * total_cov / total_exec
+        print(f"║  ── overall: {overall:.1f}% "
+              f"({total_cov}/{total_exec} lines)")
+        report['_overall'] = round(overall, 1)
+    try:
+        with open('.frankie_coverage.json', 'w', encoding='utf-8') as f:
+            _json.dump(report, f, indent=2)
+    except OSError:
+        pass
+
+
+def run_tests(fk_file: str = None, test_filter: str = None, test_tag: str = None,
+              coverage: bool = False):
     """Run a Frankie test file using the built-in assert/assert_eq harness."""
     import importlib.util, time
 
@@ -561,6 +618,9 @@ def run_tests(fk_file: str = None, test_filter: str = None, test_tag: str = None
 
     exec_globals = {**stdlib_globals, '__name__': '__main__', '__file__': fk_file}
 
+    if coverage:
+        stdlib_mod._fk_coverage_start()
+
     try:
         exec(compile(py_source, fk_file, 'exec'), exec_globals)
     except SystemExit:
@@ -576,11 +636,16 @@ def run_tests(fk_file: str = None, test_filter: str = None, test_tag: str = None
         else:
             _sys.modules['frankie_stdlib'] = _old
 
+    cov_data = stdlib_mod._fk_coverage_stop() if coverage else None
+
     suite = stdlib_mod._fk_test_suite
     elapsed = time.time() - t0
     total = suite._pass + suite._fail
     skipped = getattr(suite, '_skipped', 0)
     skip_note = f", {skipped} group(s) skipped" if skipped else ""
+
+    if cov_data is not None:
+        _coverage_report(cov_data, stdlib_mod._fk_line_maps, fk_file)
 
     print(f"╠═══════════════════════════════════════════════════════")
     if suite._fail == 0:
@@ -596,7 +661,7 @@ def run_tests(fk_file: str = None, test_filter: str = None, test_tag: str = None
 
 
 HELP_TEXT = {
-    'run':     "frankiec run <file.fk>\n  Compile and execute a Frankie program.\n  Exit code is propagated from exit(n) calls in Frankie code.",
+    'run':     "frankiec run [--debug] <file.fk>\n  Compile and execute a Frankie program.\n  --debug   Break at the first line and step with s/n/stack (v1.19).\n  Exit code is propagated from exit(n) calls in Frankie code.",
     'repl':    "frankiec repl [--no-banner]\n  Start the interactive REPL with readline, tab completion, and\n  persistent history at ~/.frankie_history.\n  --no-banner   Skip the ASCII art header (useful when piping or embedding).",
     'test':    "frankiec test [file.fk] [--filter <name>] [--tag <tag>]\n  Run a Frankie test suite. Defaults to test.fk in the current directory.\n  Uses assert_eq, assert_true, assert_match, assert_nil, assert_raises, assert_raises_typed.\n  Group tests with: test \"name\", tags: [\"slow\"] do ... end\n  --filter  Only run test groups whose name contains the substring.\n  --tag     Only run test groups carrying the tag.",
     'stitch':  "frankiec stitch install <name> [--global]\n  Download a stitch from the Frankie registry (GitHub) into ./stitches/\n  (or ~/.frankie/stitches with --global). Project installs are pinned in\n  stitch.lock (sha256). Zero dependencies — Python stdlib HTTP client.\nfrankiec stitch list\n  Show installed stitches and what's available in the registry.\nfrankiec stitch verify\n  Check ./stitches against stitch.lock — exit 1 on missing/modified.\nfrankiec stitch update [name]\n  Re-fetch stitches from the registry and re-pin them in stitch.lock.",
@@ -776,8 +841,15 @@ def _stitch_command(args):
 
     ok = True
     for name in names:
-        name = name[:-3] if name.endswith('.fk') else name
-        url = STITCH_REGISTRY_RAW.format(name=name)
+        # v1.19: install straight from any raw URL —
+        #   frankiec stitch install https://example.com/stitches/foo.fk
+        if name.startswith('http://') or name.startswith('https://'):
+            url = name
+            name = os.path.basename(name)
+            name = name[:-3] if name.endswith('.fk') else name
+        else:
+            name = name[:-3] if name.endswith('.fk') else name
+            url = STITCH_REGISTRY_RAW.format(name=name)
         dest = os.path.join(dest_dir, f"{name}.fk")
         try:
             req = urllib.request.Request(url, headers={'User-Agent': 'frankiec'})
@@ -868,10 +940,13 @@ def main():
         _watch_file(fk_file, test_mode=test_mode)
 
     elif cmd == 'run':
-        if len(sys.argv) < 3:
-            print("[Frankie] Usage: frankiec run <file.fk>", file=sys.stderr)
+        args = sys.argv[2:]
+        debug = '--debug' in args
+        files = [a for a in args if not a.startswith('--')]
+        if not files:
+            print("[Frankie] Usage: frankiec run [--debug] <file.fk>", file=sys.stderr)
             sys.exit(1)
-        run_file(sys.argv[2])
+        run_file(files[0], debug=debug)
 
     elif cmd == 'build':
         if len(sys.argv) < 3:
@@ -928,8 +1003,11 @@ def main():
                 sys.exit(1)
             test_tag = args[idx + 1]
             args = args[:idx] + args[idx + 2:]
+        coverage = '--coverage' in args
+        args = [a for a in args if a != '--coverage']
         fk_file = args[0] if args else None
-        run_tests(fk_file, test_filter=test_filter, test_tag=test_tag)
+        run_tests(fk_file, test_filter=test_filter, test_tag=test_tag,
+                  coverage=coverage)
 
     elif cmd == 'stitch':
         _stitch_command(sys.argv[2:])
@@ -954,8 +1032,10 @@ def main():
             sys.exit(1)
 
     elif cmd == 'docs':
-        from frankie_docs import docs_file, docs_directory
+        from frankie_docs import docs_file, docs_directory, docs_file_html
         args = sys.argv[2:]
+        html_mode = '--html' in args
+        args = [a for a in args if a != '--html']
         output = None
         if '--output' in args:
             idx = args.index('--output')
@@ -967,7 +1047,9 @@ def main():
             sys.exit(1)
         ok = True
         for t in targets:
-            if os.path.isdir(t):
+            if html_mode and not os.path.isdir(t):
+                ok = docs_file_html(t, output) and ok
+            elif os.path.isdir(t):
                 from frankie_docs import docs_directory
                 ok = docs_directory(t, output) and ok
             else:

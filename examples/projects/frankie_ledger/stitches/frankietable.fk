@@ -1,0 +1,84 @@
+## frankietable.fk — ASCII table rendering
+## Renders a vector of hashes as a formatted ASCII table.
+##
+## Usage:
+##   stitch "frankietable"
+##
+##   rows = [
+##     {name: "Alice", dept: "Engineering", salary: 95000},
+##     {name: "Bob",   dept: "Marketing",   salary: 72000}
+##   ]
+##   puts table(rows)
+##   puts table(rows, ["name", "salary"])   # specific columns only
+
+def _tbl_val(row, col)
+  v = row[col]
+  if v == nil
+    v = row[col.to_sym]
+  end
+  if v == nil
+    ""
+  else
+    v.to_s
+  end
+end
+
+def _tbl_widths(rows, cols)
+  widths = {}
+  cols.each do |col|
+    widths[col] = col.length
+    rows.each do |row|
+      v = _tbl_val(row, col)
+      if v.length > widths[col]
+        widths[col] = v.length
+      end
+    end
+  end
+  widths
+end
+
+def _tbl_sep(widths, cols)
+  parts = cols.map do |col|
+    "-" * (widths[col] + 2)
+  end
+  "+" + parts.join("+") + "+"
+end
+
+def _tbl_hdr(widths, cols)
+  parts = cols.map do |col|
+    " " + col.ljust(widths[col]) + " "
+  end
+  "|" + parts.join("|") + "|"
+end
+
+def _tbl_row(row, widths, cols)
+  parts = cols.map do |col|
+    " " + _tbl_val(row, col).ljust(widths[col]) + " "
+  end
+  "|" + parts.join("|") + "|"
+end
+
+def table(rows, cols = nil)
+  if rows == nil or rows.empty?
+    return "(empty)"
+  end
+  if cols == nil
+    cols = rows[0].keys.select do |k|
+      k.to_s != "__type__"
+    end.map do |k|
+      k.to_s
+    end
+  end
+  widths = _tbl_widths(rows, cols)
+  sep    = _tbl_sep(widths, cols)
+  lines  = [sep, _tbl_hdr(widths, cols), sep]
+  rows.each do |row|
+    lines.push(_tbl_row(row, widths, cols))
+  end
+  lines.push(sep)
+  lines.join("\n")
+end
+
+def table_print(rows, cols = nil)
+  puts table(rows, cols)
+end

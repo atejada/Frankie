@@ -1,0 +1,219 @@
+## Word Reanimator — multiplayer hangman, Frankenstein edition.
+##
+## Guess letters together in the browser; every miss stitches another part
+## onto the zombie. Six misses and the word stays dead. Reveal it all and
+## you've reanimated it!
+##
+## Run:    frankiec run examples/projects/word_reanimator/main.fk
+## Then:   open http://localhost:4001 in two tabs — same room, shared game.
+## Ship:   frankiec bundle main.fk -o word_reanimator.py
+##
+## One Frankie file: web server + WebSockets + enum + records + heredoc UI.
+
+const PORT = to_int(env("PORT", "4001"))
+const MAX_MISSES = 6
+
+enum Phase(playing, reanimated, dead)
+
+WORDS = ["frankenstein", "laboratory", "lightning", "graveyard", "monster",
+         "electrode", "reanimate", "stitches", "creature", "midnight",
+         "shambling", "alchemy", "cauldron", "skeleton", "haunted",
+         "voltage", "specimen", "undead", "moonlight", "crypt"]
+
+# room → {word:, guessed: [letters], misses:, players: [{ws:, nick:}], phase:}
+games = {}
+
+def new_game(games, room)
+  games[room] = {
+    word:    WORDS[rand_int(0, WORDS.length - 1)],
+    guessed: [],
+    misses:  0,
+    players: (games.has_key?(room) ? games[room]["players"] : []),
+    phase:   Phase.playing
+  }
+  games[room]
+end
+
+def game_of(games, room)
+  if not games.has_key?(room)
+    new_game(games, room)
+  end
+  games[room]
+end
+
+def masked_word(game)
+  game["word"].chars.map do |c|
+    game["guessed"].include?(c) ? c : "_"
+  end
+end
+
+def apply_guess(game, letter)
+  return game if game["phase"] != Phase.playing
+  return game if game["guessed"].include?(letter)
+  game["guessed"] = game["guessed"].union([letter])
+  unless game["word"].chars.include?(letter)
+    game["misses"] += 1
+  end
+  if not masked_word(game).include?("_")
+    game["phase"] = Phase.reanimated
+  end
+  if game["misses"] >= MAX_MISSES
+    game["phase"] = Phase.dead
+  end
+  game
+end
+
+def state_payload(game)
+  {
+    type:    "state",
+    board:   masked_word(game),
+    guessed: game["guessed"].sort,
+    misses:  game["misses"],
+    max:     MAX_MISSES,
+    phase:   game["phase"],
+    players: game["players"].map do |p| p["nick"] end,
+    # only reveal the word once the round is over
+    word:    (game["phase"] == Phase.playing ? nil : game["word"])
+  }
+end
+
+def broadcast_state(game)
+  raw = json_encode(state_payload(game))
+  game["players"].each do |p|
+    p["ws"].send(raw)
+  end
+end
+
+app = web_app()
+
+# ── UI: one heredoc, zero frameworks ─────────────────────────────────────────
+
+app.get("/") do |req|
+  html_response(<<~HTML)
+  <!DOCTYPE html>
+  <html>
+  <head>
+  <meta charset="utf-8">
+  <title>Word Reanimator 🧟⚡</title>
+  <style>
+    :root { --bg:#0b0f0c; --panel:#111712; --border:#1e2a20; --green:#39ff6a;
+            --dim:#5f7a66; --red:#ff5f56; --amber:#ffbd2e; --text:#d7e4da; }
+    * { box-sizing:border-box; margin:0; }
+    body { background:var(--bg); color:var(--text); min-height:100vh;
+           font-family:'Courier New',monospace; display:flex;
+           flex-direction:column; align-items:center; padding:1.4rem; }
+    h1 { color:var(--green); font-size:1.1rem; letter-spacing:.12em; }
+    #meta { color:var(--dim); font-size:.75rem; margin:.3rem 0 1rem; }
+    #zombie { white-space:pre; line-height:1.15; font-size:.85rem;
+              color:var(--dim); min-height:9.5em; margin:.6rem 0; }
+    #board { font-size:2rem; letter-spacing:.45em; margin:.8rem 0;
+             color:var(--text); }
+    #verdict { font-size:.95rem; min-height:1.4em; margin-bottom:.6rem; }
+    #verdict.win { color:var(--green); }
+    #verdict.lose { color:var(--red); }
+    #keys { display:grid; grid-template-columns:repeat(9, 2.2rem); gap:.35rem; }
+    #keys button { background:var(--panel); border:1px solid var(--border);
+                   color:var(--text); padding:.45rem 0; font:inherit;
+                   cursor:pointer; }
+    #keys button:disabled { opacity:.25; cursor:default; }
+    #again { margin-top:1rem; background:var(--green); color:#04140a;
+             border:none; padding:.6rem 1.6rem; font:inherit;
+             font-weight:bold; cursor:pointer; display:none; }
+    #who { color:var(--dim); font-size:.75rem; margin-top:1rem; }
+  </style>
+  </head>
+  <body>
+  <h1>🧟 WORD REANIMATOR ⚡</h1>
+  <div id="meta"></div>
+  <div id="zombie"></div>
+  <div id="board"></div>
+  <div id="verdict"></div>
+  <div id="keys"></div>
+  <button id="again">⚡ REANIMATE ANOTHER</button>
+  <div id="who"></div>
+  <script>
+    const STAGES = [
+      "", "  ___\\n |   |", "  ___\\n |   |\\n | o_o", "  ___\\n |   |\\n | o_o\\n | /|",
+      "  ___\\n |   |\\n | o_o\\n | /|\\\\", "  ___\\n |   |\\n | o_o\\n | /|\\\\\\n | /",
+      "  ___\\n |   |\\n | x_x\\n | /|\\\\\\n | / \\\\\\n |GRAVE"
+    ];
+    const room = location.hash.slice(1) || "lab";
+    const nick = prompt("Your name, doctor?") || ("igor" + Math.floor(Math.random()*1000));
+    document.getElementById("meta").textContent = "room: " + room + " · you are " + nick;
+    const ws = new WebSocket("ws://" + location.host + "/ws/" + room);
+    ws.onopen = () => ws.send(nick);
+
+    const keys = document.getElementById("keys");
+    "abcdefghijklmnopqrstuvwxyz".split("").forEach(l => {
+      const b = document.createElement("button");
+      b.textContent = l; b.id = "k-" + l;
+      b.onclick = () => ws.send(JSON.stringify({action:"guess", letter:l}));
+      keys.appendChild(b);
+    });
+    document.getElementById("again").onclick =
+      () => ws.send(JSON.stringify({action:"reset"}));
+
+    ws.onmessage = e => {
+      const s = JSON.parse(e.data);
+      if (s.type !== "state") return;
+      document.getElementById("board").textContent = s.board.join(" ");
+      document.getElementById("zombie").textContent = STAGES[Math.min(s.misses, 6)];
+      s.guessed.forEach(l => {
+        const b = document.getElementById("k-" + l);
+        if (b) b.disabled = true;
+      });
+      const v = document.getElementById("verdict");
+      const again = document.getElementById("again");
+      const done = s.phase !== "playing";
+      again.style.display = done ? "block" : "none";
+      document.querySelectorAll("#keys button").forEach(b => {
+        if (done) b.disabled = true;
+        else if (!s.guessed.includes(b.textContent)) b.disabled = false;
+      });
+      if (s.phase === "reanimated") { v.className = "win";  v.textContent = "⚡ IT'S ALIVE! — " + s.word; }
+      else if (s.phase === "dead")  { v.className = "lose"; v.textContent = "💀 the word stays dead: " + s.word; }
+      else { v.className = ""; v.textContent = (s.max - s.misses) + " mistakes left"; }
+      document.getElementById("who").textContent = "doctors on duty: " + s.players.join(", ");
+    };
+  </script>
+  </body>
+  </html>
+HTML
+end
+
+# ── Game protocol: first message = nickname, then JSON actions ──────────────
+
+app.websocket("/ws/:room") do |ws|
+  room = ws.params["room"]
+  nick = ws.recv()
+  unless nick == nil
+    game = game_of(games, room)
+    player = {ws: ws, nick: nick}
+    game["players"].push(player)
+    puts "  + #{nick} joined ##{room} (word has #{game["word"].length} letters)"
+    broadcast_state(game)
+
+    loop do
+      raw = ws.recv()
+      break if raw == nil
+      msg = json_parse(raw)
+      game = game_of(games, room)
+      if msg["action"] == "guess"
+        apply_guess(game, msg["letter"].downcase)
+      end
+      if msg["action"] == "reset"
+        game = new_game(games, room)
+        puts "  ⚡ ##{room} reanimates a fresh word (#{game["word"].length} letters)"
+      end
+      broadcast_state(game)
+    end
+
+    game["players"].delete(player)
+    puts "  - #{nick} left ##{room}"
+    broadcast_state(game)
+  end
+end
+
+puts "🧟⚡ Word Reanimator is alive — open http://localhost:#{PORT} in two tabs"
+puts "    (rooms via URL hash: http://localhost:#{PORT}/#morgue)"
+app.run(PORT)

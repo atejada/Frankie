@@ -46,6 +46,9 @@ def _fk_to_str(x):
             return f"{type_name}({fields})"
         pairs = ", ".join(f"{k}: {_fk_to_str(v)}" for k, v in x.items())
         return "{" + pairs + "}"
+    if isinstance(x, type):
+        # A class object (FrankieDB, FrankieApp, ...) — never duck-type it
+        return f"<class {x.__name__}>"
     # FrankieDate duck-type check
     if hasattr(x, 'year') and hasattr(x, 'format'):
         return x.to_s()
@@ -3174,10 +3177,17 @@ class FrankieServerSocket:
         return f"<tcp-server :{self._port}>"
 
 
-def tcp_connect(host, port, timeout=None):
-    """Open a TCP connection: sock = tcp_connect("example.com", 80)"""
+def tcp_connect(host, port, timeout=None, tls=False):
+    """Open a TCP connection: sock = tcp_connect("example.com", 80)
+
+    v1.19: pass tls: true for a TLS-wrapped connection (stdlib ssl,
+    certificate-verified): tcp_connect("example.com", 443, tls: true)
+    """
     s = _socket.create_connection((host, int(port)),
                                   timeout=float(timeout) if timeout else None)
+    if tls:
+        import ssl as _ssl
+        s = _ssl.create_default_context().wrap_socket(s, server_hostname=host)
     return FrankieSocket(s, host, int(port))
 
 def tcp_listen(port, host="0.0.0.0", backlog=16):
@@ -3376,15 +3386,21 @@ def _fk_def_enum(name, members):
 
 # ─── breakpoint — debugger-lite ───────────────────────────────────────────────
 
-def _fk_breakpoint(file, line, g, l):
+def _fk_breakpoint(file, line, g, l, frame=None):
     """Pause execution and drop into a scoped debug REPL.
 
     Commands:  c / continue   resume the program
+               s / step       execute one line (stepping into calls)
+               n / next       execute one line (stepping over calls)
+               stack          show the Frankie call stack
                vars           list local variables
                where          show the current location
                exit           abort the program
     Anything else is evaluated as a Frankie expression in the current scope.
     """
+    import inspect as _insp
+    if frame is None:
+        frame = _insp.currentframe().f_back
     import sys as _s
     if not _s.stdin.isatty():
         print(f"[Frankie] breakpoint at {file}:{line} skipped (stdin is not a terminal)")
@@ -3417,26 +3433,49 @@ def _fk_breakpoint(file, line, g, l):
             return None
         if cmd in ('c', 'continue', ''):
             return None
+        if cmd in ('s', 'step', 'n', 'next'):
+            _fk_step['mode'] = 'step' if cmd in ('s', 'step') else 'next'
+            _fk_step['depth'] = _fk_frame_depth(frame)
+            _fk_step['last'] = (file, line)
+            _fk_trace_on(frame)
+            return None
+        if cmd == 'stack':
+            for entry in _fk_stack_frames(frame):
+                print(f"  {entry}")
+            continue
         if cmd == 'exit':
             raise SystemExit(1)
         if cmd == 'where':
             print(f"  {file}:{line}" + (f"  →  {src_line}" if src_line else ""))
             continue
         if cmd == 'vars':
+            import types as _types
             user_vars = {k: v for k, v in l.items()
-                         if not k.startswith('_') and k not in ('__builtins__',)}
+                         if not k.startswith('_')
+                         and k not in ('__builtins__',)
+                         and not isinstance(v, (type, _types.FunctionType,
+                                                _types.BuiltinFunctionType,
+                                                _types.ModuleType))}
             if not user_vars:
                 print("  (no local variables)")
             for k in sorted(user_vars):
-                print(f"  {k} = {_fk_to_str(user_vars[k])}")
+                try:
+                    print(f"  {k} = {_fk_to_str(user_vars[k])}")
+                except Exception:
+                    print(f"  {k} = {user_vars[k]!r}")
             continue
-        out, err = _compile_and_run(cmd, scope)
-        if out:
-            print(out, end='' if out.endswith('\n') else '\n')
-        if err:
-            print(f"  {err}")
-        elif not out and scope.get('_') is not None:
-            print(f"  => {_fk_to_str(scope['_'])}")
+        try:
+            out, err = _compile_and_run(cmd, scope)
+            if out:
+                print(out, end='' if out.endswith('\n') else '\n')
+            if err:
+                print(f"  {err}")
+            elif not out and scope.get('_') is not None:
+                print(f"  => {_fk_to_str(scope['_'])}")
+        except SystemExit:
+            raise
+        except Exception as repl_err:
+            print(f"  [debugger] {type(repl_err).__name__}: {repl_err}")
 
 
 # ─── WebSockets — RFC 6455, hand-rolled on the stdlib (v1.18) ─────────────────
@@ -3606,16 +3645,20 @@ def ws_connect(url, timeout=None):
     import base64 as _b64, os as _o
     from urllib.parse import urlparse as _parse
     parsed = _parse(url)
-    if parsed.scheme != 'ws':
-        raise RuntimeError(f"[Frankie] ws_connect: only ws:// URLs are supported, got {parsed.scheme!r}")
+    if parsed.scheme not in ('ws', 'wss'):
+        raise RuntimeError(f"[Frankie] ws_connect: expected a ws:// or wss:// URL, got {parsed.scheme!r}")
+    use_tls = parsed.scheme == 'wss'
     host = parsed.hostname
-    port = parsed.port or 80
+    port = parsed.port or (443 if use_tls else 80)
     path = parsed.path or '/'
     if parsed.query:
         path += '?' + parsed.query
 
     sock = _socket.create_connection((host, port),
                                      timeout=float(timeout) if timeout else None)
+    if use_tls:
+        import ssl as _ssl
+        sock = _ssl.create_default_context().wrap_socket(sock, server_hostname=host)
     key = _b64.b64encode(_o.urandom(16)).decode('ascii')
     request = (f"GET {path} HTTP/1.1\r\n"
                f"Host: {host}:{port}\r\n"
@@ -3645,3 +3688,152 @@ def ws_connect(url, timeout=None):
         raise RuntimeError("[Frankie] ws_connect: invalid Sec-WebSocket-Accept from server")
     sock.settimeout(None)
     return FrankieWebSocket(sock, rfile=rfile, client_side=True, path=path)
+
+
+# ═══ v1.19 — "Under the microscope": tracing machinery ═══════════════════════
+
+_fk_step = {'mode': None, 'depth': 0, 'last': None}
+_fk_coverage_data = None    # abs path → set of executed fk lines (when active)
+
+
+def _fk_frame_line(frame):
+    """(abs_fk_path, fk_line) for a frame inside compiled Frankie code."""
+    fname = frame.f_code.co_filename
+    if not (fname.endswith('.fk') or fname.startswith('<bundle:')):
+        return None, None
+    key = _os.path.abspath(fname) if fname.endswith('.fk') else fname
+    lm = _fk_line_maps.get(key)
+    if not lm:
+        return None, None
+    return key, lm.get(frame.f_lineno)
+
+
+def _fk_frame_depth(frame):
+    d = 0
+    while frame is not None:
+        d += 1
+        frame = frame.f_back
+    return d
+
+
+def _fk_stack_frames(frame):
+    """Human-readable Frankie stack (innermost first)."""
+    out = []
+    while frame is not None:
+        path, fk_line = _fk_frame_line(frame)
+        if path is not None and fk_line is not None:
+            fn = frame.f_code.co_name
+            label = fn if not fn.startswith('<') else '(top level)'
+            out.append(f"{_os.path.basename(path)}:{fk_line}  in {label}")
+        frame = frame.f_back
+    return out if out else ["(no Frankie frames)"]
+
+
+def _fk_tracer(frame, event, arg):
+    """Global tracer: powers step/next and coverage collection."""
+    if event == 'call':
+        return _fk_tracer
+    if event != 'line':
+        return _fk_tracer
+
+    path, fk_line = _fk_frame_line(frame)
+    if path is None or fk_line is None:
+        return _fk_tracer
+
+    # Coverage collection (cheap: one set-add per line event)
+    if _fk_coverage_data is not None:
+        _fk_coverage_data.setdefault(path, set()).add(fk_line)
+
+    # Stepping
+    mode = _fk_step['mode']
+    if mode is not None:
+        if mode == 'next' and _fk_frame_depth(frame) > _fk_step['depth']:
+            return _fk_tracer
+        if _fk_step['last'] == (path, fk_line):
+            return _fk_tracer          # still on the same source line
+        _fk_step['mode'] = None
+        if _fk_coverage_data is None:
+            import sys as _s
+            _s.settrace(None)
+        _fk_breakpoint(path, fk_line, frame.f_globals, frame.f_locals,
+                       frame=frame)
+    return _fk_tracer
+
+
+def _fk_trace_on(frame=None):
+    """Enable the tracer globally and on the current frame chain."""
+    import sys as _s
+    _s.settrace(_fk_tracer)
+    while frame is not None:
+        frame.f_trace = _fk_tracer
+        frame = frame.f_back
+
+
+def _fk_debug_start():
+    """frankiec run --debug — break at the first Frankie line."""
+    _fk_step['mode'] = 'step'
+    _fk_step['depth'] = 0
+    _fk_step['last'] = None
+    _fk_trace_on()
+
+
+def _fk_coverage_start():
+    global _fk_coverage_data
+    _fk_coverage_data = {}
+    _fk_trace_on()
+
+
+def _fk_coverage_stop():
+    global _fk_coverage_data
+    import sys as _s
+    _s.settrace(None)
+    data = _fk_coverage_data
+    _fk_coverage_data = None
+    return data or {}
+
+
+# ─── UDP sockets (v1.19) ──────────────────────────────────────────────────────
+
+class FrankieUDPSocket:
+    """UDP socket returned by udp_listen()."""
+    def __init__(self, sock, port=None):
+        self._sock = sock
+        self._port = port
+
+    def recv(self, n=4096):
+        """Block for the next datagram → {data:, host:, port:}."""
+        data, addr = self._sock.recvfrom(int(n))
+        return {'data': data.decode('utf-8', errors='replace'),
+                'host': addr[0], 'port': addr[1]}
+
+    def send_to(self, host, port, message):
+        payload = message if isinstance(message, bytes) else _fk_to_str(message).encode('utf-8') if not isinstance(message, str) else message.encode('utf-8')
+        return self._sock.sendto(payload, (host, int(port)))
+
+    def close(self):
+        try:
+            self._sock.close()
+        except OSError:
+            pass
+        return None
+
+    def __repr__(self):
+        return f"<udp :{self._port}>"
+
+
+def udp_listen(port, host="0.0.0.0"):
+    """Bind a UDP socket: sock = udp_listen(9999); msg = sock.recv()"""
+    s = _socket.socket(_socket.AF_INET, _socket.SOCK_DGRAM)
+    s.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1)
+    s.bind((host, int(port)))
+    return FrankieUDPSocket(s, int(port))
+
+
+def udp_send(host, port, message):
+    """Fire-and-forget datagram: udp_send("127.0.0.1", 9999, "ping")"""
+    s = _socket.socket(_socket.AF_INET, _socket.SOCK_DGRAM)
+    try:
+        payload = message.encode('utf-8') if isinstance(message, str) else _fk_to_str(message).encode('utf-8')
+        return s.sendto(payload, (host, int(port)))
+    finally:
+        s.close()

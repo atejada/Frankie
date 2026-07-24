@@ -1,5 +1,83 @@
 # Changelog
 
+## v1.19.0 (2026)
+
+### Theme: "Under the microscope" — types, stepping, coverage
+
+---
+
+### New Language Features
+
+**Gradual type annotations — `def area(r: Float) -> Float`**
+- Optional everywhere; un-annotated code is untouched (zero runtime cost)
+- Reserved type names: Int/Integer, Float/Number, String/Str, Bool/Boolean,
+  Vector, Hash, Lambda, Range, Nil, Any — `Int` is accepted where `Float`
+  is expected
+- The analyzer checks call-site argument types, annotated return flow, and
+  simple local inference; errors appear in `frankiec check`, CI and the LSP
+- Coexists with keyword defaults: `def connect(host: String, port: 5432)`
+
+---
+
+### Tooling
+
+**Full stepping debugger**
+- `(fkdb)` gains `s`/`step`, `n`/`next` (steps over calls) and `stack`
+- `frankiec run --debug` breaks at the first Frankie line
+- Built on `sys.settrace` + the v1.17 line maps — fk-line accurate
+
+**Test coverage — `frankiec test --coverage`**
+- Per-file percentages + missing-line ranges mapped back to `.fk` source
+- Writes `.frankie_coverage.json`; the LSP surfaces uncovered lines as
+  editor hints after a coverage run
+
+**`frankiec docs --html`**
+- Renders `##` doc-comments into a styled single-page HTML (site theme)
+
+**Stitch installs from any URL**
+- `frankiec stitch install https://…/foo.fk` — pinned in `stitch.lock`
+  with the URL as its source
+
+---
+
+### Stdlib
+
+**TLS clients** — `ws_connect("wss://…")` and
+`tcp_connect(host, 443, tls: true)` via stdlib `ssl` (certificate-verified)
+
+**UDP sockets** — `udp_listen(port)` → `.recv()` / `.send_to(host, port, msg)`
+/ `.close()`, plus fire-and-forget `udp_send(host, port, msg)`
+
+---
+
+### Showcase Projects
+
+Three complete programs in `examples/projects/`, each a single `.fk` file
+you can read in one sitting and ship with `frankiec bundle`:
+
+- 🧟 **Zombie Chat** — multi-room WebSocket chat; the server and its web
+  UI in one file (heredoc UI, `app.websocket`, `enum` event types)
+- ⚡ **Word Reanimator** — multiplayer browser hangman; every miss
+  stitches another part onto the zombie
+- 💰 **Frankie Ledger** — terminal expense tracker: SQLite, stitches
+  pinned by a project-local `stitch.lock`, bar-chart reports, R-style
+  stats with 3×-median outlier detection
+
+The website gained a "Built with Frankie" section featuring all three.
+
+---
+
+### Fixes
+
+- Formatter: `return x if cond` (and break/next/raise/puts in postfix
+  position) no longer collapses to `nil` on reformat
+- `_fk_to_str` no longer misidentifies class objects as dates
+- The debugger REPL survives errors in its own commands
+- Website: the "One program, five languages" tabs work again — the page's
+  `switchLang` script had been truncated mid-statement
+
+---
+
 ## v1.18.0 (2026)
 
 ### Theme: "From projects to products" — edit, ship, connect, debug

@@ -229,7 +229,7 @@ class FrankieLSP:
                     'completionProvider': {'triggerCharacters': ['.']},
                     'hoverProvider': True,
                 },
-                'serverInfo': {'name': 'frankie-lsp', 'version': '1.18.0'},
+                'serverInfo': {'name': 'frankie-lsp', 'version': '1.19.0'},
             })
         elif method == 'initialized':
             pass
@@ -309,8 +309,56 @@ class FrankieLSP:
                     'message': issue.message,
                 })
 
+        # v1.19: surface uncovered lines from the last `frankiec test
+        # --coverage` run (.frankie_coverage.json) as unobtrusive hints
+        diagnostics.extend(self._coverage_hints(doc, lines))
+
         self._notify('textDocument/publishDiagnostics',
                      {'uri': doc.uri, 'diagnostics': diagnostics})
+
+    def _coverage_hints(self, doc, lines):
+        if not doc.uri.startswith('file://'):
+            return []
+        fs_path = doc.uri[7:]
+        directory = os.path.dirname(fs_path)
+        report = None
+        for _ in range(4):                      # walk up a few levels
+            candidate = os.path.join(directory, '.frankie_coverage.json')
+            if os.path.exists(candidate):
+                try:
+                    with open(candidate, 'r', encoding='utf-8') as f:
+                        report = (json.load(f), directory)
+                except (OSError, ValueError):
+                    report = None
+                break
+            parent = os.path.dirname(directory)
+            if parent == directory:
+                break
+            directory = parent
+        if report is None:
+            return []
+        data, base = report
+        entry = None
+        for key, val in data.items():
+            if key == '_overall' or not isinstance(val, dict):
+                continue
+            if os.path.abspath(os.path.join(base, key)) == os.path.abspath(fs_path):
+                entry = val
+                break
+        if not entry or not entry.get('missing'):
+            return []
+        hints = []
+        for ln in entry['missing']:
+            idx = ln - 1
+            text = lines[idx] if 0 <= idx < len(lines) else ''
+            hints.append({
+                'range': {'start': {'line': idx, 'character': 0},
+                          'end': {'line': idx, 'character': max(len(text), 1)}},
+                'severity': 4,                  # hint
+                'source': 'frankie-coverage',
+                'message': 'not executed in the last coverage run',
+            })
+        return hints
 
     # ── Completion ───────────────────────────────────────────────────────────
 

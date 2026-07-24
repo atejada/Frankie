@@ -1,0 +1,20 @@
+{
+  "frankiecli": {
+    "installed": "2026-07-17",
+    "sha256": "f7442f8546c49b67571402c64aface3ddbd28b2d31f2f676c9947ceb4eaf9325",
+    "size": 3320,
+    "source": "https://raw.githubusercontent.com/atejada/Frankie/main/stitches/frankiecli.fk"
+  },
+  "frankiecolor": {
+    "installed": "2026-07-17",
+    "sha256": "30510f2a437544852ac746ba0ba92ee73adbaa367511025c3e96c49f0b711ec0",
+    "size": 1376,
+    "source": "https://raw.githubusercontent.com/atejada/Frankie/main/stitches/frankiecolor.fk"
+  },
+  "frankietable": {
+    "installed": "2026-07-17",
+    "sha256": "0c17defa935ef760fecdc68d197b981efdbdc0cb038dfb7de43fed72ba6ed77d",
+    "size": 1674,
+    "source": "https://raw.githubusercontent.com/atejada/Frankie/main/stitches/frankietable.fk"
+  }
+}

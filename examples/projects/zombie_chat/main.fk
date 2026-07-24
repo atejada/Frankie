@@ -1,0 +1,143 @@
+## Zombie Chat — a multi-room chat server AND its web UI in one Frankie file.
+##
+## Run:    frankiec run examples/projects/zombie_chat/main.fk
+## Then:   open http://localhost:4000 in two browser tabs and talk to yourself.
+## Ship:   frankiec bundle main.fk -o zombie_chat.py   (runs anywhere with python3)
+##
+## Everything here is zero-dependency Frankie: the built-in web server,
+## WebSockets (v1.18), heredocs, enums, and json_encode.
+
+const PORT = to_int(env("PORT", "4000"))
+
+enum Event(joined, left, message, roster)
+
+# room name → vector of {ws:, nick:} members
+rooms = {}
+
+def members_of(rooms, room)
+  if not rooms.has_key?(room)
+    rooms[room] = []
+  end
+  rooms[room]
+end
+
+def broadcast(members, payload)
+  raw = json_encode(payload)
+  members.each do |m|
+    m["ws"].send(raw)
+  end
+end
+
+def roster(members)
+  members.map do |m| m["nick"] end
+end
+
+app = web_app()
+
+# ── The whole UI, served from a heredoc ──────────────────────────────────────
+
+app.get("/") do |req|
+  html_response(<<~HTML)
+  <!DOCTYPE html>
+  <html>
+  <head>
+  <meta charset="utf-8">
+  <title>Zombie Chat 🧟</title>
+  <style>
+    :root { --bg:#0b0f0c; --panel:#111712; --border:#1e2a20; --green:#39ff6a;
+            --dim:#5f7a66; --text:#d7e4da; }
+    * { box-sizing:border-box; margin:0; }
+    body { background:var(--bg); color:var(--text); height:100vh;
+           font-family:'Courier New',monospace; display:flex;
+           flex-direction:column; }
+    header { padding:.8rem 1.2rem; border-bottom:1px solid var(--border);
+             display:flex; gap:1rem; align-items:baseline; }
+    header h1 { color:var(--green); font-size:1.05rem; letter-spacing:.08em; }
+    header .room { color:var(--dim); font-size:.8rem; }
+    main { flex:1; display:flex; min-height:0; }
+    #log { flex:1; overflow-y:auto; padding:1rem 1.2rem; }
+    #log div { margin:.18rem 0; font-size:.9rem; }
+    #log .sys { color:var(--dim); font-style:italic; }
+    #log .nick { color:var(--green); }
+    aside { width:170px; border-left:1px solid var(--border);
+            padding:1rem; font-size:.8rem; color:var(--dim); }
+    aside b { color:var(--text); display:block; margin-bottom:.5rem; }
+    form { display:flex; border-top:1px solid var(--border); }
+    input { flex:1; background:var(--panel); border:none; color:var(--text);
+            padding:.9rem 1.2rem; font:inherit; outline:none; }
+    button { background:var(--green); color:#04140a; border:none;
+             padding:0 1.6rem; font:inherit; font-weight:bold; cursor:pointer; }
+  </style>
+  </head>
+  <body>
+  <header><h1>🧟 Zombie Chat</h1><span class="room" id="where"></span></header>
+  <main>
+    <div id="log"></div>
+    <aside><b>in the lab</b><div id="who"></div></aside>
+  </main>
+  <form id="f"><input id="msg" autocomplete="off"
+        placeholder="say something alive…"><button>SEND</button></form>
+  <script>
+    const room = location.hash.slice(1) || "lab";
+    const nick = prompt("Your name, creature?") || ("guest" + Math.floor(Math.random()*1000));
+    document.getElementById("where").textContent = "room: " + room + " · you are " + nick;
+    const log  = document.getElementById("log");
+    const who  = document.getElementById("who");
+    const ws   = new WebSocket("ws://" + location.host + "/ws/" + room);
+    const line = (html, cls) => {
+      const d = document.createElement("div");
+      if (cls) d.className = cls;
+      d.innerHTML = html;
+      log.appendChild(d); log.scrollTop = log.scrollHeight;
+    };
+    const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;");
+    ws.onopen = () => ws.send(nick);
+    ws.onmessage = e => {
+      const m = JSON.parse(e.data);
+      if (m.type === "roster")  who.innerHTML = m.nicks.map(esc).join("<br>");
+      if (m.type === "joined")  line(esc(m.nick) + " shambles in", "sys");
+      if (m.type === "left")    line(esc(m.nick) + " returns to the grave", "sys");
+      if (m.type === "message") line("<span class='nick'>" + esc(m.nick) + "</span> " + esc(m.text));
+    };
+    ws.onclose = () => line("… connection lost — the lab went dark", "sys");
+    document.getElementById("f").onsubmit = ev => {
+      ev.preventDefault();
+      const box = document.getElementById("msg");
+      if (box.value.trim()) ws.send(box.value.trim());
+      box.value = "";
+    };
+  </script>
+  </body>
+  </html>
+HTML
+end
+
+# ── The chat protocol: first message is the nickname, the rest is chat ──────
+
+app.websocket("/ws/:room") do |ws|
+  room = ws.params["room"]
+  nick = ws.recv()
+  unless nick == nil
+    member = {ws: ws, nick: nick}
+    members = members_of(rooms, room)
+    members.push(member)
+    puts "  + #{nick} joined ##{room} (#{members.length} in room)"
+    broadcast(members, {type: Event.joined, nick: nick})
+    broadcast(members, {type: Event.roster, nicks: roster(members)})
+
+    loop do
+      text = ws.recv()
+      break if text == nil
+      broadcast(members, {type: Event.message, nick: nick, text: text})
+    end
+
+    members.delete(member)
+    puts "  - #{nick} left ##{room} (#{members.length} in room)"
+    broadcast(members, {type: Event.left, nick: nick})
+    broadcast(members, {type: Event.roster, nicks: roster(members)})
+  end
+end
+
+puts "🧟 Zombie Chat is alive — open http://localhost:#{PORT} in two tabs"
+puts "   (rooms via URL hash: http://localhost:#{PORT}/#graveyard)"
+app.run(PORT)

@@ -50,6 +50,29 @@ _BUILTIN_ERROR_NAMES = {
     'Exception', 'Error', 'TimeoutError',
 }
 
+# ── v1.19: gradual type annotations ──────────────────────────────────────────
+
+# Canonical names: Int, Float, String, Bool, Vector, Hash, Lambda, Range, Nil, Any
+_TYPE_ALIASES = {
+    'Integer': 'Int', 'Number': 'Float', 'Str': 'String', 'Boolean': 'Bool',
+}
+
+def _canon_type(name):
+    return _TYPE_ALIASES.get(name, name)
+
+def _type_compatible(actual, expected):
+    """Is a value of type `actual` acceptable where `expected` is annotated?"""
+    if actual is None or expected is None:
+        return True                # unknown — stay quiet (gradual typing)
+    actual, expected = _canon_type(actual), _canon_type(expected)
+    if expected == 'Any' or actual == 'Any':
+        return True
+    if actual == expected:
+        return True
+    if expected == 'Float' and actual == 'Int':
+        return True                # Int is-a Float
+    return False
+
 
 class Analyzer:
     def __init__(self, source_path=None):
@@ -57,6 +80,8 @@ class Analyzer:
         self.source_path = source_path
         self.known = set(_EXTRA_KNOWN)
         self.func_sigs = {}       # name → (min_args, max_args)
+        self.func_types = {}      # name → (param_types, return_type)  (v1.19)
+        self._type_envs = [{}]    # stack of name → inferred/annotated type
         self.open_world = False   # True when a require/stitch can't be resolved
         self._visited_files = set()
         self._usage = set()       # every name referenced anywhere
@@ -109,6 +134,11 @@ class Analyzer:
             n_required = sum(1 for d in node.defaults if d is None) \
                 if node.defaults else len(node.params)
             self.func_sigs[node.name] = (n_required, len(node.params))
+            # v1.19: remember annotations for call-site/return checking
+            ptypes = getattr(node, 'param_types', None)
+            rtype = getattr(node, 'return_type', None)
+            if ptypes or rtype:
+                self.func_types[node.name] = (ptypes, rtype)
             return  # body is its own scope — handled in walk phase
         if isinstance(node, (Assign, CompoundAssign, OrAssign, ConstAssign)):
             self._define(scope, node.name, node)
@@ -271,6 +301,132 @@ class Analyzer:
         self._collect_defs(sub_ast.body, scope)
         self.source_path = old_source_path
 
+    # ── v1.19: lightweight type inference ────────────────────────────────────
+
+    def _infer(self, node):
+        """Best-effort type of an expression, or None when unknown."""
+        if isinstance(node, IntLiteral):
+            return 'Int'
+        if isinstance(node, FloatLiteral):
+            return 'Float'
+        if isinstance(node, StringLiteral):
+            return 'String'
+        if isinstance(node, BoolLiteral):
+            return 'Bool'
+        if isinstance(node, NilLiteral):
+            return 'Nil'
+        if isinstance(node, VectorLiteral):
+            return 'Vector'
+        if isinstance(node, HashLiteral):
+            return 'Hash'
+        if isinstance(node, LambdaLiteral):
+            return 'Lambda'
+        if isinstance(node, RangeLiteral):
+            return 'Range'
+        if isinstance(node, Identifier):
+            for env in reversed(self._type_envs):
+                if node.name in env:
+                    return env[node.name]
+            return None
+        if isinstance(node, UnaryOp):
+            if node.op == 'not':
+                return 'Bool'
+            return self._infer(node.operand)
+        if isinstance(node, BinOp):
+            if node.op in ('==', '!=', '<', '<=', '>', '>='):
+                return 'Bool'
+            if node.op in ('+', '-', '*', '/', '//', '%', '**'):
+                lt, rt = self._infer(node.left), self._infer(node.right)
+                if lt == 'String' or rt == 'String':
+                    return 'String' if node.op in ('+', '*') else None
+                if lt == 'Vector' or rt == 'Vector':
+                    return 'Vector'
+                if lt == 'Float' or rt == 'Float' or node.op == '/':
+                    return 'Float' if lt and rt else None
+                if lt == 'Int' and rt == 'Int':
+                    return 'Int'
+            return None
+        if isinstance(node, (TernaryExpr, IfExpr)):
+            t1 = self._infer(node.then_expr)
+            t2 = self._infer(node.else_expr) if node.else_expr is not None else None
+            return t1 if t1 == t2 else None
+        if isinstance(node, FuncCall):
+            info = self.func_types.get(node.name)
+            if info and info[1]:
+                return info[1]
+            return None
+        return None
+
+    def _check_call_types(self, node, line):
+        """Check positional argument types against a function's annotations."""
+        info = self.func_types.get(node.name)
+        if not info or not info[0]:
+            return
+        ptypes = info[0]
+        for i, arg in enumerate(node.args):
+            if isinstance(arg, NamedArg) or i >= len(ptypes):
+                continue
+            expected = ptypes[i]
+            actual = self._infer(arg)
+            if not _type_compatible(actual, expected):
+                self.issues.append(Issue(
+                    'error', line,
+                    f"{node.name}() argument {i + 1} expects {expected}, "
+                    f"got {actual}"))
+
+    def _check_return_types(self, node, line):
+        """Check an annotated function's return expressions."""
+        rtype = getattr(node, 'return_type', None)
+        if not rtype:
+            return
+
+        def check_expr(expr, expr_line):
+            actual = self._infer(expr)
+            if not _type_compatible(actual, rtype):
+                self.issues.append(Issue(
+                    'error', expr_line,
+                    f"{node.name}() is annotated -> {rtype} but returns {actual}"))
+
+        def walk_returns(body):
+            for stmt in body:
+                stmt_line = getattr(stmt, '_src_line', line)
+                if isinstance(stmt, ReturnStmt):
+                    if stmt.value is not None:
+                        check_expr(stmt.value, stmt_line)
+                elif isinstance(stmt, PostfixIf) and isinstance(stmt.stmt, ReturnStmt):
+                    if stmt.stmt.value is not None:
+                        check_expr(stmt.stmt.value, stmt_line)
+                elif isinstance(stmt, (IfStmt, UnlessStmt)):
+                    walk_returns(stmt.then_body)
+                    if isinstance(stmt, IfStmt):
+                        for _, eb in stmt.elsif_clauses:
+                            walk_returns(eb)
+                    if stmt.else_body:
+                        walk_returns(stmt.else_body)
+                elif isinstance(stmt, (WhileStmt, UntilStmt, ForInStmt,
+                                       LoopStmt, DoWhileStmt)):
+                    walk_returns(stmt.body)
+                elif isinstance(stmt, BeginRescue):
+                    walk_returns(stmt.body)
+                    for clause in stmt.rescue_clauses:
+                        walk_returns(clause.body)
+                elif isinstance(stmt, CaseStmt):
+                    for _, b in stmt.when_clauses:
+                        walk_returns(b)
+                    if stmt.else_body:
+                        walk_returns(stmt.else_body)
+
+        walk_returns(node.body)
+        # Implicit return: last statement as expression
+        if node.body:
+            last = node.body[-1]
+            if not isinstance(last, (ReturnStmt, IfStmt, UnlessStmt, CaseStmt,
+                                     WhileStmt, UntilStmt, ForInStmt, LoopStmt,
+                                     DoWhileStmt, BeginRescue, PrintStmt,
+                                     Assign, CompoundAssign, RaiseStmt,
+                                     PostfixIf)) and isinstance(last, Node):
+                check_expr(last, getattr(last, '_src_line', line))
+
     # ── Usage walk ───────────────────────────────────────────────────────────
 
     def _lookup(self, name, scopes):
@@ -309,7 +465,17 @@ class Analyzer:
             self._collect_defs(node.body, local_defs)
             fn_scope.update(local_defs)
             usage_before = set(self._usage)
+            # v1.19: seed a type environment from parameter annotations
+            ptypes = getattr(node, 'param_types', None)
+            fn_types = {}
+            if ptypes:
+                for i, p in enumerate(node.params):
+                    if i < len(ptypes) and ptypes[i]:
+                        fn_types[p] = ptypes[i]
+            self._type_envs.append(fn_types)
             self._walk_body(node.body, scopes + [fn_scope], line)
+            self._check_return_types(node, line)
+            self._type_envs.pop()
             # Unused local variables (not params, not _-prefixed, not consts)
             for name, def_line in local_defs.items():
                 if name.startswith('_') or name in node.params:
@@ -338,8 +504,21 @@ class Analyzer:
             self._walk_body(node.body, scopes + [blk_scope], line)
             return
 
+        if isinstance(node, Assign):
+            # v1.19: record inferable local types (last assignment wins;
+            # conflicting re-assignment degrades to unknown)
+            t = self._infer(node.value)
+            env = self._type_envs[-1]
+            if node.name in env and env[node.name] != t:
+                env[node.name] = None
+            else:
+                env[node.name] = t
+            self._walk(node.value, scopes, line)
+            return
+
         if isinstance(node, FuncCall):
             self._usage.add(node.name)
+            self._check_call_types(node, line)
             n_args = len(node.args) + (1 if node.block is not None else 0)
             has_named = any(isinstance(a, NamedArg) for a in node.args)
             if node.name in self.func_sigs:

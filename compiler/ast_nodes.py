@@ -163,6 +163,10 @@ class FuncDef(Node):
     params: List[str]          # parameter names
     defaults: List            # parallel list: None or default Node per param
     body: List[Node]
+    # v1.19: gradual type annotations — parallel list of type names (or None),
+    # and an optional return type:  def area(r: Float) -> Float
+    param_types: Optional[List] = None
+    return_type: Optional[str] = None
 
 @dataclass
 class FuncCall(Node):

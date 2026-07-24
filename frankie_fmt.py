@@ -114,7 +114,7 @@ class Formatter:
             self._emit(f"{{{keys}}} = {self._fmt_expr(node.value)}")
         elif isinstance(node, PostfixIf):
             kw = "unless" if node.negated else "if"
-            self._emit(f"{self._fmt_expr(node.stmt)} {kw} {self._fmt_expr(node.condition)}")
+            self._emit(f"{self._fmt_postfix_inner(node.stmt)} {kw} {self._fmt_expr(node.condition)}")
         elif isinstance(node, BeginRescue):   self._fmt_begin_rescue(node)
         elif isinstance(node, RaiseStmt):
             if getattr(node, 'error_type', None):
@@ -167,6 +167,30 @@ class Formatter:
             # Expression statement
             self._emit(self._fmt_expr(node))
 
+    def _fmt_postfix_inner(self, stmt) -> str:
+        """Render the statement half of `stmt if cond` (v1.19 fix —
+        statements like return/break/raise used to collapse to 'nil')."""
+        if isinstance(stmt, ReturnStmt):
+            return f"return {self._fmt_expr(stmt.value)}" if stmt.value else "return"
+        if isinstance(stmt, BreakStmt):
+            return f"break {self._fmt_expr(stmt.value)}" if stmt.value else "break"
+        if isinstance(stmt, NextStmt):
+            return "next"
+        if isinstance(stmt, BreakpointStmt):
+            return "breakpoint"
+        if isinstance(stmt, RaiseStmt):
+            if getattr(stmt, 'error_type', None):
+                if stmt.message is not None:
+                    return f"raise {stmt.error_type}, {self._fmt_expr(stmt.message)}"
+                return f"raise {stmt.error_type}"
+            return f"raise {self._fmt_expr(stmt.message)}" if stmt.message else "raise"
+        if isinstance(stmt, PrintStmt):
+            kw = "puts" if stmt.newline else "print"
+            return f"{kw} {self._fmt_expr(stmt.value)}"
+        if isinstance(stmt, DebugPrint):
+            return f"p {self._fmt_expr(stmt.value)}"
+        return self._fmt_expr(stmt)
+
     def _fmt_body(self, body):
         for i, stmt in enumerate(body):
             # Preserve intentional blank lines from the original source.
@@ -180,11 +204,20 @@ class Formatter:
 
     def _fmt_func_def(self, node: FuncDef):
         parts = []
+        ptypes = getattr(node, 'param_types', None)
         for i, p in enumerate(node.params):
             d = node.defaults[i] if i < len(node.defaults) else None
-            parts.append(f"{p} = {self._fmt_expr(d)}" if d else p)
+            t = ptypes[i] if ptypes and i < len(ptypes) else None
+            if t:
+                parts.append(f"{p}: {t}")
+            elif d:
+                parts.append(f"{p} = {self._fmt_expr(d)}")
+            else:
+                parts.append(p)
         params = f"({', '.join(parts)})" if parts else ""
-        self._emit(f"def {node.name}{params}")
+        ret = getattr(node, 'return_type', None)
+        ret_str = f" -> {ret}" if ret else ""
+        self._emit(f"def {node.name}{params}{ret_str}")
         self._indent()
         self._fmt_body(node.body)
         self._dedent()

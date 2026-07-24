@@ -13,6 +13,14 @@ class ParseError(Exception):
         self.token = token
 
 
+# v1.19: reserved type names for gradual annotations. A bare one of these
+# after ':' in a def signature is a type annotation, not a default value.
+TYPE_NAMES = {
+    'Int', 'Integer', 'Float', 'Number', 'String', 'Str', 'Bool', 'Boolean',
+    'Vector', 'Hash', 'Lambda', 'Range', 'Any', 'Nil',
+}
+
+
 class Parser:
     def __init__(self, tokens: List[Token]):
         # Strip all newlines between tokens for easier parsing — we handle
@@ -223,24 +231,36 @@ class Parser:
         name = name_tok.value
         params = []
         defaults = []
+        ptypes = []
         if self.check(TT.LPAREN):
             self.advance()
             if not self.check(TT.RPAREN):
-                pname, pdefault = self._parse_one_param()
+                pname, pdefault, ptype = self._parse_one_param()
                 params.append(pname)
                 defaults.append(pdefault)
+                ptypes.append(ptype)
                 while self.match(TT.COMMA):
                     self.skip_newlines()  # allow multi-line parameter lists
                     if self.check(TT.RPAREN):
                         break  # trailing comma
-                    pname, pdefault = self._parse_one_param()
+                    pname, pdefault, ptype = self._parse_one_param()
                     params.append(pname)
                     defaults.append(pdefault)
+                    ptypes.append(ptype)
             self.expect(TT.RPAREN)
+        # v1.19: optional return annotation — def f(x) -> Float
+        return_type = None
+        if (self.check(TT.ARROW) and self.peek(1).type == TT.IDENT
+                and self.peek(1).value in TYPE_NAMES):
+            self.advance()  # consume ->
+            return_type = self.advance().value
         self.skip_newlines()
         body = self.parse_body()
         self.expect(TT.END, "Expected 'end' to close 'def'")
-        return FuncDef(name=name, params=params, defaults=defaults, body=body)
+        if not any(ptypes):
+            ptypes = None
+        return FuncDef(name=name, params=params, defaults=defaults, body=body,
+                       param_types=ptypes, return_type=return_type)
 
     def parse_record_def(self) -> RecordDef:
         """Parse:  record Point(x, y, z)"""
@@ -277,17 +297,22 @@ class Parser:
         raise ParseError("Expected parameter name", t)
 
     def _parse_one_param(self):
-        """Parse one def parameter: name, name = default, or name: default.
-        Returns (param_name, default_node_or_None).
+        """Parse one def parameter: name, name = default, name: default,
+        or name: Type (v1.19 annotation).
+        Returns (param_name, default_node_or_None, type_name_or_None).
         Uses parse_or (not parse_expr) so commas don't get eaten greedily."""
         pname = self._parse_param_name()
         if self.match(TT.ASSIGN):
-            return pname, self.parse_or()
+            return pname, self.parse_or(), None
         if self.check(TT.COLON):
-            # name: default  — Ruby keyword-arg style
             self.advance()  # consume ':'
-            return pname, self.parse_or()
-        return pname, None
+            # v1.19: a bare reserved type name followed by , or ) is an
+            # annotation — everything else stays a keyword-style default.
+            if (self.check(TT.IDENT) and self.current().value in TYPE_NAMES
+                    and self.peek(1).type in (TT.COMMA, TT.RPAREN)):
+                return pname, None, self.advance().value
+            return pname, self.parse_or(), None
+        return pname, None, None
 
     # ─── Control Flow ────────────────────────────────────────────────────────
 

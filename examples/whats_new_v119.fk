@@ -1,0 +1,53 @@
+# whats_new_v119.fk — Tour of Frankie v1.19 "Under the microscope"
+# Run with:   frankiec run examples/whats_new_v119.fk
+
+puts "🔬 Frankie v1.19 — Under the microscope"
+puts ""
+
+# ── 1. Gradual type annotations ───────────────────────────────────
+puts "── 1. Type annotations ──"
+
+def area(r: Float) -> Float
+  3.14159 * r * r
+end
+
+def label(name: String, score: Int) -> String
+  "#{name}: #{score}"
+end
+
+puts "area(3)          = #{area(3)}    (Int flows into Float)"
+puts "label(\"ada\", 95) = #{label("ada", 95)}"
+puts ""
+puts "Try breaking one and run:  frankiec check examples/whats_new_v119.fk"
+puts "  puts area(\"five\")  →  ✗ area() argument 1 expects Float, got String"
+puts ""
+
+# ── 2. UDP sockets ────────────────────────────────────────────────
+puts "── 2. UDP sockets ──"
+server = udp_listen(9973)
+spawn do
+  msg = server.recv()
+  server.send_to(msg["host"], msg["port"], "pong: #{msg["data"]}")
+end
+sleep(0.3)
+client = udp_listen(0)
+client.send_to("127.0.0.1", 9973, "ping")
+puts "udp says: #{client.recv()["data"]}"
+client.close()
+server.close()
+puts ""
+
+# ── 3. TLS clients ────────────────────────────────────────────────
+puts "── 3. TLS clients ──"
+puts "ws_connect(\"wss://…\") and tcp_connect(host, 443, tls: true)"
+puts "are certificate-verified via Python's stdlib ssl — zero deps."
+puts ""
+
+puts "Also in v1.19 (try them yourself):"
+puts "  frankiec run --debug app.fk     — break at line 1, step with s/n/stack"
+puts "  frankiec test --coverage        — %, missing lines, editor hints via LSP"
+puts "  frankiec docs --html lib.fk     — styled HTML from ## doc-comments"
+puts "  frankiec stitch install <url>   — lockfile-pinned stitches from any URL"
+puts "  examples/projects/              — Zombie Chat · Word Reanimator · Ledger"
+puts ""
+puts "Frankie v1.19 — trust what's alive! 🔬🧟⚡"

@@ -1,0 +1,64 @@
+## frankiecolor.fk — ANSI terminal color helpers
+## Wraps strings in ANSI escape codes for colored terminal output.
+##
+## Usage:
+##   stitch "frankiecolor"
+##
+##   puts red("Error: something went wrong")
+##   puts green("All tests passed!")
+##   puts yellow("Warning: disk space low")
+##   puts bold("Important!")
+
+ESC = sprintf("%c", 27)
+
+def _ansi(code, s)
+  "#{ESC}[#{code}m#{s}#{ESC}[0m"
+end
+
+def black(s)   _ansi(30, s) end
+def red(s)     _ansi(31, s) end
+def green(s)   _ansi(32, s) end
+def yellow(s)  _ansi(33, s) end
+def blue(s)    _ansi(34, s) end
+def magenta(s) _ansi(35, s) end
+def cyan(s)    _ansi(36, s) end
+def white(s)   _ansi(37, s) end
+
+def bold(s)      _ansi(1, s) end
+def dim(s)       _ansi(2, s) end
+def italic(s)    _ansi(3, s) end
+def underline(s) _ansi(4, s) end
+def inverse(s)   _ansi(7, s) end
+
+def colorize(s, color)
+  color_str = color.to_s
+  case color_str
+  when "black"
+    _ansi(30, s)
+  when "red"
+    _ansi(31, s)
+  when "green"
+    _ansi(32, s)
+  when "yellow"
+    _ansi(33, s)
+  when "blue"
+    _ansi(34, s)
+  when "magenta"
+    _ansi(35, s)
+  when "cyan"
+    _ansi(36, s)
+  when "white"
+    _ansi(37, s)
+  else
+    s
+  end
+end
+
+def success(s) green("✓ #{s}") end
+def error(s)   red("✗ #{s}") end
+def warn(s)    yellow("⚠ #{s}") end
+def info(s)    cyan("ℹ #{s}") end
+
+def strip_color(s)
+  gsub(s.to_s, "#{ESC}\\[[0-9;]*m", "")
+end

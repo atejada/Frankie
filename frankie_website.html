@@ -109,12 +109,13 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
 <body>
 
 <nav>
-  <a href="#" class="nav-logo">🧟 Frankie <span>v1.18.0</span></a>
+  <a href="#" class="nav-logo">🧟 Frankie <span>v1.19.0</span></a>
   <ul>
     <li><a href="#features">Features</a></li>
     <li><a href="#syntax">Syntax</a></li>
     <li><a href="#web">Web</a></li>
     <li><a href="#compare">Compare</a></li>
+    <li><a href="#projects">Projects</a></li>
     <li><a href="#install">Install</a></li>
     <li><a href="https://github.com/atejada/Frankie">GitHub</a></li>
   </ul>
@@ -138,7 +139,7 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
   </div>
   <div class="ctas">
     <a href="#install" class="btn btn-p">Get Started →</a>
-    <a href="https://github.com/atejada/Frankie/releases" class="btn btn-s">Download v1.18.0</a>
+    <a href="https://github.com/atejada/Frankie/releases" class="btn btn-s">Download v1.19.0</a>
     <a href="https://atejada.github.io/frankielanguage/site/index.html" class="btn btn-s">Go to the Docs</a>
     <a href="https://github.com/atejada/Frankie" class="btn btn-s">★ Star on GitHub</a>
   </div>
@@ -152,6 +153,9 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
   <h2>Everything you need.<br>Nothing you don't.</h2>
   <p style="color:var(--muted);max-width:560px;font-size:.97rem">Proudly procedural — functions, data, loops, logic. No classes, no <code>self</code>, no inheritance. Runs on Python 3.10+ with zero external dependencies.</p>
   <div class="grid">
+    <div class="card"><div class="card-icon">🔬</div><h3>Type Annotations <span class="new-badge">v1.19</span></h3><p><code>def area(r: Float) -> Float</code> — optional, zero runtime cost, checked by <code>frankiec check</code> and live in your editor. Un-annotated code is untouched.</p></div>
+    <div class="card"><div class="card-icon">👣</div><h3>Stepping Debugger <span class="new-badge">v1.19</span></h3><p><code>frankiec run --debug</code> breaks at line one; <code>(fkdb)</code> now steps with <code>s</code>/<code>n</code>, shows the <code>stack</code>, and evaluates any expression in the paused scope.</p></div>
+    <div class="card"><div class="card-icon">📊</div><h3>Test Coverage <span class="new-badge">v1.19</span></h3><p><code>frankiec test --coverage</code> — per-file percentages and missing lines mapped to .fk source. The LSP shows uncovered lines as hints in your editor.</p></div>
     <div class="card"><div class="card-icon">🩻</div><h3>Language Server <span class="new-badge">v1.18</span></h3><p><code>frankiec lsp</code> — live diagnostics, completion and hover docs in VS Code, Neovim, Helix, Zed… anything that speaks LSP. Pure Python stdlib, zero dependencies.</p></div>
     <div class="card"><div class="card-icon">🚢</div><h3><code>frankiec bundle</code> <span class="new-badge">v1.18</span></h3><p>Ship your program as ONE self-contained .py — stdlib inlined, requires/imports/stitches pre-compiled. <code>python3 app.py</code> runs anywhere, no Frankie needed.</p></div>
     <div class="card"><div class="card-icon">🔌</div><h3>WebSockets <span class="new-badge">v1.18</span></h3><p><code>app.websocket("/ws/:room") do |ws| … end</code> on the built-in server plus a <code>ws_connect</code> client — hand-rolled RFC 6455, zero deps.</p></div>
@@ -883,6 +887,88 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
 
 <div class="divider"></div>
 
+<section id="projects">
+  <p class="lbl">Built with Frankie</p>
+  <h2>Real projects,<br>one file each.</h2>
+  <p style="color:var(--muted);max-width:600px;font-size:.97rem">Complete, playable programs from the repo — each one a single <code>.fk</code> file you can read in one sitting, run with one command, and ship as one self-contained <code>.py</code> with <code>frankiec bundle</code>. Find them in <code>examples/projects/</code>.</p>
+
+  <div class="code-grid">
+    <div class="cp">
+      <div class="cp-head"><span class="cp-title">🧟 zombie_chat/main.fk <span class="new-badge">~150 lines</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
+      <pre><span class="cm"># Multi-room chat: the server AND its web UI in one file.</span>
+<span class="cm"># Open two browser tabs, pick two names, talk to yourself.</span>
+
+<span class="kw">enum</span> <span class="vr">Event</span>(<span class="vr">joined</span>, <span class="vr">left</span>, <span class="vr">message</span>, <span class="vr">roster</span>)
+
+<span class="vr">app</span>.<span class="fn">get</span>(<span class="str">"/"</span>) <span class="kw">do</span> |<span class="vr">req</span>|
+  <span class="fn">html_response</span>(&lt;&lt;~HTML)   <span class="cm"># the whole UI lives here</span>
+  ...
+HTML
+<span class="kw">end</span>
+
+<span class="vr">app</span>.<span class="fn">websocket</span>(<span class="str">"/ws/:room"</span>) <span class="kw">do</span> |<span class="vr">ws</span>|
+  <span class="vr">nick</span> = <span class="vr">ws</span>.<span class="fn">recv</span>()          <span class="cm"># first message = your name</span>
+  <span class="fn">broadcast</span>(<span class="vr">members</span>, {type: <span class="vr">Event</span>.<span class="vr">joined</span>, nick: <span class="vr">nick</span>})
+  <span class="kw">loop do</span>
+    <span class="vr">text</span> = <span class="vr">ws</span>.<span class="fn">recv</span>()
+    <span class="kw">break if</span> <span class="vr">text</span> == <span class="kw">nil</span>
+    <span class="fn">broadcast</span>(<span class="vr">members</span>, {type: <span class="vr">Event</span>.<span class="vr">message</span>, nick: <span class="vr">nick</span>, text: <span class="vr">text</span>})
+  <span class="kw">end</span>
+<span class="kw">end</span>
+
+<span class="cm"># frankiec run main.fk   →   http://localhost:4000/#graveyard</span></pre>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head"><span class="cp-title">⚡ word_reanimator/main.fk <span class="new-badge">multiplayer</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
+      <pre><span class="cm"># Multiplayer hangman — every miss stitches another part</span>
+<span class="cm"># onto the zombie. Six misses and the word stays dead.</span>
+
+<span class="kw">enum</span> <span class="vr">Phase</span>(<span class="vr">playing</span>, <span class="vr">reanimated</span>, <span class="vr">dead</span>)
+
+<span class="kw">def</span> <span class="fn">apply_guess</span>(<span class="vr">game</span>, <span class="vr">letter</span>)
+  <span class="kw">return</span> <span class="vr">game</span> <span class="kw">if</span> <span class="vr">game</span>[<span class="str">"guessed"</span>].<span class="fn">include?</span>(<span class="vr">letter</span>)
+  <span class="vr">game</span>[<span class="str">"guessed"</span>] = <span class="vr">game</span>[<span class="str">"guessed"</span>].<span class="fn">union</span>([<span class="vr">letter</span>])
+  <span class="kw">unless</span> <span class="vr">game</span>[<span class="str">"word"</span>].<span class="fn">chars</span>.<span class="fn">include?</span>(<span class="vr">letter</span>)
+    <span class="vr">game</span>[<span class="str">"misses"</span>] += <span class="num">1</span>
+  <span class="kw">end</span>
+  <span class="vr">game</span>
+<span class="kw">end</span>
+
+<span class="cm"># shared state, broadcast to every player after each move</span>
+<span class="vr">game</span>[<span class="str">"phase"</span>] = <span class="vr">Phase</span>.<span class="vr">reanimated</span> <span class="kw">unless</span> <span class="fn">masked_word</span>(<span class="vr">game</span>).<span class="fn">include?</span>(<span class="str">"_"</span>)
+
+<span class="cm"># frankiec run main.fk   →   http://localhost:4001/#morgue</span>
+<span class="cm"># frankiec bundle main.fk -o word_reanimator.py  →  ship ONE file</span></pre>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head"><span class="cp-title">💰 frankie_ledger/main.fk <span class="new-badge">stitches + SQLite</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
+      <pre><span class="cm"># Terminal expense tracker: SQLite, stitches, R-style stats.</span>
+<span class="cm">#   ledger add 12.50 lunch tacos al pastor</span>
+<span class="cm">#   ledger report</span>
+
+<span class="kw">stitch</span> <span class="str">"frankiecli"</span>     <span class="cm"># pinned in stitch.lock</span>
+<span class="kw">stitch</span> <span class="str">"frankietable"</span>
+<span class="kw">stitch</span> <span class="str">"frankiecolor"</span>
+
+<span class="vr">db</span> = <span class="fn">db_open</span>(<span class="fn">env</span>(<span class="str">"LEDGER_DB"</span>, <span class="str">"ledger.db"</span>))
+
+<span class="cm"># bar chart = string repetition doing data viz</span>
+<span class="vr">bar</span> = <span class="str">"█"</span> * <span class="fn">max</span>(<span class="num">1</span>, <span class="fn">to_int</span>(<span class="num">32</span> * <span class="vr">t</span> / <span class="vr">biggest</span>))
+<span class="fn">puts</span> <span class="str">"#{cat.ljust(12)} #{money(t).rjust(10)}  #{green(bar)}"</span>
+
+<span class="cm"># R-donor stats + outliers: 3× the median raises an eyebrow</span>
+<span class="fn">puts</span> <span class="str">"mean: #{mean(a)}  median: #{median(a)}  stdev: #{stdev(a)}"</span>
+<span class="vr">weird</span> = <span class="vr">rows</span>.<span class="fn">select</span> <span class="kw">do</span> |<span class="vr">r</span>| <span class="vr">r</span>[<span class="str">"amount"</span>] &gt; <span class="num">3</span> * <span class="fn">median</span>(<span class="vr">a</span>) <span class="kw">end</span>
+
+<span class="cm"># frankiec bundle main.fk -o ledger.py  →  a real CLI tool, one file</span></pre>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
 <section id="donors">
   <p class="lbl">The donors</p>
   <h2>Stitched from four<br>legendary languages.</h2>
@@ -914,7 +1000,8 @@ frankiec test</pre></div>
   <table>
     <thead><tr><th>Version</th><th>Highlights</th><th>Status</th></tr></thead>
     <tbody>
-      <tr><td><strong>v1.18.0</strong></td><td>frankiec lsp (Language Server), frankiec bundle (one-file ship), WebSockets, breakpoint debug REPL, enum, benchmark, set ops, numeric underscores + 1e6, stitch.lock verify/update, check/fmt on directories</td><td><span class="badge bl">Latest</span></td></tr>
+      <tr><td><strong>v1.19.0</strong></td><td>gradual type annotations, stepping debugger (run --debug, s/n/stack), test --coverage + LSP hints, wss:// + TLS tcp, UDP sockets, stitch install from URL, docs --html, showcase projects (Zombie Chat, Word Reanimator, Frankie Ledger)</td><td><span class="badge bl">Latest</span></td></tr>
+      <tr><td><strong>v1.18.0</strong></td><td>frankiec lsp (Language Server), frankiec bundle (one-file ship), WebSockets, breakpoint debug REPL, enum, benchmark, set ops, numeric underscores + 1e6, stitch.lock verify/update, check/fmt on directories</td><td><span class="badge bs">Stable</span></td></tr>
       <tr><td><strong>v1.17.0</strong></td><td>import "x" as y namespaces, error types + rescue =>, first-class ranges, record dot access, static analysis in check, accurate cross-file tracebacks, parallel_map, TCP sockets, test groups/--filter/--tag, stub/unstub, stitch installer, REPL => echo + help</td><td><span class="badge bs">Stable</span></td></tr>
       <tr><td><strong>v1.16.2</strong></td><td>shell(), dotenv(), loop do...end, ||=, Hash#transform_values/keys, String#scan, Hash#deep_merge, frankiemail, frankiecli, frankiecache</td><td><span class="badge bs">Stable</span></td></tr>
       <tr><td><strong>v1.15</strong></td><td>ternary operator, keyword default params, splat multi-assign, const keyword, fn.(args) everywhere, json_encode, base64/hmac public, String#format, path helpers, date arithmetic, frankieauth, frankieratelimit, frankiec check/new</td><td><span class="badge bs">Stable</span></td></tr>

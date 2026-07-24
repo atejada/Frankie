@@ -1,0 +1,72 @@
+# test_v119.fk — Frankie v1.19 "Under the microscope" feature tests
+# Run with: frankiec test examples/test_v119.fk
+# (analyzer-level type errors are exercised by `frankiec check` — see docs)
+
+def area(r: Float) -> Float
+  3.14159 * r * r
+end
+
+def shout(s: String) -> String
+  s.upcase
+end
+
+def clamp(x: Int, lo: Int, hi: Int) -> Int
+  return lo if x < lo
+  return hi if x > hi
+  x
+end
+
+def mixed(s: String, suffix: "!")
+  "#{s}#{suffix}"
+end
+
+test "type annotations run cleanly" do
+  assert_approx_eq(area(2.0), 12.56636, 0.0001, "annotated function works")
+  assert_approx_eq(area(3), 28.27431, 0.0001, "Int flows into Float param")
+  assert_eq(shout("alive"), "ALIVE", "String annotation")
+  assert_eq(clamp(99, 1, 10), 10, "multiple Int annotations")
+  assert_eq(mixed("x"), "x!", "annotations mix with keyword defaults")
+end
+
+test "breakpoint still skips politely in tests" do
+  reached = 0
+  breakpoint
+  reached = 1
+  assert_eq(reached, 1, "non-tty breakpoint is a no-op")
+end
+
+test "udp sockets", tags: ["network"] do
+  server = udp_listen(9971)
+  spawn do
+    msg = server.recv()
+    server.send_to(msg["host"], msg["port"], "pong: #{msg["data"]}")
+  end
+  sleep(0.3)
+  client = udp_listen(0)
+  client.send_to("127.0.0.1", 9971, "ping")
+  reply = client.recv()
+  assert_eq(reply["data"], "pong: ping", "udp round-trip")
+  client.close()
+  server.close()
+end
+
+test "tls plumbing is wired" do
+  wss_rejected = false
+  begin
+    ws_connect("ftp://bad.scheme/x")
+  rescue e
+    wss_rejected = true
+  end
+  assert_true(wss_rejected, "non-ws schemes rejected")
+end
+
+test "v1.18 features still solid" do
+  enum Phase(a, b)
+  assert_eq(Phase.a, "a", "enum")
+  assert_eq([1, 2].union([2, 3]), [1, 2, 3], "set ops")
+  assert_eq(1_000 + 1e3, 2000.0, "numeric literals")
+  ms = benchmark do
+    x = 1
+  end
+  assert_true(ms >= 0, "benchmark")
+end

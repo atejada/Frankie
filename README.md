@@ -7,7 +7,7 @@
  |  _|| | | (_| | | | |   <| |  __/
  |_|  |_|  \__,_|_| |_|_|\_\_|\___|
 
- The Frankie Language v1.18.0
+ The Frankie Language v1.19.0
  Stitched together from Ruby • Python • R • Fortran
 ```
 
@@ -92,6 +92,60 @@ begin
 rescue e
   puts "Caught: #{e}"
 end
+```
+
+---
+
+## Showcase Projects 🧟
+
+Complete, playable programs — each one a single `.fk` file you can read in
+one sitting, run with one command, and ship as one self-contained `.py`
+with `frankiec bundle`:
+
+```bash
+# 🧟 Zombie Chat — multi-room WebSocket chat (server + web UI in one file)
+frankiec run examples/projects/zombie_chat/main.fk
+#    → open http://localhost:4000 in two tabs and talk to yourself
+
+# ⚡ Word Reanimator — multiplayer hangman; misses assemble a zombie
+frankiec run examples/projects/word_reanimator/main.fk
+#    → open http://localhost:4001 in two tabs and guess together
+
+# 💰 Frankie Ledger — terminal expense tracker (SQLite + stitches + stats)
+cd examples/projects/frankie_ledger
+frankiec run main.fk add 12.50 lunch tacos al pastor
+frankiec run main.fk report
+```
+
+---
+
+## v1.19 Highlights — "Under the microscope"
+
+```ruby
+# Gradual type annotations — optional, zero runtime cost
+def area(r: Float) -> Float
+  3.14159 * r * r
+end
+puts area(3)        # fine — Int flows into Float
+puts area("five")   # frankiec check: ✗ argument 1 expects Float, got String
+
+# Full stepping debugger
+#   frankiec run --debug app.fk
+#   (fkdb) s · n · stack · vars · any expression · c
+
+# Test coverage
+#   frankiec test --coverage
+#   ║   87.5%  test.fk  missing: 7
+#   (uncovered lines appear as hints in your editor via the LSP)
+
+# TLS clients + UDP sockets
+ws  = ws_connect("wss://example.com/socket")
+tls = tcp_connect("example.com", 443, tls: true)
+udp_send("127.0.0.1", 9999, "ping")
+
+# Stitches from any URL + HTML docs
+#   frankiec stitch install https://example.com/foo.fk
+#   frankiec docs --html mystitch.fk
 ```
 
 ---
