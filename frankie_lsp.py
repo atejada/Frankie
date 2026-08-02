@@ -229,7 +229,7 @@ class FrankieLSP:
                     'completionProvider': {'triggerCharacters': ['.']},
                     'hoverProvider': True,
                 },
-                'serverInfo': {'name': 'frankie-lsp', 'version': '1.20.0'},
+                'serverInfo': {'name': 'frankie-lsp', 'version': '1.20.1'},
             })
         elif method == 'initialized':
             pass

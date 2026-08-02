@@ -7,14 +7,14 @@ Everything needed for `brew install atejada/frankie/frankie`.
 1. **Tag a release** in the main repo (the formula pulls the tag tarball):
 
    ```bash
-   git tag v1.20.0 && git push origin v1.20.0
+   git tag v1.20.1 && git push origin v1.20.1
    ```
 
 2. **Compute the tarball checksum** and paste it into `frankie.rb`
    (replacing `REPLACE_WITH_TARBALL_SHA256`):
 
    ```bash
-   curl -L https://github.com/atejada/Frankie/archive/refs/tags/v1.20.0.tar.gz | shasum -a 256
+   curl -L https://github.com/atejada/Frankie/archive/refs/tags/v1.20.1.tar.gz | shasum -a 256
    ```
 
 3. **Create the tap repository** — a GitHub repo named exactly
@@ -30,8 +30,15 @@ Everything needed for `brew install atejada/frankie/frankie`.
 
    ```bash
    brew tap atejada/frankie
+   brew trust atejada/frankie     # Homebrew 6.0+: third-party taps need explicit trust
    brew install frankie
-   frankiec version          # Frankie v1.20.0 🧟
+   frankiec version               # Frankie v1.20.1 🧟
+   ```
+
+   One-liner alternative (auto-taps and trusts just this formula):
+
+   ```bash
+   brew install atejada/frankie/frankie
    ```
 
 ## New releases

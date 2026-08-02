@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-frankiec — The Frankie Language Compiler & Interpreter v1.20.0
+frankiec — The Frankie Language Compiler & Interpreter v1.20.1
 Usage:
     frankiec new    [--game] <project>  Scaffold a new Frankie project
     frankiec run    [--debug] <file.fk>  Run a Frankie program
@@ -12,6 +12,7 @@ Usage:
     frankiec docs   [--html] [--output <out>] <file.fk>  Generate documentation
     frankiec stitch install <name> [--global]      Install a stitch from the registry
     frankiec stitch list | verify | update         Manage stitches + stitch.lock
+    frankiec examples [name]       List bundled examples, or copy one here
     frankiec lsp                   Start the Language Server (LSP over stdio)
     frankiec repl   [--no-banner]  Start the interactive REPL
     frankiec watch  <file.fk> [--test]  Re-run on save
@@ -30,7 +31,7 @@ from compiler.lexer import Lexer, LexError
 from compiler.parser import Parser, ParseError
 from compiler.codegen import CodeGen, CodeGenError
 
-FRANKIE_VERSION = "1.20.0"
+FRANKIE_VERSION = "1.20.1"
 FRANKIE_BANNER = r"""
   _____                 _    _
  |  ___| __ __ _ _ __ | | _(_) ___
@@ -673,6 +674,7 @@ HELP_TEXT = {
     'check':   "frankiec check [--strict] <file.fk>\n  Syntax check + static analysis without executing.\n  Finds undefined variables/functions, wrong argument counts, and\n  unused local variables. require/stitch/import are resolved.\n  Exit 0 = OK, 1 = errors found (--strict: warnings fail too).",
     'new':     "frankiec new [--game] <project_name>\n  Scaffold a new Frankie project with main.fk, test.fk, lib/, data/, .env.example.\n  --game   Start from a playable frankiegame template (stitch pre-installed).",
     'watch':   "frankiec watch <file.fk> [--test]\n  Watch a file for changes and re-run it automatically on save.\n  --test   Run as a test suite (frankiec test) instead of frankiec run.\n  Polls file modification time — zero dependencies, works everywhere.",
+    'examples': "frankiec examples [name]\n  List the examples bundled with this Frankie install, or copy one\n  into the current directory ready to run (projects come whole:\n  frankiec examples snake && cd snake && frankiec run main.fk).",
     'version': "frankiec version\n  Print the Frankie version string.",
 }
 
@@ -717,6 +719,83 @@ def _watch_file(fk_file, test_mode=False):
 
 STITCH_REGISTRY_RAW = "https://raw.githubusercontent.com/atejada/Frankie/main/stitches/{name}.fk"
 STITCH_REGISTRY_API = "https://api.github.com/repos/atejada/Frankie/contents/stitches"
+
+
+def _examples_command(args):
+    """frankiec examples [name] — browse or copy the bundled examples (v1.20).
+
+    With no argument: list everything that ships with this Frankie install.
+    With a name: copy that project (or single .fk file) into the current
+    directory, ready to run — works for brew, git-clone and install.py
+    installs alike, because frankiec always knows its own home.
+    """
+    import shutil
+    frankie_dir = os.path.dirname(os.path.abspath(__file__))
+    ex_dir = os.path.join(frankie_dir, 'examples')
+    if not os.path.isdir(ex_dir):
+        print("[Frankie] No examples directory found in this installation.",
+              file=sys.stderr)
+        sys.exit(1)
+    proj_dir = os.path.join(ex_dir, 'projects')
+
+    def _first_comment(path):
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    stripped = line.strip()
+                    if stripped.startswith('#'):
+                        return stripped.lstrip('#').strip()
+                    if stripped:
+                        break
+        except OSError:
+            pass
+        return ''
+
+    if not args:
+        print("🧟 Bundled with this Frankie install:\n")
+        if os.path.isdir(proj_dir):
+            print("  Projects (frankiec examples <name> copies one here):")
+            for name in sorted(os.listdir(proj_dir)):
+                main = os.path.join(proj_dir, name, 'main.fk')
+                if os.path.isfile(main):
+                    desc = _first_comment(main)
+                    print(f"    🎮 {name:<18} {desc}")
+            print()
+        singles = sorted(f for f in os.listdir(ex_dir)
+                         if f.endswith('.fk'))
+        if singles:
+            print("  Single files (frankiec examples <name> copies one here):")
+            for f in singles:
+                desc = _first_comment(os.path.join(ex_dir, f))
+                print(f"    📄 {f[:-3]:<18} {desc}")
+        print(f"\n  Source: {ex_dir}")
+        return
+
+    name = args[0]
+    name = name[:-3] if name.endswith('.fk') else name
+    src_proj = os.path.join(proj_dir, name)
+    src_file = os.path.join(ex_dir, name + '.fk')
+    if os.path.isdir(src_proj):
+        dest = os.path.join(os.getcwd(), name)
+        if os.path.exists(dest):
+            print(f"[Frankie] './{name}' already exists here — not overwriting.",
+                  file=sys.stderr)
+            sys.exit(1)
+        shutil.copytree(src_proj, dest)
+        print(f"[Frankie] 🎮 Copied '{name}' → ./{name}")
+        print(f"          cd {name} && frankiec run main.fk")
+    elif os.path.isfile(src_file):
+        dest = os.path.join(os.getcwd(), name + '.fk')
+        if os.path.exists(dest):
+            print(f"[Frankie] './{name}.fk' already exists here — not overwriting.",
+                  file=sys.stderr)
+            sys.exit(1)
+        shutil.copy(src_file, dest)
+        print(f"[Frankie] 📄 Copied '{name}.fk' — frankiec run {name}.fk")
+    else:
+        print(f"[Frankie] No bundled example named {name!r}. "
+              f"Run 'frankiec examples' to see the list.", file=sys.stderr)
+        sys.exit(1)
 
 
 def _stitch_lock_path():
@@ -1031,6 +1110,9 @@ def main():
 
     elif cmd == 'stitch':
         _stitch_command(sys.argv[2:])
+
+    elif cmd == 'examples':
+        _examples_command(sys.argv[2:])
 
     elif cmd == 'fmt':
         from frankie_fmt import fmt_file

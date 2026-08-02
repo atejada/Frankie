@@ -1,5 +1,26 @@
 # Changelog
 
+## v1.20.1 (2026)
+
+### Patch: arrows obey, examples travel, brew arrives
+
+- **Fixed: arrow keys in terminal games** — `term_key()` read from
+  Python's buffered stdin, which swallowed the tail bytes of escape
+  sequences and decoded every arrow press as `esc`. Now reads raw bytes
+  from the file descriptor (`os.read`), with a short grace window for
+  slow sequences. Snake steers. 🐍
+- **New: `frankiec examples [name]`** — list the examples bundled with
+  the install, or copy a project/single file into the current directory
+  ready to run. Works for every install method (brew, git clone,
+  install.py).
+- **New: Homebrew formula** (`packaging/homebrew/`) — install with
+  `brew tap atejada/frankie && brew trust atejada/frankie && brew install frankie`.
+- Stitches now also resolve from the Frankie installation directory
+  (after `./stitches` and `~/.frankie/stitches`), so brew/system installs
+  find the standard stitches out of the box.
+
+---
+
 ## v1.20.0 (2026)
 
 ### Theme: "It's Alive… and Playing" — Frankie learns games

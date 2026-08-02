@@ -3905,18 +3905,24 @@ _FK_KEY_ESCAPES = {
 
 def term_key():
     """Non-blocking key read. Returns the key ("a", "up", "space", "enter",
-    "esc", …) or nil when no key is pending. Requires term_raw_on()."""
-    import sys as _s, select as _sel
+    "esc", …) or nil when no key is pending. Requires term_raw_on().
+
+    Reads raw bytes via os.read() — sys.stdin's buffering would swallow
+    the tail of arrow-key escape sequences and turn every arrow into Esc.
+    """
+    import sys as _s, select as _sel, os as _o
     if not term_is_tty():
         return None
-    if not _sel.select([_s.stdin], [], [], 0)[0]:
+    fd = _s.stdin.fileno()
+    if not _sel.select([fd], [], [], 0)[0]:
         return None
-    ch = _s.stdin.read(1)
+    ch = _o.read(fd, 1).decode('latin-1')
     if ch == '\x1b':
-        # Escape sequence (arrows) or a bare Esc press
+        # Escape sequence (arrows) or a bare Esc press. Allow a tiny grace
+        # period for the remaining bytes of the sequence to arrive.
         seq = ''
-        while _sel.select([_s.stdin], [], [], 0)[0] and len(seq) < 2:
-            seq += _s.stdin.read(1)
+        while _sel.select([fd], [], [], 0.02)[0] and len(seq) < 2:
+            seq += _o.read(fd, 1).decode('latin-1')
         if seq in _FK_KEY_ESCAPES:
             return _FK_KEY_ESCAPES[seq]
         return 'esc'

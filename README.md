@@ -7,7 +7,7 @@
  |  _|| | | (_| | | | |   <| |  __/
  |_|  |_|  \__,_|_| |_|_|\_\_|\___|
 
- The Frankie Language v1.20.0
+ The Frankie Language v1.20.1
  Stitched together from Ruby • Python • R • Fortran
 ```
 
