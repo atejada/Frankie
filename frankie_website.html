@@ -109,7 +109,7 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
 <body>
 
 <nav>
-  <a href="#" class="nav-logo">🧟 Frankie <span>v1.19.0</span></a>
+  <a href="#" class="nav-logo">🧟 Frankie <span>v1.20.0</span></a>
   <ul>
     <li><a href="#features">Features</a></li>
     <li><a href="#syntax">Syntax</a></li>
@@ -139,7 +139,7 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
   </div>
   <div class="ctas">
     <a href="#install" class="btn btn-p">Get Started →</a>
-    <a href="https://github.com/atejada/Frankie/releases" class="btn btn-s">Download v1.19.0</a>
+    <a href="https://github.com/atejada/Frankie/releases" class="btn btn-s">Download v1.20.0</a>
     <a href="https://atejada.github.io/frankielanguage/site/index.html" class="btn btn-s">Go to the Docs</a>
     <a href="https://github.com/atejada/Frankie" class="btn btn-s">★ Star on GitHub</a>
   </div>
@@ -153,6 +153,8 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
   <h2>Everything you need.<br>Nothing you don't.</h2>
   <p style="color:var(--muted);max-width:560px;font-size:.97rem">Proudly procedural — functions, data, loops, logic. No classes, no <code>self</code>, no inheritance. Runs on Python 3.10+ with zero external dependencies.</p>
   <div class="grid">
+    <div class="card"><div class="card-icon">🎮</div><h3><code>frankiegame</code> Engine <span class="new-badge">v1.20</span></h3><p>A terminal game engine: fixed-timestep loop, raw arrow keys, double-buffered ANSI rendering, sprites, collision. Snake in ~80 lines — and your test suite can play it headless.</p></div>
+    <div class="card"><div class="card-icon">🕹️</div><h3><code>frankiecanvas</code> Engine <span class="new-badge">v1.20</span></h3><p>The SAME game API on an HTML5 canvas — served by Frankie's web server, streamed over WebSockets. Every browser tab is a player: multiplayer Pong costs zero extra code.</p></div>
     <div class="card"><div class="card-icon">🔬</div><h3>Type Annotations <span class="new-badge">v1.19</span></h3><p><code>def area(r: Float) -> Float</code> — optional, zero runtime cost, checked by <code>frankiec check</code> and live in your editor. Un-annotated code is untouched.</p></div>
     <div class="card"><div class="card-icon">👣</div><h3>Stepping Debugger <span class="new-badge">v1.19</span></h3><p><code>frankiec run --debug</code> breaks at line one; <code>(fkdb)</code> now steps with <code>s</code>/<code>n</code>, shows the <code>stack</code>, and evaluates any expression in the paused scope.</p></div>
     <div class="card"><div class="card-icon">📊</div><h3>Test Coverage <span class="new-badge">v1.19</span></h3><p><code>frankiec test --coverage</code> — per-file percentages and missing lines mapped to .fk source. The LSP shows uncovered lines as hints in your editor.</p></div>
@@ -964,6 +966,29 @@ HTML
 
 <span class="cm"># frankiec bundle main.fk -o ledger.py  →  a real CLI tool, one file</span></pre>
     </div>
+
+    <div class="cp">
+      <div class="cp-head"><span class="cp-title">🎮 snake · zombie_invaders · pong <span class="new-badge">v1.20</span></span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
+      <pre><span class="cm"># Three games, one engine API. The stitch picks the renderer.</span>
+<span class="kw">stitch</span> <span class="str">"frankiegame"</span>      <span class="cm"># 🐍 Snake — terminal, ~80 lines</span>
+<span class="kw">stitch</span> <span class="str">"frankiecanvas"</span>    <span class="cm"># 🧟 Invaders + 🏓 Pong — browser</span>
+
+<span class="fn">on_key</span>(<span class="vr">g</span>, <span class="str">"left"</span>) <span class="kw">do</span> |<span class="vr">game</span>|
+  <span class="vr">game</span>[<span class="str">"px"</span>] -= <span class="num">1</span>
+<span class="kw">end</span>
+
+<span class="fn">on_tick</span>(<span class="vr">g</span>) <span class="kw">do</span> |<span class="vr">game</span>|
+  <span class="fn">clear</span>(<span class="vr">game</span>)
+  <span class="fn">draw</span>(<span class="vr">game</span>, <span class="vr">game</span>[<span class="str">"px"</span>], <span class="num">10</span>, <span class="str">"🧟"</span>)
+<span class="kw">end</span>
+
+<span class="cm"># 🏓 pong: every browser tab is a player</span>
+<span class="fn">on_player_key</span>(<span class="vr">g</span>) <span class="kw">do</span> |<span class="vr">game</span>, <span class="vr">player</span>, <span class="vr">key</span>|
+  <span class="fn">move_paddle</span>(<span class="vr">game</span>, <span class="vr">player</span>, <span class="vr">key</span>)
+<span class="kw">end</span>
+
+<span class="cm"># frankiec new --game mygame  →  playable starter in one command</span></pre>
+    </div>
   </div>
 </section>
 
@@ -1000,7 +1025,8 @@ frankiec test</pre></div>
   <table>
     <thead><tr><th>Version</th><th>Highlights</th><th>Status</th></tr></thead>
     <tbody>
-      <tr><td><strong>v1.19.0</strong></td><td>gradual type annotations, stepping debugger (run --debug, s/n/stack), test --coverage + LSP hints, wss:// + TLS tcp, UDP sockets, stitch install from URL, docs --html, showcase projects (Zombie Chat, Word Reanimator, Frankie Ledger)</td><td><span class="badge bl">Latest</span></td></tr>
+      <tr><td><strong>v1.20.0</strong></td><td>frankiegame terminal engine, frankiecanvas browser engine (same API, multiplayer via on_player_key), terminal primitives (term_raw/term_key/term_render), frankiec new --game, showcase games: Snake, Zombie Invaders, Pong</td><td><span class="badge bl">Latest</span></td></tr>
+      <tr><td><strong>v1.19.0</strong></td><td>gradual type annotations, stepping debugger (run --debug, s/n/stack), test --coverage + LSP hints, wss:// + TLS tcp, UDP sockets, stitch install from URL, docs --html, showcase projects (Zombie Chat, Word Reanimator, Frankie Ledger)</td><td><span class="badge bs">Stable</span></td></tr>
       <tr><td><strong>v1.18.0</strong></td><td>frankiec lsp (Language Server), frankiec bundle (one-file ship), WebSockets, breakpoint debug REPL, enum, benchmark, set ops, numeric underscores + 1e6, stitch.lock verify/update, check/fmt on directories</td><td><span class="badge bs">Stable</span></td></tr>
       <tr><td><strong>v1.17.0</strong></td><td>import "x" as y namespaces, error types + rescue =>, first-class ranges, record dot access, static analysis in check, accurate cross-file tracebacks, parallel_map, TCP sockets, test groups/--filter/--tag, stub/unstub, stitch installer, REPL => echo + help</td><td><span class="badge bs">Stable</span></td></tr>
       <tr><td><strong>v1.16.2</strong></td><td>shell(), dotenv(), loop do...end, ||=, Hash#transform_values/keys, String#scan, Hash#deep_merge, frankiemail, frankiecli, frankiecache</td><td><span class="badge bs">Stable</span></td></tr>

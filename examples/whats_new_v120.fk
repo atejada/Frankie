@@ -1,0 +1,40 @@
+# whats_new_v120.fk — Tour of Frankie v1.20 "It's Alive… and Playing"
+# Run with:   frankiec run examples/whats_new_v120.fk
+# (headless-safe: engines no-op without a terminal)
+
+stitch "frankiegame"
+
+puts "🎮 Frankie v1.20 — It's Alive… and Playing"
+puts ""
+
+puts "── 1. frankiegame: a terminal game engine ──"
+g = game_new(width: 20, height: 6, fps: 30, bg: ".", max_ticks: 3)
+on_tick(g) do |game|
+  clear(game)
+  draw(game, 2, 2, "🧟", color: "green")
+  text(game, 2, 0, "it's alive!", color: "yellow")
+end
+run_game(g)
+puts "ran #{g["ticks"]} frames (bounded by max_ticks — CI-friendly)"
+puts "buffer says: #{render_frame(g).include?("alive")}"
+puts ""
+
+puts "── 2. Engine helpers ──"
+puts "collide?  → #{collide?(0, 0, 2, 2, 1, 1, 2, 2)}"
+puts "colors    → GAME_COLORS: #{GAME_COLORS.keys}"
+puts ""
+
+puts "── 3. frankiecanvas: same API, real pixels ──"
+puts "swap  stitch \"frankiegame\"  for  stitch \"frankiecanvas\"  and your"
+puts "game renders on an HTML5 canvas over WebSockets — every browser tab"
+puts "is a player (on_player_key routes input per player)."
+puts ""
+
+puts "Play the showcase games:"
+puts "  🐍 frankiec run examples/projects/snake/main.fk            (terminal)"
+puts "  🧟 frankiec run examples/projects/zombie_invaders/main.fk  (browser :4200)"
+puts "  🏓 frankiec run examples/projects/pong/main.fk             (browser :4300, 2 tabs!)"
+puts ""
+puts "Start your own:  frankiec new --game mygame"
+puts ""
+puts "Frankie v1.20 — IT'S ALIVE… AND PLAYING! 🎮🧟⚡"

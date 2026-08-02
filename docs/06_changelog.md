@@ -1,5 +1,69 @@
 # Changelog
 
+## v1.20.0 (2026)
+
+### Theme: "It's Alive… and Playing" — Frankie learns games
+
+---
+
+### New Stitches
+
+**`frankiegame` — terminal game engine**
+- Shared API: `game_new(width:, height:, fps:)`, `on_key`, `on_any_key`,
+  `on_tick`, `draw`, `text`, `draw_sprite` (spaces transparent), `clear`,
+  `collide?`, `game_beep`, `stop_game`, `run_game`, `render_frame`
+- Fixed-timestep loop, double-buffered ANSI rendering (one write per
+  frame), 8 named colors, arrows/space/enter/esc key names, q quits
+- Headless-safe: no tty → input/rendering no-op; `max_ticks:` bounds the
+  loop so tests can literally play the game
+
+**`frankiecanvas` — browser game engine (same API)**
+- HTML5 canvas served by the built-in web server; draw ops streamed over
+  WebSockets (~20–30 fps); identical key names flow back
+- Canvas extras: `rect` (cell-unit fills), mouse clicks, WebAudio
+  `game_beep`, and `on_player_key` — every browser tab is a player, so
+  multiplayer costs zero extra code (`players_count` included)
+- Swap `stitch "frankiegame"` ↔ `stitch "frankiecanvas"` to switch
+  renderers — that is the entire port
+
+---
+
+### New Stdlib (terminal primitives — useful for any TUI)
+
+`term_raw_on`/`term_raw_off`, non-blocking `term_key` (arrow mapping),
+`term_size`, `term_hide_cursor`/`term_show_cursor`, `term_clear`,
+`term_render` (single-write frame draw), `clock_ms`, `beep`
+
+---
+
+### Tooling
+
+**`frankiec new --game <name>`** — scaffold a playable starter with the
+frankiegame stitch pre-installed and pinned in `stitch.lock`
+
+---
+
+### Showcase Games
+
+- 🐍 **Snake** (`examples/projects/snake/`) — terminal, the whole engine
+  API in ~80 lines; `SNAKE_TICKS=40` plays it headless in CI
+- 🧟 **Zombie Invaders** (`examples/projects/zombie_invaders/`) — browser;
+  waves, shots, beeps at http://localhost:4200
+- 🏓 **Pong** (`examples/projects/pong/`) — browser multiplayer: two tabs,
+  one ball; solo mode plays against a tiny AI
+
+---
+
+### Fixes
+
+- Blocks whose single statement is an assignment or postfix conditional
+  (`do |g| g["x"] = 1 end`, `do |g| reset(g) if g["dead"] end`) now
+  compile correctly across all block forms (previously: codegen error)
+- Multi-statement iterator blocks ending in an assignment no longer crash
+  the 2-param block compiler
+
+---
+
 ## v1.19.0 (2026)
 
 ### Theme: "Under the microscope" — types, stepping, coverage

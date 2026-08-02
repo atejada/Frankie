@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-frankiec — The Frankie Language Interpreter & Compiler v1.19.0
+frankiec — The Frankie Language Interpreter & Compiler v1.20.0
 Usage:
-    frankiec new    <project>      Scaffold a new Frankie project
+    frankiec new    [--game] <project>  Scaffold a new Frankie project
     frankiec run    <file.fk>      Run a Frankie program
     frankiec build  <file.fk>      Compile to Python source
     frankiec bundle <file.fk> [-o out.py]  Bundle into one self-contained .py

@@ -1,0 +1,60 @@
+# test_v120.fk — Frankie v1.20 "It's Alive… and Playing" feature tests
+# Run with: frankiec test examples/test_v120.fk
+# All engine tests run HEADLESS — rendering/input no-op without a tty.
+
+stitch "frankiegame"
+
+test "terminal primitives are headless-safe" do
+  size = term_size()
+  assert_true(size["width"] > 0, "term_size works")
+  assert_nil(term_key(), "term_key returns nil headless")
+  assert_true(clock_ms() > 0, "clock_ms ticks")
+end
+
+test "frankiegame engine" do
+  g = game_new(width: 8, height: 4, fps: 60, bg: ".", max_ticks: 2)
+  drawn = []
+  on_key(g, "left") do |game|
+    game["went_left"] = true
+  end
+  on_tick(g) do |game|
+    clear(game)
+    draw(game, 1, 1, "AB", color: "green")
+    text(game, 0, 0, "hud")
+    draw_sprite(game, 4, 1, """/|
+ |""")
+  end
+  run_game(g)
+  assert_eq(g["ticks"], 2, "max_ticks bounds the loop")
+  frame = render_frame(g)
+  assert_match(frame, "hud", "text lands in the buffer")
+  esc = sprintf("%c", 27)
+  assert_match(frame, "31m|32m", "color codes applied")
+  assert_true(frame.lines[1].include?("/"), "sprite drawn")
+  assert_true(frame.lines[2].include?("|"), "sprite second row")
+end
+
+test "collision helper" do
+  assert_true(collide?(0, 0, 2, 2, 1, 1, 2, 2), "overlap detected")
+  assert_true(not collide?(0, 0, 1, 1, 5, 5, 1, 1), "distance respected")
+  assert_true(not collide?(0, 0, 2, 2, 2, 0, 2, 2), "edge-touch is no overlap")
+end
+
+test "sprite transparency" do
+  g = game_new(width: 6, height: 3, bg: ".")
+  draw(g, 0, 1, "XXXX")
+  draw_sprite(g, 0, 0, """ Z
+ Z""")
+  frame = render_frame(g)
+  assert_true(frame.lines[1].chars[0] == "X", "space did not overwrite")
+  assert_true(frame.lines[1].include?("Z"), "solid pixels drawn")
+end
+
+test "game scaffolding pieces" do
+  g = game_new(width: 5, height: 5)
+  assert_eq(g["ticks"], 0, "fresh game")
+  stop_game(g)
+  assert_true(not g["running"], "stop_game flips the flag")
+  game_beep(g)
+  assert_true(true, "game_beep is safe headless")
+end

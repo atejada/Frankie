@@ -7,7 +7,7 @@
  |  _|| | | (_| | | | |   <| |  __/
  |_|  |_|  \__,_|_| |_|_|\_\_|\___|
 
- The Frankie Language v1.19.0
+ The Frankie Language v1.20.0
  Stitched together from Ruby • Python • R • Fortran
 ```
 
@@ -115,6 +115,45 @@ frankiec run examples/projects/word_reanimator/main.fk
 cd examples/projects/frankie_ledger
 frankiec run main.fk add 12.50 lunch tacos al pastor
 frankiec run main.fk report
+
+# 🐍 Snake — the classic, in your terminal (frankiegame engine)
+frankiec run examples/projects/snake/main.fk
+
+# 🧟 Zombie Invaders — real pixels in the browser (frankiecanvas engine)
+frankiec run examples/projects/zombie_invaders/main.fk    # → localhost:4200
+
+# 🏓 Pong — two browser tabs, one ball. Multiplayer for free.
+frankiec run examples/projects/pong/main.fk               # → localhost:4300
+```
+
+---
+
+## v1.20 Highlights — "It's Alive… and Playing"
+
+```ruby
+# Two game engines, ONE API — the stitch line picks the renderer
+stitch "frankiegame"       # terminal: raw keys + double-buffered ANSI
+stitch "frankiecanvas"     # browser: HTML5 canvas over WebSockets
+
+g = game_new(width: 32, height: 18, fps: 15)
+on_key(g, "left") do |game|
+  game["px"] -= 1
+end
+on_tick(g) do |game|
+  clear(game)
+  draw(game, game["px"], 10, "🧟", color: "green")
+  text(game, 1, 0, "score #{game["score"]}", color: "yellow")
+  game_beep(game) if game["hit"]
+end
+run_game(g)
+
+# frankiecanvas: every browser tab is a player — multiplayer for free
+on_player_key(g) do |game, player, key|
+  move_paddle(game, player, key)
+end
+
+# Start your own game in one command
+#   frankiec new --game mygame
 ```
 
 ---

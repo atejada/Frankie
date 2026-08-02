@@ -483,10 +483,15 @@ def _fk_stitch(name):
         # 2. User-global
         abs_path = _os.path.join(_os.path.expanduser("~"), ".frankie", "stitches", filename)
         if not _os.path.exists(abs_path):
-            raise RuntimeError(
-                f'[Frankie] Stitch not found: "{name}"\n'
-                f"  Put {filename} in ./stitches/ or ~/.frankie/stitches/"
-            )
+            # 3. Bundled with the Frankie installation itself (v1.20 —
+            #    lets Homebrew/system installs find the standard stitches)
+            abs_path = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)),
+                                     "stitches", filename)
+            if not _os.path.exists(abs_path):
+                raise RuntimeError(
+                    f'[Frankie] Stitch not found: "{name}"\n'
+                    f"  Put {filename} in ./stitches/ or ~/.frankie/stitches/"
+                )
 
     # Already loaded — nothing to do
     if abs_path in _fk_loaded_files:
@@ -3837,3 +3842,121 @@ def udp_send(host, port, message):
         return s.sendto(payload, (host, int(port)))
     finally:
         s.close()
+
+
+# ═══ v1.20 — "It's Alive… and Playing": terminal game primitives ═════════════
+
+_fk_term_saved = None      # saved termios settings while raw mode is on
+
+def clock_ms():
+    """Monotonic clock in milliseconds — for frame timing."""
+    return _time.perf_counter() * 1000.0
+
+def beep():
+    """Ring the terminal bell (frankiecanvas maps this to a WebAudio blip)."""
+    import sys as _s
+    if _s.stdout.isatty():
+        _s.stdout.write('\a')
+        _s.stdout.flush()
+    return None
+
+def term_size():
+    """Terminal size → {width:, height:} (sane defaults when not a tty)."""
+    import shutil as _sh
+    size = _sh.get_terminal_size(fallback=(80, 24))
+    return {'width': size.columns, 'height': size.lines}
+
+def term_is_tty():
+    import sys as _s
+    return _s.stdin.isatty() and _s.stdout.isatty()
+
+def term_raw_on():
+    """Enter raw keyboard mode (no Enter needed, no echo). No-op headless."""
+    global _fk_term_saved
+    if not term_is_tty() or _fk_term_saved is not None:
+        return False
+    try:
+        import termios as _tm, tty as _tty, sys as _s
+        fd = _s.stdin.fileno()
+        _fk_term_saved = _tm.tcgetattr(fd)
+        _tty.setcbreak(fd)
+        return True
+    except Exception:
+        _fk_term_saved = None
+        return False
+
+def term_raw_off():
+    """Restore normal keyboard mode."""
+    global _fk_term_saved
+    if _fk_term_saved is None:
+        return False
+    try:
+        import termios as _tm, sys as _s
+        _tm.tcsetattr(_s.stdin.fileno(), _tm.TCSADRAIN, _fk_term_saved)
+    except Exception:
+        pass
+    _fk_term_saved = None
+    return True
+
+_FK_KEY_ESCAPES = {
+    '[A': 'up', '[B': 'down', '[C': 'right', '[D': 'left',
+    'OA': 'up', 'OB': 'down', 'OC': 'right', 'OD': 'left',
+}
+
+def term_key():
+    """Non-blocking key read. Returns the key ("a", "up", "space", "enter",
+    "esc", …) or nil when no key is pending. Requires term_raw_on()."""
+    import sys as _s, select as _sel
+    if not term_is_tty():
+        return None
+    if not _sel.select([_s.stdin], [], [], 0)[0]:
+        return None
+    ch = _s.stdin.read(1)
+    if ch == '\x1b':
+        # Escape sequence (arrows) or a bare Esc press
+        seq = ''
+        while _sel.select([_s.stdin], [], [], 0)[0] and len(seq) < 2:
+            seq += _s.stdin.read(1)
+        if seq in _FK_KEY_ESCAPES:
+            return _FK_KEY_ESCAPES[seq]
+        return 'esc'
+    if ch in ('\r', '\n'):
+        return 'enter'
+    if ch == ' ':
+        return 'space'
+    if ch == '\t':
+        return 'tab'
+    if ch in ('\x7f', '\x08'):
+        return 'backspace'
+    return ch
+
+def term_hide_cursor():
+    import sys as _s
+    if _s.stdout.isatty():
+        _s.stdout.write('\x1b[?25l')
+        _s.stdout.flush()
+    return None
+
+def term_show_cursor():
+    import sys as _s
+    if _s.stdout.isatty():
+        _s.stdout.write('\x1b[?25h')
+        _s.stdout.flush()
+    return None
+
+def term_clear():
+    import sys as _s
+    if _s.stdout.isatty():
+        _s.stdout.write('\x1b[2J\x1b[H')
+        _s.stdout.flush()
+    return None
+
+def term_render(frame):
+    """Draw a full frame: home the cursor and write in ONE syscall —
+    flicker-free double buffering. Headless: no-op."""
+    import sys as _s
+    if not _s.stdout.isatty():
+        return None
+    _s.stdout.write('\x1b[H' + frame)
+    _s.stdout.flush()
+    return None

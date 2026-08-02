@@ -110,7 +110,48 @@ ENV_EXAMPLE = """# .env.example — copy to .env and fill in your values
 """
 
 
-def scaffold(project_name: str):
+
+GAME_MAIN_FK = """# {name}/main.fk — a Frankie game! (frankiegame starter)
+# Run:  frankiec run main.fk   ·   arrows move · q quits
+# Docs: docs/22_v120_features.md — swap the stitch for "frankiecanvas"
+# and the same code renders in a browser.
+
+stitch "frankiegame"
+
+const W = 32
+const H = 18
+
+g = game_new(width: W, height: H, fps: 15)
+g["px"] = W // 2
+g["py"] = H // 2
+g["score"] = 0
+
+on_key(g, "left") do |game|
+  game["px"] = max(1, game["px"] - 1)
+end
+on_key(g, "right") do |game|
+  game["px"] = min(W - 2, game["px"] + 1)
+end
+on_key(g, "up") do |game|
+  game["py"] = max(1, game["py"] - 1)
+end
+on_key(g, "down") do |game|
+  game["py"] = min(H - 2, game["py"] + 1)
+end
+
+on_tick(g) do |game|
+  clear(game)
+  text(game, 0, 0, "█" * W, color: "gray")
+  text(game, 0, H - 1, "█" * W, color: "gray")
+  draw(game, game["px"], game["py"], "🧟")
+  text(game, 2, 0, " {name} — arrows move, q quits ", color: "green")
+end
+
+run_game(g)
+puts "thanks for playing {name}!"
+"""
+
+def scaffold(project_name: str, game: bool = False):
     if os.path.exists(project_name):
         print(f"[Frankie] Error: directory '{project_name}' already exists.")
         sys.exit(1)
@@ -141,7 +182,7 @@ drop a `.fk` file here to override or add project-specific packages.
 """
 
     files = {
-        os.path.join(project_name, "main.fk"):                    MAIN_FK.replace("{name}", project_name),
+        os.path.join(project_name, "main.fk"):                    (GAME_MAIN_FK if game else MAIN_FK).replace("{name}", project_name),
         os.path.join(project_name, "test.fk"):                    TEST_FK.replace("{name}", project_name),
         os.path.join(project_name, "lib", "utils.fk"):            LIB_FK.replace("{name}", project_name),
         os.path.join(project_name, "stitches", "README.md"):      STITCHES_README,

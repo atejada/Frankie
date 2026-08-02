@@ -1,0 +1,108 @@
+## 🐍 Snake — the classic, in the terminal, in ~80 lines of Frankie.
+##
+## Run:    frankiec run main.fk        (from this folder, or repo root)
+## Keys:   arrows to steer · q to quit
+## Ship:   frankiec bundle main.fk -o snake.py
+##
+## Built on the frankiegame stitch (v1.20): fixed-timestep loop,
+## double-buffered ANSI rendering, non-blocking arrow keys.
+## Headless/CI: SNAKE_TICKS=30 frankiec run main.fk simulates 30 frames.
+
+stitch "frankiegame"
+
+const W = 32
+const H = 18
+
+g = game_new(width: W, height: H, fps: 12,
+             max_ticks: to_int(env("SNAKE_TICKS", "0")))
+
+def place_food(game)
+  game["food"] = [rand_int(1, W - 2), rand_int(1, H - 2)]
+  nil
+end
+
+def reset(game)
+  game["snake"] = [[8, 9], [7, 9], [6, 9]]
+  game["dir"] = [1, 0]
+  game["score"] = 0
+  game["dead"] = false
+  place_food(game)
+  nil
+end
+
+def steer(game, dx, dy)
+  d = game["dir"]
+  # no 180° turns into your own neck
+  if d[0] + dx != 0 or d[1] + dy != 0
+    game["dir"] = [dx, dy]
+  end
+  nil
+end
+
+reset(g)
+
+on_key(g, "up") do |game|
+  steer(game, 0, -1)
+end
+on_key(g, "down") do |game|
+  steer(game, 0, 1)
+end
+on_key(g, "left") do |game|
+  steer(game, -1, 0)
+end
+on_key(g, "right") do |game|
+  steer(game, 1, 0)
+end
+on_key(g, "r") do |game|
+  reset(game) if game["dead"]
+end
+
+on_tick(g) do |game|
+  unless game["dead"]
+    head = game["snake"][0]
+    d = game["dir"]
+    nx = head[0] + d[0]
+    ny = head[1] + d[1]
+
+    hit_wall = nx <= 0 or nx >= W - 1 or ny <= 0 or ny >= H - 1
+    hit_self = game["snake"].include?([nx, ny])
+    if hit_wall or hit_self
+      game["dead"] = true
+      beep()
+    else
+      game["snake"] = [[nx, ny]].union(game["snake"])
+      if nx == game["food"][0] and ny == game["food"][1]
+        game["score"] += 1
+        beep()
+        place_food(game)
+      else
+        game["snake"].pop()
+      end
+    end
+  end
+
+  clear(game)
+  # walls
+  text(game, 0, 0, "█" * W, color: "gray")
+  text(game, 0, H - 1, "█" * W, color: "gray")
+  y = 1
+  while y < H - 1
+    draw(game, 0, y, "█", color: "gray")
+    draw(game, W - 1, y, "█", color: "gray")
+    y += 1
+  end
+  # food + snake
+  draw(game, game["food"][0], game["food"][1], "●", color: "red")
+  game["snake"].each_with_index do |seg, i|
+    draw(game, seg[0], seg[1], i == 0 ? "▓" : "▒", color: "green")
+  end
+  # HUD
+  text(game, 2, 0, " score: #{game["score"]} ", color: "yellow")
+  if game["dead"]
+    text(game, 10, 9, " 💀 GAME OVER ", color: "red")
+    text(game, 8, 10, " r to restart · q quit ", color: "gray")
+  end
+end
+
+run_game(g)
+puts "🐍 final score: #{g["score"]}"

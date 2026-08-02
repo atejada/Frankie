@@ -1,0 +1,117 @@
+## 🏓 Pong — two browsers, one ball. Frankie's multiplayer party trick.
+##
+## Run:    frankiec run main.fk    →    open http://localhost:4300 in TWO
+##         browser tabs (or send the link to a friend on your network).
+##         Tab 1 is the left paddle, tab 2 the right. Solo? The right
+##         paddle plays itself.
+## Keys:   ↑ ↓ move your paddle · first to 5 wins · r resets
+## Ship:   frankiec bundle main.fk -o pong.py
+##
+## Headless/CI: PONG_TICKS=60 frankiec run main.fk
+
+stitch "frankiecanvas"
+
+const W = 32
+const H = 18
+const WIN = 5
+
+g = game_new(width: W, height: H, fps: 24, title: "🏓 FRANKIE PONG",
+             port: 4300, max_ticks: to_int(env("PONG_TICKS", "0")))
+
+def reset_ball(game, direction)
+  game["bx"] = W / 2
+  game["by"] = H / 2
+  game["vx"] = direction
+  game["vy"] = rand_int(0, 1) == 0 ? 1 : -1
+  nil
+end
+
+def reset(game)
+  game["p1"] = H / 2 - 1
+  game["p2"] = H / 2 - 1
+  game["s1"] = 0
+  game["s2"] = 0
+  game["over"] = false
+  reset_ball(game, 1)
+  nil
+end
+
+reset(g)
+
+on_player_key(g) do |game, player, key|
+  unless game["over"]
+    if player == 1
+      game["p1"] = max(1, game["p1"] - 1) if key == "up"
+      game["p1"] = min(H - 4, game["p1"] + 1) if key == "down"
+    end
+    if player == 2
+      game["p2"] = max(1, game["p2"] - 1) if key == "up"
+      game["p2"] = min(H - 4, game["p2"] + 1) if key == "down"
+    end
+  end
+end
+
+on_key(g, "r") do |game|
+  reset(game) if game["over"]
+end
+
+on_tick(g) do |game|
+  unless game["over"]
+    # solo mode: the right paddle plays itself
+    if players_count(game) < 2
+      target = game["by"] - 1
+      game["p2"] += 1 if game["p2"] < target and game["p2"] < H - 4
+      game["p2"] -= 1 if game["p2"] > target and game["p2"] > 1
+    end
+
+    game["bx"] += game["vx"]
+    game["by"] += game["vy"]
+
+    # walls
+    if game["by"] <= 1 or game["by"] >= H - 2
+      game["vy"] = -game["vy"]
+      game_beep(game)
+    end
+    # paddles
+    if game["bx"] == 2 and game["by"] >= game["p1"] and game["by"] <= game["p1"] + 2
+      game["vx"] = 1
+      game_beep(game)
+    end
+    if game["bx"] == W - 3 and game["by"] >= game["p2"] and game["by"] <= game["p2"] + 2
+      game["vx"] = -1
+      game_beep(game)
+    end
+    # scoring
+    if game["bx"] <= 0
+      game["s2"] += 1
+      reset_ball(game, 1)
+    end
+    if game["bx"] >= W - 1
+      game["s1"] += 1
+      reset_ball(game, -1)
+    end
+    game["over"] = true if game["s1"] >= WIN or game["s2"] >= WIN
+  end
+
+  clear(game)
+  rect(game, 0, 0, W, 1, "gray")
+  rect(game, 0, H - 1, W, 1, "gray")
+  mid = H / 2
+  y = 1
+  while y < H - 1
+    draw(game, W / 2, y, "·", color: "gray") if y % 2 == 0
+    y += 1
+  end
+  rect(game, 1, game["p1"], 1, 3, "green")
+  rect(game, W - 2, game["p2"], 1, 3, "cyan")
+  draw(game, game["bx"], game["by"], "●", color: "yellow")
+  text(game, W / 2 - 5, 0, " #{game["s1"]} : #{game["s2"]} ", color: "yellow")
+  if game["over"]
+    winner = game["s1"] >= WIN ? "PLAYER 1" : "PLAYER 2"
+    text(game, W / 2 - 7, mid, " 🏆 #{winner} WINS ", color: "yellow")
+    text(game, W / 2 - 7, mid + 1, " press r to rematch ", color: "gray")
+  end
+end
+
+run_game(g)
+puts "🏓 final: #{g["s1"]} : #{g["s2"]}"

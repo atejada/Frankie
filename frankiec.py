@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-frankiec — The Frankie Language Compiler & Interpreter v1.19.0
+frankiec — The Frankie Language Compiler & Interpreter v1.20.0
 Usage:
-    frankiec new    <project>      Scaffold a new Frankie project
+    frankiec new    [--game] <project>  Scaffold a new Frankie project
     frankiec run    [--debug] <file.fk>  Run a Frankie program
     frankiec build  <file.fk>      Compile to Python source
     frankiec bundle <file.fk> [-o out.py]  Bundle into ONE self-contained .py
@@ -30,7 +30,7 @@ from compiler.lexer import Lexer, LexError
 from compiler.parser import Parser, ParseError
 from compiler.codegen import CodeGen, CodeGenError
 
-FRANKIE_VERSION = "1.19.0"
+FRANKIE_VERSION = "1.20.0"
 FRANKIE_BANNER = r"""
   _____                 _    _
  |  ___| __ __ _ _ __ | | _(_) ___
@@ -671,7 +671,7 @@ HELP_TEXT = {
     'bundle':  "frankiec bundle <file.fk> [-o out.py]\n  Bundle a program and everything it requires/imports/stitches into ONE\n  self-contained .py with the Frankie stdlib inlined.\n  Run it anywhere with: python3 out.py — no Frankie installation needed.\n  Dynamic (non-literal) paths can't be bundled and produce a warning.",
     'lsp':     "frankiec lsp\n  Start the Frankie Language Server (LSP over stdio) — live diagnostics,\n  completion, and hover docs for any LSP-capable editor.\n  See docs/20_v118_features.md for VS Code / Neovim / Helix setup.",
     'check':   "frankiec check [--strict] <file.fk>\n  Syntax check + static analysis without executing.\n  Finds undefined variables/functions, wrong argument counts, and\n  unused local variables. require/stitch/import are resolved.\n  Exit 0 = OK, 1 = errors found (--strict: warnings fail too).",
-    'new':     "frankiec new <project_name>\n  Scaffold a new Frankie project with main.fk, test.fk, lib/, data/, .env.example.",
+    'new':     "frankiec new [--game] <project_name>\n  Scaffold a new Frankie project with main.fk, test.fk, lib/, data/, .env.example.\n  --game   Start from a playable frankiegame template (stitch pre-installed).",
     'watch':   "frankiec watch <file.fk> [--test]\n  Watch a file for changes and re-run it automatically on save.\n  --test   Run as a test suite (frankiec test) instead of frankiec run.\n  Polls file modification time — zero dependencies, works everywhere.",
     'version': "frankiec version\n  Print the Frankie version string.",
 }
@@ -914,11 +914,31 @@ def main():
         print(f"Frankie v{FRANKIE_VERSION}")
 
     elif cmd == 'new':
-        if len(sys.argv) < 3:
-            print("[Frankie] Usage: frankiec new <project_name>", file=sys.stderr)
+        args = sys.argv[2:]
+        game_mode = '--game' in args
+        names = [a for a in args if not a.startswith('--')]
+        if not names:
+            print("[Frankie] Usage: frankiec new [--game] <project_name>", file=sys.stderr)
             sys.exit(1)
         from scaffold import scaffold
-        scaffold(sys.argv[2])
+        scaffold(names[0], game=game_mode)
+        if game_mode:
+            # ship the engine with the project, pinned like a real install
+            import shutil, hashlib, json as _json, datetime as _dt
+            src = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               'stitches', 'frankiegame.fk')
+            dest_dir = os.path.join(names[0], 'stitches')
+            os.makedirs(dest_dir, exist_ok=True)
+            shutil.copy(src, os.path.join(dest_dir, 'frankiegame.fk'))
+            data = open(os.path.join(dest_dir, 'frankiegame.fk'), 'rb').read()
+            with open(os.path.join(names[0], 'stitch.lock'), 'w', encoding='utf-8') as f:
+                _json.dump({'frankiegame': {
+                    'sha256': hashlib.sha256(data).hexdigest(),
+                    'source': STITCH_REGISTRY_RAW.format(name='frankiegame'),
+                    'size': len(data),
+                    'installed': _dt.date.today().isoformat()}}, f, indent=2, sort_keys=True)
+                f.write('\n')
+            print(f"[Frankie] 🎮 game starter ready — cd {names[0]} && frankiec run main.fk")
 
     elif cmd == 'repl':
         from repl import run_repl
