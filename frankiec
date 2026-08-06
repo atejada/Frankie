@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 """
-frankiec — The Frankie Language Interpreter & Compiler v1.20.1
+frankiec — The Frankie Language Interpreter & Compiler v1.21.0
 Usage:
     frankiec new    [--game] <project>  Scaffold a new Frankie project
-    frankiec run    <file.fk>      Run a Frankie program
+    frankiec run    [--debug] <file.fk>  Run a Frankie program
     frankiec build  <file.fk>      Compile to Python source
-    frankiec bundle <file.fk> [-o out.py]  Bundle into one self-contained .py
-    frankiec check  [--strict] <file.fk>  Syntax check + static analysis
-    frankiec test   [file.fk] [--filter <name>] [--tag <tag>]  Run test suite
+    frankiec bundle <file.fk> [-o out.py]  Bundle into ONE self-contained .py
+    frankiec check  [--strict] <file.fk|dir>  Syntax check + static analysis
+    frankiec test   [file.fk] [--filter] [--tag] [--coverage]  Run test suite
     frankiec fmt    [--write] [--check] <file.fk>  Auto-format source
-    frankiec docs   [--output <out.md>] <file.fk>  Generate documentation
-    frankiec stitch install <name> [--global]      Install a stitch
+    frankiec docs   [--html] [--output <out>] <file.fk>  Generate documentation
+    frankiec stitch install <name> [--global]      Install a stitch from the registry
     frankiec stitch list | verify | update         Manage stitches + stitch.lock
     frankiec examples [name]       List bundled examples, or copy one here
-    frankiec lsp                   Start the Language Server
+    frankiec lsp                   Start the Language Server (LSP over stdio)
     frankiec repl   [--no-banner]  Start the interactive REPL
     frankiec watch  <file.fk> [--test]  Re-run on save
     frankiec version               Show version info

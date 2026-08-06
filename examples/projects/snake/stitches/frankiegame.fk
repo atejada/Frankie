@@ -99,6 +99,29 @@ def draw_sprite(g, x, y, sprite, color: nil)
   nil
 end
 
+## `load_image(path)` — API parity with frankiecanvas; the terminal has no
+## bitmap rendering, so this just remembers the path for draw_image to
+## fall back on. Write engine-agnostic code without an if/else per stitch.
+def load_image(path)
+  {src: path}
+end
+
+## `draw_image(g, x, y, image, w:, h:)` — draws a w×h block placeholder
+## (terminal can't show real pixels). canvas-only for actual bitmaps —
+## see frankiecanvas's draw_image.
+def draw_image(g, x, y, image, w: 1, h: 1)
+  row = 0
+  while row < h
+    col = 0
+    while col < w
+      draw(g, x + col, y + row, "▒")
+      col += 1
+    end
+    row += 1
+  end
+  nil
+end
+
 ## `collide?(x1, y1, w1, h1, x2, y2, w2, h2)` — axis-aligned box overlap.
 def collide?(x1, y1, w1, h1, x2, y2, w2, h2)
   x1 < x2 + w2 and x2 < x1 + w1 and y1 < y2 + h2 and y2 < y1 + h1
@@ -120,6 +143,13 @@ end
 def on_tick(g, handler)
   g["tick"] = handler
   nil
+end
+
+## `synth_play(g, freq:, wave:, dur:, gain:)` — API parity with frankiecanvas.
+## The terminal can't synthesize tones, so this just rings the bell —
+## freq/wave/dur/gain are accepted but ignored.
+def synth_play(g, freq: 440, wave: "sine", dur: 0.08, gain: 0.06)
+  beep()
 end
 
 ## `game_beep(g)` — sound! Terminal bell here; a WebAudio blip in frankiecanvas.

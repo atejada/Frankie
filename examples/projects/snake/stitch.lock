@@ -1,8 +1,8 @@
 {
   "frankiegame": {
-    "installed": "2026-08-01",
-    "sha256": "4dbb45c7107fd2129b8e4e73c53f252f79c2c209c071d87ccc54767a2180c390",
-    "size": 5010,
+    "installed": "2026-08-06",
+    "sha256": "0f87969797ec2501eca58aa740185a8432497acf72a09490ce18f768159969b5",
+    "size": 5928,
     "source": "https://raw.githubusercontent.com/atejada/Frankie/main/stitches/frankiegame.fk"
   }
 }

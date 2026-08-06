@@ -6,7 +6,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Frankie is a programming language that compiles to Python. It has Ruby-inspired syntax and is implemented entirely in pure Python (no external dependencies). The compiler pipeline is: `.fk` source → Lexer → AST → CodeGen → Python → `exec()`.
 
-Current version: **1.16.2**
+Current version: **1.21.0**
+
+## 🧊 Frozen for the Book
+
+Frankie is language-frozen as of v1.21.0 — Blag is writing "The Book of
+Frankie" against this exact version. Until the freeze lifts: no new syntax,
+no stdlib/stitch signature changes, no breaking behavior changes. Bug fixes
+and doc corrections only. If asked to add a language feature during the
+freeze, propose it for the post-book backlog instead of implementing it.
 
 ## Commands
 
@@ -62,7 +70,7 @@ frankiec watch <file.fk> [--test]
 
 ### Stitches (`stitches/`)
 
-Reusable Frankie library modules. Loaded in `.fk` files via `stitch "frankieconfig"`. Available stitches: `frankieconfig`, `frankieauth`, `frankiecache`, `frankiecli`, `frankiecolor`, `frankiecookie`, `frankieforms`, `frankiemail`, `frankiepager`, `frankieratelimit`, `frankiestring`, `frankietable`, `frankietemplate`.
+Reusable Frankie library modules. Loaded in `.fk` files via `stitch "frankieconfig"`. Available stitches: `frankieconfig`, `frankieauth`, `frankiecache`, `frankiecanvas`, `frankiecli`, `frankiecolor`, `frankiecookie`, `frankieforms`, `frankiegame`, `frankiemail`, `frankiepager`, `frankieratelimit`, `frankiestring`, `frankietable`, `frankietemplate`.
 
 ### Generated Python header
 
@@ -84,3 +92,4 @@ Frankie has a built-in test harness (no external framework). Write tests in `.fk
 - Make sure that there are no missing functions in the codegen.py
 - Can you also make a small description of the changes for the release notes?
 - Showcase should be updated as well, to show examples from all versions.
+- While the freeze (above) is active, this checklist still applies to bug-fix/doc patch releases — just not to new-feature releases.

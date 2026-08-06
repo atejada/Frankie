@@ -1,7 +1,7 @@
 # showcase.fk — Everything Frankie can do in one program
 
 puts "╔══════════════════════════════════════╗"
-puts "║     Frankie v1.18.0 — Full Showcase     ║"
+puts "║     Frankie v1.21.0 — Full Showcase     ║"
 puts "╚══════════════════════════════════════╝"
 puts ""
 
@@ -1045,5 +1045,125 @@ puts "ws says: #{wsock.recv()}"
 wsock.close()
 puts ""
 
+# ── 68. Gradual type annotations (v1.19) ────────────────────────────────────────
+
+puts "── 68. Gradual Type Annotations (v1.19) ──"
+def circle_area(r: Float) -> Float
+  3.14159 * r * r
+end
+
+def label(name: String, score: Int) -> String
+  "#{name}: #{score}"
+end
+
+puts "circle_area(3)     = #{circle_area(3)}    (Int flows into Float)"
+puts "label(\"ada\", 95)   = #{label("ada", 95)}"
+puts "Checked statically — try: frankiec check examples/showcase.fk"
 puts ""
-puts "Frankie v1.18.0 is alive and kicking! 🧟⚡"
+
+# ── 69. UDP sockets (v1.19) ──────────────────────────────────────────────────────
+
+puts "── 69. UDP Sockets (v1.19) ──"
+udp_server = udp_listen(9974)
+spawn do
+  msg = udp_server.recv()
+  udp_server.send_to(msg["host"], msg["port"], "pong: #{msg["data"]}")
+end
+sleep(0.3)
+udp_client = udp_listen(0)
+udp_client.send_to("127.0.0.1", 9974, "ping")
+puts "udp reply: #{udp_client.recv()["data"]}"
+udp_client.close()
+udp_server.close()
+puts ""
+
+# ── 70. TLS clients (v1.19) ──────────────────────────────────────────────────────
+
+puts "── 70. TLS Clients (v1.19) ──"
+puts "ws_connect(\"wss://…\") and tcp_connect(host, 443, tls: true) are"
+puts "certificate-verified via Python's stdlib ssl — zero external deps."
+puts ""
+
+# ── 71. v1.19 tooling — debug, coverage, docs --html, stitch URLs (v1.19) ───────
+
+puts "── 71. v1.19 Tooling ──"
+puts "frankiec run --debug app.fk     — break at line 1, step with s/n/stack"
+puts "frankiec test --coverage        — %, missing lines, editor hints via LSP"
+puts "frankiec docs --html lib.fk     — styled HTML from ## doc-comments"
+puts "frankiec stitch install <url>   — lockfile-pinned stitches from any URL"
+puts ""
+
+# ── 72. frankiegame — terminal game engine (v1.20) ──────────────────────────────
+
+puts "── 72. frankiegame — Terminal Game Engine (v1.20) ──"
+stitch "frankiegame"
+
+g = game_new(width: 20, height: 6, fps: 30, bg: ".", max_ticks: 3)
+on_tick(g) do |game|
+  clear(game)
+  draw(game, 2, 2, "🧟", color: "green")
+  text(game, 2, 0, "it's alive!")
+end
+run_game(g)
+puts "ran #{g["ticks"]} frames (bounded by max_ticks — CI-friendly)"
+puts "buffer says: #{render_frame(g).include?("alive")}"
+puts ""
+
+# ── 73. Engine helpers — collide? + GAME_COLORS (v1.20) ─────────────────────────
+
+puts "── 73. Engine Helpers (v1.20) ──"
+puts "collide?  → #{collide?(0, 0, 2, 2, 1, 1, 2, 2)}"
+puts "colors    → GAME_COLORS: #{GAME_COLORS.keys}"
+puts ""
+
+# ── 74. frankiecanvas — same API, real pixels (v1.20) ───────────────────────────
+
+puts "── 74. frankiecanvas — Same API, Real Pixels (v1.20) ──"
+puts "swap  stitch \"frankiegame\"  for  stitch \"frankiecanvas\"  and your"
+puts "game renders on an HTML5 canvas over WebSockets — every browser tab"
+puts "is a player (on_player_key routes input per player)."
+puts "Play: frankiec examples snake · zombie_invaders · pong"
+puts ""
+
+# ── 75. Image sprites — load_image + draw_image (v1.21) ─────────────────────────
+
+puts "── 75. Image Sprites (v1.21) ──"
+zombie_sprite = load_image("frankie_website.html")
+draw_image(g, 4, 2, zombie_sprite, w: 3, h: 3)
+puts "draw_image queued/rendered — on frankiegame this paints a ▒ placeholder"
+puts "block (a terminal can't show real pixels); frankiecanvas decodes the"
+puts "real PNG/JPEG/GIF and caches it client-side after the first frame."
+puts "buffer has placeholder: #{render_frame(g).include?("▒")}"
+puts ""
+
+# ── 76. WebAudio synth — synth_play (v1.21) ──────────────────────────────────────
+
+puts "── 76. WebAudio Synth (v1.21) ──"
+synth_play(g, freq: 220, wave: "sawtooth", dur: 0.2, gain: 0.08)
+puts "synth_play(freq:, wave:, dur:, gain:) — a real oscillator tone on"
+puts "frankiecanvas, the terminal bell here. game_beep(g) is now a thin"
+puts "wrapper over synth_play with the classic beep settings."
+game_beep(g)
+puts ""
+
+# ── 77. file_read_base64 — binary-safe reads (v1.21) ─────────────────────────────
+
+puts "── 77. file_read_base64 (v1.21) ──"
+file_write("/tmp/frankie_showcase.bin", "binary-safe payload")
+b64 = file_read_base64("/tmp/frankie_showcase.bin")
+puts "file_read_base64 → #{b64}"
+puts "load_image uses this internally — file_read is text-mode and would"
+puts "corrupt real image/audio/zip bytes."
+file_delete("/tmp/frankie_showcase.bin")
+puts ""
+
+# ── 78. 🧊 Language freeze (v1.21) ────────────────────────────────────────────────
+
+puts "── 78. 🧊 Language Freeze (v1.21) ──"
+puts "v1.21 is the last feature release for a while — Blag is writing"
+puts "The Book of Frankie against this exact version. Bug fixes and doc"
+puts "corrections continue; new language/stdlib features are on hold."
+puts ""
+
+puts ""
+puts "Frankie v1.21.0 is alive and kicking! 🧟⚡📖"

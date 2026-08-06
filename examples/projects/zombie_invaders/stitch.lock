@@ -1,8 +1,8 @@
 {
   "frankiecanvas": {
-    "installed": "2026-08-01",
-    "sha256": "ebbafc615b9dc593b1ff6025396fb803acfdf38d3139cf8d3eb34bd9de76ccf5",
-    "size": 8700,
+    "installed": "2026-08-06",
+    "sha256": "ba5ec92c19be3df31f39c6e2285698bc0c53f3dff8a7799377c3ec30df2751f8",
+    "size": 10772,
     "source": "https://raw.githubusercontent.com/atejada/Frankie/main/stitches/frankiecanvas.fk"
   }
 }

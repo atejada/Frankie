@@ -28,6 +28,17 @@ lines.each do |line|
 end
 ```
 
+### `file_read_base64(path)` — Read a binary file, Base64-encoded
+
+`file_read` is text-mode and will corrupt binary data (images, audio,
+zip files). Use `file_read_base64` for anything that isn't text —
+`frankiecanvas`'s `load_image` uses it under the hood for PNG sprites.
+
+```ruby
+data = file_read_base64("sprite.png")
+puts data.length   # Base64 text, safe to embed in a data: URL or JSON
+```
+
 Both raise `FileNotFoundError` if the file doesn't exist — use `rescue` to handle it gracefully:
 
 ```ruby
@@ -241,6 +252,7 @@ rotate_log("app.log", 1000)
 | Function | Description |
 |---|---|
 | `file_read(path)` | Read entire file as string |
+| `file_read_base64(path)` | Read binary file, Base64-encoded |
 | `file_lines(path)` | Read file as vector of lines |
 | `file_write(path, str)` | Write string to file (overwrites) |
 | `file_append(path, str)` | Append string to file |

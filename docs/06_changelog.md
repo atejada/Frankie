@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.21.0 (2026) — "The Book Edition" 🧊
+
+### Image sprites, WebAudio synth, and a language freeze
+
+- **Image sprites in `frankiecanvas`** — `load_image(path)` + `draw_image(g, x, y, image, w:, h:)` for real PNG/JPEG/GIF bitmaps, client-cached after first draw. `frankiegame` gets matching calls (terminal placeholder block) for cross-engine parity.
+- **WebAudio synth API** — `synth_play(g, freq:, wave:, dur:, gain:)` for real oscillator tones; `game_beep` is now a wrapper over it (fully backward compatible).
+- **New stdlib: `file_read_base64(path)`** — binary-safe file read + Base64 in one call.
+- **Docs pass** — `SPEC.md` corrected (implicit return, missing type-annotation grammar), `CLAUDE.md` brought current, README doc index missing v1.17–v1.20 rows restored.
+- **Fixed a data-loss bug in `frankiec fmt`** — single-statement blocks whose body was an assignment or postfix-if/unless were silently formatted to `do |x| nil end`, discarding the logic. See `RELEASE_NOTES_v1.21.md` for details.
+- **🧊 Frankie is now frozen** for the writing of "The Book of Frankie" — see `CLAUDE.md`. Patch releases continue; new features are on hold.
+
+See `docs/23_v121_features.md` for the full writeup.
+
+---
+
 ## v1.20.1 (2026)
 
 ### Patch: arrows obey, examples travel, brew arrives

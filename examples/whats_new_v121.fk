@@ -1,0 +1,33 @@
+stitch "frankiecanvas"
+puts "📖 Frankie v1.21 — The Book Edition"
+puts ""
+puts "── 1. Image sprites: real PNGs in frankiecanvas ──"
+img = load_image("frankie_website.html")
+g = game_new(width: 20, height: 10)
+draw_image(g, 4, 2, img, w: 3, h: 3)
+puts "queued a draw_image op: #{g["ops"][0]["op"]} at (4,2), 3x3 cells"
+puts "(the browser decodes + caches the image on first draw; later frames"
+puts " just resend x/y/w/h — no re-encoding)"
+puts ""
+puts "── 2. WebAudio synth: real tones, not just a beep ──"
+synth_play(g, freq: 220, wave: "sawtooth", dur: 0.2, gain: 0.08)
+tone = g["ops"][1]
+puts "queued a tone op: #{tone["freq"]}Hz #{tone["wave"]} for #{tone["dur"]}s"
+puts "game_beep(g) still works — it's now just synth_play with classic settings"
+puts ""
+puts "── 3. Cross-engine parity ──"
+puts "frankiegame (terminal) gained load_image/draw_image/synth_play too —"
+puts "draw_image renders a ▒ placeholder block (no real pixels in a tty),"
+puts "and synth_play rings the terminal bell. Same function calls, either"
+puts "engine — write once, swap the stitch line."
+puts ""
+puts "── 4. file_read_base64: the new stdlib primitive underneath it all ──"
+puts "load_image is built on file_read_base64(path) — a binary-safe file"
+puts "read for anything that isn't text (images, audio, zips)."
+puts ""
+puts "── 5. 🧊 Frankie is frozen ──"
+puts "v1.21 is the last feature release for a while — Blag is writing"
+puts "The Book of Frankie against this exact version. Bug fixes and doc"
+puts "corrections continue; new language/stdlib features are on hold."
+puts ""
+puts "Frankie v1.21 — THE BOOK EDITION 📖🧟⚡"

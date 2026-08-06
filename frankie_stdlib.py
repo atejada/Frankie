@@ -556,6 +556,16 @@ def file_read(path):
     except FileNotFoundError:
         raise FileNotFoundError(f"File not found: {path!r} — check the path and try again")
 
+def file_read_base64(path):
+    """Read a file as raw bytes and return it Base64-encoded: file_read_base64('sprite.png') → 'iVBORw0K...'
+    Use this (not file_read) for binary files like images — file_read is text-mode and will corrupt bytes."""
+    try:
+        with open(path, 'rb') as f:
+            import base64 as _b64
+            return _b64.b64encode(f.read()).decode('ascii')
+    except FileNotFoundError:
+        raise FileNotFoundError(f"File not found: {path!r} — check the path and try again")
+
 def file_write(path, content):
     """Write string to file (overwrites)."""
     with open(path, 'w', encoding='utf-8') as f:

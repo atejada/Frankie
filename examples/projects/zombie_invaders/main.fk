@@ -1,21 +1,14 @@
-## 🧟 Zombie Invaders — Space Invaders, Frankenstein edition, in the browser.
-##
-## Run:    frankiec run main.fk    →    open http://localhost:4200
-## Keys:   ← → move · space shoots · r restarts
-## Ship:   frankiec bundle main.fk -o zombie_invaders.py
-##
-## Built on the frankiecanvas stitch (v1.20): HTML5 canvas over the
-## built-in web server + WebSockets — real pixels, zero dependencies.
-## Headless/CI: INVADERS_TICKS=60 frankiec run main.fk
-
 stitch "frankiecanvas"
+W = 28
+H = 20
+g = game_new(width: W, height: H, fps: 20, title: "🧟 ZOMBIE INVADERS", port: 4200, max_ticks: to_int(env("INVADERS_TICKS", "0")))
+def _asset(name)
+  local = path_join("assets", name)
+  return local if file_exists(local)
+  path_join("examples", "projects", "zombie_invaders", "assets", name)
+end
 
-const W = 28
-const H = 20
-
-g = game_new(width: W, height: H, fps: 20, title: "🧟 ZOMBIE INVADERS",
-             port: 4200, max_ticks: to_int(env("INVADERS_TICKS", "0")))
-
+ZOMBIE_SPRITE = load_image(_asset("zombie.png"))
 def reset(game)
   zombies = []
   for row in 0..2
@@ -32,9 +25,7 @@ def reset(game)
   game["over"] = false
   nil
 end
-
 def march(game)
-  # zombies shamble sideways; drop a row at the walls and speed up per wave
   step_every = max(2, 8 - game["wave"])
   return nil if game["ticks"] % step_every != 0
   edge = false
@@ -49,13 +40,10 @@ def march(game)
       game["over"] = true if z[1] >= H - 3
     end
   else
-    game["zombies"].each do |z|
-      z[0] += game["dir"]
-    end
+    game["zombies"].each do |z| z[0] += game["dir"] end
   end
   nil
 end
-
 def move_shots(game)
   kept = []
   game["shots"].each do |s|
@@ -72,10 +60,8 @@ def move_shots(game)
     end
     if hit
       game["score"] += 10
-      game_beep(game)
-      game["shots"] = game["shots"].reject do |s|
-        collide?(s[0], s[1], 1, 1, z[0], z[1], 1, 1)
-      end
+      synth_play(game, freq: 660, wave: "square", dur: 0.08)
+      game["shots"] = game["shots"].reject do |s| collide?(s[0], s[1], 1, 1, z[0], z[1], 1, 1) end
     else
       survivors.push(z)
     end
@@ -96,7 +82,6 @@ def move_shots(game)
 end
 
 reset(g)
-
 on_key(g, "left") do |game|
   game["px"] = max(1, game["px"] - 1) unless game["over"]
 end
@@ -105,13 +90,15 @@ on_key(g, "right") do |game|
 end
 on_key(g, "space") do |game|
   unless game["over"]
-    game["shots"].push([game["px"], H - 3]) if game["shots"].length < 3
+    if game["shots"].length < 3
+      game["shots"].push([game["px"], H - 3])
+      synth_play(game, freq: 880, wave: "sawtooth", dur: 0.05, gain: 0.04)
+    end
   end
 end
 on_key(g, "r") do |game|
   reset(game) if game["over"]
 end
-
 on_tick(g) do |game|
   unless game["over"]
     march(game)
@@ -120,19 +107,15 @@ on_tick(g) do |game|
 
   clear(game)
   rect(game, 0, H - 1, W, 1, "gray")
-  game["zombies"].each do |z|
-    draw(game, z[0], z[1], "🧟")
-  end
-  game["shots"].each do |s|
-    draw(game, s[0], s[1], "|", color: "yellow")
-  end
+  game["zombies"].each do |z| draw_image(game, z[0], z[1], ZOMBIE_SPRITE, w: 1, h: 1) end
+  game["shots"].each do |s| draw(game, s[0], s[1], "|", color: "yellow") end
   draw(game, game["px"] - 1, H - 2, "▄█▄", color: "green")
   text(game, 1, 0, "score #{game["score"]}  wave #{game["wave"]}", color: "yellow")
   if game["over"]
     text(game, 7, 9, "💀 THE HORDE WINS", color: "red")
     text(game, 8, 10, "press r to fight on", color: "gray")
+    synth_play(game, freq: 110, wave: "sawtooth", dur: 0.4, gain: 0.08) if game["ticks"] % 40 == 0
   end
 end
-
 run_game(g)
 puts "🧟 final score: #{g["score"]} (wave #{g["wave"]})"

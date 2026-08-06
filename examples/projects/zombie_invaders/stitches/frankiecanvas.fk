@@ -1,4 +1,5 @@
-## frankiecanvas.fk — the browser renderer for Frankie games (v1.20)
+## frankiecanvas.fk — the browser renderer for Frankie games (v1.20, image
+## sprites + synth added in v1.21)
 ##
 ## Same core API as frankiegame — swap the stitch line and your game gets
 ## real pixels: an HTML5 canvas served by the built-in web server, frames
@@ -8,13 +9,15 @@
 ##   stitch "frankiecanvas"
 ##
 ##   g = game_new(width: 32, height: 20, fps: 30, title: "My Game")
+##   zombie = load_image("zombie.png")             # canvas-only: real PNGs
 ##   on_key(g, "left") do |game| ... end          # same key names as terminal
 ##   on_player_key(g) do |game, player, key| ... end   # canvas-only: per player
 ##   on_tick(g) do |game|
 ##     clear(game)
 ##     rect(game, 2, 18, 3, 1, "green")           # canvas-only: colored rects
-##     draw(game, 10, 4, "🧟")                     # shared: cell glyphs
+##     draw_image(game, 10, 4, zombie, w: 2, h: 2) # canvas-only: bitmap sprite
 ##     text(game, 1, 0, "score 3", color: "yellow")
+##     synth_play(game, freq: 220, wave: "sawtooth") if game["hit"]
 ##   end
 ##   run_game(g)                                   # → http://localhost:4100
 ##
@@ -82,15 +85,43 @@ def draw_sprite(g, x, y, sprite, color: nil)
   nil
 end
 
+## `load_image(path)` — load a PNG/JPEG/GIF file for use with draw_image.
+## Call this once (usually before run_game), not every frame — it reads the
+## file from disk. The returned hash carries a data: URL; the browser decodes
+## and caches it the first time it's drawn, so later draw_image calls are
+## cheap.
+def load_image(path)
+  ext = "png"
+  ext = "jpeg" if path.end_with?(".jpg") or path.end_with?(".jpeg")
+  ext = "gif" if path.end_with?(".gif")
+  {src: "data:image/#{ext};base64,#{file_read_base64(path)}"}
+end
+
+## `draw_image(g, x, y, image, w:, h:)` — draw a loaded image at cell (x, y),
+## sized w × h cells (default 1×1). canvas-only: frankiegame's terminal
+## renderer draws a plain block placeholder instead (no bitmap support).
+def draw_image(g, x, y, image, w: 1, h: 1)
+  g["ops"].push({op: "image", x: x, y: y, w: w, h: h, src: image["src"]})
+  nil
+end
+
 ## `collide?(x1, y1, w1, h1, x2, y2, w2, h2)` — axis-aligned box overlap.
 def collide?(x1, y1, w1, h1, x2, y2, w2, h2)
   x1 < x2 + w2 and x2 < x1 + w1 and y1 < y2 + h2 and y2 < y1 + h1
 end
 
-## `game_beep(g)` — a WebAudio blip in every connected browser.
-def game_beep(g)
-  g["ops"].push({op: "beep"})
+## `synth_play(g, freq:, wave:, dur:, gain:)` — play a tone in every
+## connected browser via the WebAudio oscillator. wave is one of "sine",
+## "square", "sawtooth", "triangle". dur and gain are in seconds / 0..1.
+def synth_play(g, freq: 440, wave: "sine", dur: 0.08, gain: 0.06)
+  g["ops"].push({op: "tone", freq: freq, wave: wave, dur: dur, gain: gain})
   nil
+end
+
+## `game_beep(g)` — a WebAudio blip in every connected browser. A thin
+## convenience wrapper over synth_play with the classic beep settings.
+def game_beep(g)
+  synth_play(g, freq: 520, wave: "square", dur: 0.07, gain: 0.06)
 end
 
 def on_key(g, key, handler)
@@ -151,14 +182,20 @@ def _canvas_page(g)
   var cx = cv.getContext("2d");
   var st = document.getElementById("st");
   var audio = null;
-  function blip() {
+  function tone(freq, wave, dur, gain) {
     try {
       if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)();
       var o = audio.createOscillator(), gn = audio.createGain();
-      o.frequency.value = 520; gn.gain.value = 0.06;
+      o.type = wave || "sine"; o.frequency.value = freq || 440; gn.gain.value = gain == null ? 0.06 : gain;
       o.connect(gn); gn.connect(audio.destination);
-      o.start(); o.stop(audio.currentTime + 0.07);
+      o.start(); o.stop(audio.currentTime + (dur || 0.08));
     } catch (e) {}
+  }
+  var imgCache = {};
+  function getImage(src) {
+    var img = imgCache[src];
+    if (!img) { img = new Image(); img.src = src; imgCache[src] = img; }
+    return img;
   }
   cx.fillStyle = BG; cx.fillRect(0, 0, cv.width, cv.height);
   var ws = new WebSocket("ws://" + location.host + "/ws");
@@ -181,7 +218,12 @@ def _canvas_page(g)
           cx.fillText(chs[j], (o.x + j) * CELL + 1, o.y * CELL + 1);
         }
       }
-      else if (o.op === "beep") { blip(); }
+      else if (o.op === "image") {
+        var img = getImage(o.src);
+        var draw = function () { cx.drawImage(img, o.x * CELL, o.y * CELL, o.w * CELL, o.h * CELL); };
+        if (img.complete) draw(); else img.onload = draw;
+      }
+      else if (o.op === "tone") { tone(o.freq, o.wave, o.dur, o.gain); }
     }
   };
   var MAP = {ArrowLeft: "left", ArrowRight: "right", ArrowUp: "up",

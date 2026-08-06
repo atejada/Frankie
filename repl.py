@@ -71,7 +71,7 @@ COMPLETIONS = [
     'sum', 'mean', 'median', 'stdev', 'min', 'max', 'abs',
     'sqrt', 'floor', 'ceil', 'rand', 'rand_int', 'rand_float',
     'json_parse', 'json_dump', 'csv_parse', 'csv_dump',
-    'file_read', 'file_write', 'file_exists', 'file_lines',
+    'file_read', 'file_read_base64', 'file_write', 'file_exists', 'file_lines',
     'file_delete', 'file_mkdir', 'dir_list', 'dir_exists',
     'db_open', 'web_app', 'today', 'now', 'template', 'zip',
     'env', 'argv', 'exit', 'sleep', 'times', 'map_with_index',

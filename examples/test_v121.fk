@@ -1,0 +1,66 @@
+stitch "frankiecanvas"
+test "file_read_base64 round-trips binary data" do
+  path = "/tmp/_fk_test_v121.bin"
+  file_write(path, "not really binary but bytes are bytes")
+  encoded = file_read_base64(path)
+  decoded = base64_decode(encoded)
+  assert_eq(decoded, "not really binary but bytes are bytes", "base64 round-trip")
+  file_delete(path)
+end
+test "load_image builds a data: URL" do
+  path = "/tmp/_fk_test_v121.png"
+  file_write(path, "pretend-png-bytes")
+  img = load_image(path)
+  assert_true(img["src"].start_with?("data:image/png;base64,"), "png mime + base64 prefix")
+  file_delete(path)
+
+  jpg_path = "/tmp/_fk_test_v121.jpg"
+  file_write(jpg_path, "pretend-jpeg-bytes")
+  jpg = load_image(jpg_path)
+  assert_true(jpg["src"].start_with?("data:image/jpeg;base64,"), "jpg extension maps to jpeg mime")
+  file_delete(jpg_path)
+end
+test "draw_image pushes an image op" do
+  g = game_new(width: 10, height: 6)
+  img = {src: "data:image/png;base64,AAAA"}
+  draw_image(g, 2, 3, img, w: 2, h: 2)
+  op = g["ops"][0]
+  assert_eq(op["op"], "image", "op type")
+  assert_eq(op["x"], 2, "x")
+  assert_eq(op["y"], 3, "y")
+  assert_eq(op["w"], 2, "default-overridden w")
+  assert_eq(op["h"], 2, "default-overridden h")
+  assert_eq(op["src"], "data:image/png;base64,AAAA", "src passthrough")
+end
+test "draw_image defaults to a 1x1 cell" do
+  g = game_new(width: 10, height: 6)
+  img = {src: "data:image/png;base64,AAAA"}
+  draw_image(g, 0, 0, img)
+  op = g["ops"][0]
+  assert_eq(op["w"], 1, "default w")
+  assert_eq(op["h"], 1, "default h")
+end
+test "synth_play pushes a tone op with defaults" do
+  g = game_new(width: 10, height: 6)
+  synth_play(g)
+  op = g["ops"][0]
+  assert_eq(op["op"], "tone", "op type")
+  assert_eq(op["freq"], 440, "default freq")
+  assert_eq(op["wave"], "sine", "default wave")
+end
+test "synth_play accepts overrides" do
+  g = game_new(width: 10, height: 6)
+  synth_play(g, freq: 220, wave: "sawtooth", dur: 0.2, gain: 0.1)
+  op = g["ops"][0]
+  assert_eq(op["freq"], 220, "freq override")
+  assert_eq(op["wave"], "sawtooth", "wave override")
+  assert_eq(op["dur"], 0.2, "dur override")
+  assert_eq(op["gain"], 0.1, "gain override")
+end
+test "game_beep is a synth_play wrapper" do
+  g = game_new(width: 10, height: 6)
+  game_beep(g)
+  op = g["ops"][0]
+  assert_eq(op["op"], "tone", "still a tone op")
+  assert_eq(op["freq"], 520, "classic beep pitch")
+end

@@ -1,4 +1,4 @@
-# Frankie Language Specification v1.2
+# Frankie Language Specification v1.3
 
 Frankie is a procedural, expressive programming language named after Frankenstein —
 stitched together from the best parts of Ruby, Python, R, and Fortran.
@@ -322,7 +322,9 @@ result = greet("World")
 
 - Functions use `def...end`
 - Parameters are positional
-- `return` is required (no implicit last-expression return)
+- The last *expression* in a function body is returned implicitly (v1.11+),
+  same as Ruby — `return` is only needed for early exits. Assignments,
+  loops, `puts`, and other statements at the end still return `nil`.
 - Recursion is fully supported
 - Variables in outer scope are accessible (closure-like behaviour)
 
@@ -648,6 +650,42 @@ add = ->(a, b) do
 end
 puts add.(3, 4)       # 7
 ```
+
+---
+
+## 32. Gradual Type Annotations (v1.19)
+
+Optional parameter and return types, checked statically — zero runtime cost:
+
+```frankie
+def area(r: Float) -> Float
+  3.14159 * r * r
+end
+
+def clamp(x: Int, lo: Int, hi: Int) -> Int
+  return lo if x < lo
+  return hi if x > hi
+  x
+end
+```
+
+- Un-annotated code is untouched; annotations are optional per-parameter and
+  per-return, and coexist with keyword defaults (`def connect(host: String, port: 5432)`).
+- Type names: `Int`/`Integer`, `Float`/`Number`, `String`/`Str`,
+  `Bool`/`Boolean`, `Vector`, `Hash`, `Lambda`, `Range`, `Nil`, `Any`.
+- Checked by `frankiec check` (and therefore `frankiec run`/`test`), surfaced
+  live in editors via the LSP. See `docs/21_v119_features.md` for the full
+  inference rules.
+
+---
+
+## Note on scope
+
+This document tracks core *grammar* (statements, expressions, operators).
+Newer contextual-keyword statements (`import`, `error`, `test`, `enum`,
+`benchmark`, `breakpoint` — v1.17/v1.18) and the standard library / stitches
+(game engines, HTTP, sockets, etc.) are documented per-version in `docs/`
+rather than duplicated here; see the doc index in `README.md`.
 
 ---
 

@@ -7,7 +7,7 @@
  |  _|| | | (_| | | | |   <| |  __/
  |_|  |_|  \__,_|_| |_|_|\_\_|\___|
 
- The Frankie Language v1.20.1
+ The Frankie Language v1.21.0
  Stitched together from Ruby • Python • R • Fortran
 ```
 
@@ -125,6 +125,34 @@ frankiec run examples/projects/zombie_invaders/main.fk    # → localhost:4200
 # 🏓 Pong — two browser tabs, one ball. Multiplayer for free.
 frankiec run examples/projects/pong/main.fk               # → localhost:4300
 ```
+
+---
+
+## v1.21 Highlights — "The Book Edition" 📖
+
+```ruby
+stitch "frankiecanvas"
+
+# Real PNG sprites — load once, draw every frame
+zombie = load_image("zombie.png")
+
+on_tick(g) do |game|
+  clear(game)
+  draw_image(game, 10, 4, zombie, w: 2, h: 2)     # bitmap, cell coordinates
+  synth_play(game, freq: 220, wave: "sawtooth") if game["hit"]   # real tones
+  game_beep(game) if game["score_up"]             # still works — same API
+end
+
+# frankiegame (terminal) gets the same calls for cross-engine code:
+# draw_image renders a placeholder block, synth_play rings the bell.
+```
+
+New stdlib primitive: `file_read_base64(path)` — binary-safe file reads
+(what `load_image` uses under the hood).
+
+**🧊 Frankie is frozen as of v1.21** — the language is on hold while
+"The Book of Frankie" gets written against this exact version. Bug
+fixes and doc corrections continue as patch releases.
 
 ---
 
@@ -831,7 +859,7 @@ Full documentation lives in the `docs/` folder:
 | `docs/03_collections.md` | Vectors, hashes, all iterators |
 | `docs/04_stdlib.md` | Math, stats, randomness, strings, regex, file I/O, file system, JSON, CSV, DateTime, HTTP, testing |
 | `docs/05_examples.md` | All example programs explained |
-| `docs/06_changelog.md` | v1.0 – v1.13.1 release notes |
+| `docs/06_changelog.md` | Full release notes, v1.0 – present |
 | `docs/07_database.md` | SQLite database access — full API reference |
 | `docs/08_v17_features.md` | v1.4–v1.7 feature reference: nil safety, templates, file system, typed asserts, web server, randomness, constants, compound assignment |
 | `docs/09_web.md` | Web server — routes, requests, responses, filters |
@@ -844,6 +872,11 @@ Full documentation lives in the `docs/` folder:
 | `docs/16_v1131_features.md` | v1.13.1 feature reference: frankiestring v2, .sum do / .flat_map do fixes, assert_approx_eq, run_tests(), session(req,resp), fmt improvements |
 | `docs/17_v114_features.md` | v1.14 feature reference: spawn, timeout, async routes, middleware, static files, frankietemplate, frankiecookie, hash destructuring, shape matching |
 | `docs/18_v115_features.md` | v1.15 feature reference: ternary, keyword defaults, splat multi-assign, const, fn.(args), json_encode, base64, hmac, String#format, path helpers, date arithmetic, frankieauth, frankieratelimit, frankiec check/new |
+| `docs/19_v117_features.md` | v1.17 feature reference: import, error types + rescue binding, first-class ranges, record dot access, parallel_map |
+| `docs/20_v118_features.md` | v1.18 feature reference: LSP, frankiec bundle, WebSockets, breakpoint debug REPL, enum, benchmark, set ops, numeric underscores, stitch.lock |
+| `docs/21_v119_features.md` | v1.19 feature reference: gradual type annotations, stepping debugger, test coverage, TLS + UDP, stitch installs from URL |
+| `docs/22_v120_features.md` | v1.20 feature reference: frankiegame + frankiecanvas game engines, terminal primitives |
+| `docs/23_v121_features.md` | v1.21 feature reference: image sprites, WebAudio synth, file_read_base64, language freeze |
 
 The formal language grammar lives in `SPEC.md`.
 

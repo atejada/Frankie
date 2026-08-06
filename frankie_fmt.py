@@ -612,12 +612,24 @@ def _has_nested_blocks(node) -> bool:
 
 
 def _is_stmt_only(node) -> bool:
-    """Return True if the node is a statement (not usable as an inline expression)."""
+    """Return True if the node is a statement (not usable as an inline expression).
+
+    v1.21 fix: this list was missing several statement kinds — Assign,
+    PostfixIf, and friends — which meant a single-statement block body like
+    `do |s| hit = true if collide?(...) end` fell through to _fmt_expr(),
+    which doesn't know how to render a statement and silently emitted
+    'nil', discarding the actual logic. Any statement type not safely
+    representable via _fmt_expr must be listed here so the formatter falls
+    back to the (correct) multi-line block form instead."""
     return isinstance(node, (
         FuncDef, IfStmt, UnlessStmt, WhileStmt, UntilStmt,
         DoWhileStmt, ForInStmt, BeginRescue, CaseStmt,
         PrintStmt, DebugPrint, ReturnStmt, RaiseStmt,
         RequireStmt, NextStmt, BreakStmt,
+        PostfixIf, Assign, IndexAssign, CompoundAssign, IndexCompoundAssign,
+        DestructAssign, HashDestructAssign, BreakpointStmt, LoopStmt,
+        SpawnBlock, TimeoutBlock, StitchStmt, ImportStmt, ErrorDef,
+        RecordDef, EnumDef,
     ))
 
 

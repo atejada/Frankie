@@ -1,71 +1,68 @@
-## frankiecanvas.fk — the browser renderer for Frankie games (v1.20)
-##
-## Same core API as frankiegame — swap the stitch line and your game gets
-## real pixels: an HTML5 canvas served by the built-in web server, frames
-## streamed over WebSockets, keyboard + mouse events streamed back.
-## Multiplayer for free: every connected browser is a player.
-##
-##   stitch "frankiecanvas"
-##
-##   g = game_new(width: 32, height: 20, fps: 30, title: "My Game")
-##   on_key(g, "left") do |game| ... end          # same key names as terminal
-##   on_player_key(g) do |game, player, key| ... end   # canvas-only: per player
-##   on_tick(g) do |game|
-##     clear(game)
-##     rect(game, 2, 18, 3, 1, "green")           # canvas-only: colored rects
-##     draw(game, 10, 4, "🧟")                     # shared: cell glyphs
-##     text(game, 1, 0, "score 3", color: "yellow")
-##   end
-##   run_game(g)                                   # → http://localhost:4100
-##
-## Coordinates are CELLS (like the terminal renderer), scaled up by
-## `cell:` pixels (default 22). Headless tests: max_ticks bounds the loop.
-
-CANVAS_CSS_COLORS = {red: "#ff5f56", green: "#39ff6a", yellow: "#ffbd2e",
-                     blue: "#4aa8ff", magenta: "#ff6ac1", cyan: "#5ff5ff",
-                     white: "#d7e4da", gray: "#5f7a66"}
-
+CANVAS_CSS_COLORS = {
+  red: "#ff5f56",
+  green: "#39ff6a",
+  yellow: "#ffbd2e",
+  blue: "#4aa8ff",
+  magenta: "#ff6ac1",
+  cyan: "#5ff5ff",
+  white: "#d7e4da",
+  gray: "#5f7a66"
+}
 def _canvas_color(color)
   return "#d7e4da" if color == nil
   css = CANVAS_CSS_COLORS[color]
   css != nil ? css : color
 end
-
-## `game_new(width:, height:, fps:, title:, port:, cell:, bg:, max_ticks:)`
-def game_new(width: 32, height: 20, fps: 30, title: "Frankie Game",
-             port: 4100, cell: 22, bg: "#0b0f0c", max_ticks: 0)
-  {width: width, height: height, fps: fps, title: title, port: port,
-   cell: cell, bg: bg, max_ticks: max_ticks,
-   handlers: {}, any_key: nil, player_key: nil, tick: nil,
-   ticks: 0, running: false, ops: [], players: [], events: []}
+def game_new(width = 32, height = 20, fps = 30, title = "Frankie Game", port = 4100, cell = 22, bg = "#0b0f0c", max_ticks = 0)
+  {
+    width: width,
+    height: height,
+    fps: fps,
+    title: title,
+    port: port,
+    cell: cell,
+    bg: bg,
+    max_ticks: max_ticks,
+    handlers: {},
+    any_key: nil,
+    player_key: nil,
+    tick: nil,
+    ticks: 0,
+    running: false,
+    ops: [],
+    players: [],
+    events: []
+  }
 end
-
-## `clear(g)` — start the frame from the background color.
 def clear(g)
   g["ops"] = [{op: "clear"}]
   nil
 end
-
-## `draw(g, x, y, s, color: nil)` — draw a string of glyphs at cell (x, y).
-def draw(g, x, y, s, color: nil)
-  g["ops"].push({op: "cells", x: x, y: y, s: to_str(s), c: _canvas_color(color)})
+def draw(g, x, y, s, color = nil)
+  g["ops"].push({
+    op: "cells",
+    x: x,
+    y: y,
+    s: to_str(s),
+    c: _canvas_color(color)
+  })
   nil
 end
-
-## `text(g, x, y, s, color: nil)` — alias of draw (HUDs read nicely).
-def text(g, x, y, s, color: nil)
+def text(g, x, y, s, color = nil)
   draw(g, x, y, s, color: color)
 end
-
-## `rect(g, x, y, w, h, color)` — filled rectangle in cell units (canvas-only).
 def rect(g, x, y, w, h, color)
-  g["ops"].push({op: "rect", x: x, y: y, w: w, h: h, c: _canvas_color(color)})
+  g["ops"].push({
+    op: "rect",
+    x: x,
+    y: y,
+    w: w,
+    h: h,
+    c: _canvas_color(color)
+  })
   nil
 end
-
-## `draw_sprite(g, x, y, sprite, color: nil)` — multi-line sprite; spaces
-## are transparent, same as the terminal renderer.
-def draw_sprite(g, x, y, sprite, color: nil)
+def draw_sprite(g, x, y, sprite, color = nil)
   rows = to_str(sprite).lines
   ry = 0
   while ry < rows.length
@@ -81,129 +78,52 @@ def draw_sprite(g, x, y, sprite, color: nil)
   end
   nil
 end
-
-## `collide?(x1, y1, w1, h1, x2, y2, w2, h2)` — axis-aligned box overlap.
+def load_image(path)
+  ext = "png"
+  ext = "jpeg" if path.end_with?(".jpg") or path.end_with?(".jpeg")
+  ext = "gif" if path.end_with?(".gif")
+  {src: "data:image/#{ext};base64,#{file_read_base64(path)}"}
+end
+def draw_image(g, x, y, image, w = 1, h = 1)
+  g["ops"].push({op: "image", x: x, y: y, w: w, h: h, src: image["src"]})
+  nil
+end
 def collide?(x1, y1, w1, h1, x2, y2, w2, h2)
   x1 < x2 + w2 and x2 < x1 + w1 and y1 < y2 + h2 and y2 < y1 + h1
 end
-
-## `game_beep(g)` — a WebAudio blip in every connected browser.
-def game_beep(g)
-  g["ops"].push({op: "beep"})
+def synth_play(g, freq = 440, wave = "sine", dur = 0.08, gain = 0.06)
+  g["ops"].push({op: "tone", freq: freq, wave: wave, dur: dur, gain: gain})
   nil
 end
-
+def game_beep(g)
+  synth_play(g, freq: 520, wave: "square", dur: 0.07, gain: 0.06)
+end
 def on_key(g, key, handler)
   g["handlers"][key] = handler
   nil
 end
-
 def on_any_key(g, handler)
   g["any_key"] = handler
   nil
 end
-
-## `on_player_key(g) do |game, player, key| ... end` — canvas-only:
-## player is 1, 2, 3… in connection order. Multiplayer input lives here.
 def on_player_key(g, handler)
   g["player_key"] = handler
   nil
 end
-
 def on_tick(g, handler)
   g["tick"] = handler
   nil
 end
-
 def stop_game(g)
   g["running"] = false
   nil
 end
-
-## `players_count(g)` — how many browsers are connected right now.
 def players_count(g)
   g["players"].length
 end
-
 def _canvas_page(g)
-  html_response("""<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>#{g["title"]}</title>
-<style>
-  body { background:#050806; margin:0; min-height:100vh; display:flex;
-         flex-direction:column; align-items:center; justify-content:center;
-         font-family:'Courier New',monospace; color:#5f7a66; }
-  h1 { color:#39ff6a; font-size:1rem; letter-spacing:.15em; }
-  canvas { border:1px solid #1e2a20; image-rendering:pixelated; }
-  #st { font-size:.75rem; margin-top:.6rem; }
-</style>
-</head>
-<body>
-<h1>#{g["title"]}</h1>
-<canvas id="cv" width="#{g["width"] * g["cell"]}" height="#{g["height"] * g["cell"]}"></canvas>
-<div id="st">connecting…</div>
-<script>
-  var CELL = #{g["cell"]};
-  var BG = "#{g["bg"]}";
-  var cv = document.getElementById("cv");
-  var cx = cv.getContext("2d");
-  var st = document.getElementById("st");
-  var audio = null;
-  function blip() {
-    try {
-      if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)();
-      var o = audio.createOscillator(), gn = audio.createGain();
-      o.frequency.value = 520; gn.gain.value = 0.06;
-      o.connect(gn); gn.connect(audio.destination);
-      o.start(); o.stop(audio.currentTime + 0.07);
-    } catch (e) {}
-  }
-  cx.fillStyle = BG; cx.fillRect(0, 0, cv.width, cv.height);
-  var ws = new WebSocket("ws://" + location.host + "/ws");
-  ws.onopen = function () { st.textContent = "connected — keys go to the game"; };
-  ws.onclose = function () { st.textContent = "disconnected"; };
-  ws.onmessage = function (e) {
-    var msg = JSON.parse(e.data);
-    if (msg.hello) { st.textContent = "you are player " + msg.hello; return; }
-    var ops = msg.ops || [];
-    for (var i = 0; i < ops.length; i++) {
-      var o = ops[i];
-      if (o.op === "clear") { cx.fillStyle = BG; cx.fillRect(0, 0, cv.width, cv.height); }
-      else if (o.op === "rect") { cx.fillStyle = o.c; cx.fillRect(o.x * CELL, o.y * CELL, o.w * CELL, o.h * CELL); }
-      else if (o.op === "cells") {
-        cx.fillStyle = o.c;
-        cx.font = (CELL - 2) + "px monospace";
-        cx.textBaseline = "top";
-        var chs = Array.from(o.s);
-        for (var j = 0; j < chs.length; j++) {
-          cx.fillText(chs[j], (o.x + j) * CELL + 1, o.y * CELL + 1);
-        }
-      }
-      else if (o.op === "beep") { blip(); }
-    }
-  };
-  var MAP = {ArrowLeft: "left", ArrowRight: "right", ArrowUp: "up",
-             ArrowDown: "down", " ": "space", Enter: "enter",
-             Escape: "esc", Tab: "tab", Backspace: "backspace"};
-  document.addEventListener("keydown", function (ev) {
-    var k = MAP[ev.key] || (ev.key.length === 1 ? ev.key.toLowerCase() : null);
-    if (!k) return;
-    ev.preventDefault();
-    if (ws.readyState === 1) ws.send(JSON.stringify({k: k}));
-  });
-  cv.addEventListener("mousedown", function (ev) {
-    var r = cv.getBoundingClientRect();
-    var mx = Math.floor((ev.clientX - r.left) / CELL);
-    var my = Math.floor((ev.clientY - r.top) / CELL);
-    if (ws.readyState === 1) ws.send(JSON.stringify({m: [mx, my]}));
-  });
-</script>
-</body>
-</html>""")
+  html_response("<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n<title>#{g["title"]}</title>\n<style>\n  body { background:#050806; margin:0; min-height:100vh; display:flex;\n         flex-direction:column; align-items:center; justify-content:center;\n         font-family:'Courier New',monospace; color:#5f7a66; }\n  h1 { color:#39ff6a; font-size:1rem; letter-spacing:.15em; }\n  canvas { border:1px solid #1e2a20; image-rendering:pixelated; }\n  #st { font-size:.75rem; margin-top:.6rem; }\n</style>\n</head>\n<body>\n<h1>#{g["title"]}</h1>\n<canvas id=\"cv\" width=\"#{g["width"] * g["cell"]}\" height=\"#{g["height"] * g["cell"]}\"></canvas>\n<div id=\"st\">connecting…</div>\n<script>\n  var CELL = #{g["cell"]};\n  var BG = \"#{g["bg"]}\";\n  var cv = document.getElementById(\"cv\");\n  var cx = cv.getContext(\"2d\");\n  var st = document.getElementById(\"st\");\n  var audio = null;\n  function tone(freq, wave, dur, gain) {\n    try {\n      if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)();\n      var o = audio.createOscillator(), gn = audio.createGain();\n      o.type = wave || \"sine\"; o.frequency.value = freq || 440; gn.gain.value = gain == null ? 0.06 : gain;\n      o.connect(gn); gn.connect(audio.destination);\n      o.start(); o.stop(audio.currentTime + (dur || 0.08));\n    } catch (e) {}\n  }\n  var imgCache = {};\n  function getImage(src) {\n    var img = imgCache[src];\n    if (!img) { img = new Image(); img.src = src; imgCache[src] = img; }\n    return img;\n  }\n  cx.fillStyle = BG; cx.fillRect(0, 0, cv.width, cv.height);\n  var ws = new WebSocket(\"ws://\" + location.host + \"/ws\");\n  ws.onopen = function () { st.textContent = \"connected — keys go to the game\"; };\n  ws.onclose = function () { st.textContent = \"disconnected\"; };\n  ws.onmessage = function (e) {\n    var msg = JSON.parse(e.data);\n    if (msg.hello) { st.textContent = \"you are player \" + msg.hello; return; }\n    var ops = msg.ops || [];\n    for (var i = 0; i < ops.length; i++) {\n      var o = ops[i];\n      if (o.op === \"clear\") { cx.fillStyle = BG; cx.fillRect(0, 0, cv.width, cv.height); }\n      else if (o.op === \"rect\") { cx.fillStyle = o.c; cx.fillRect(o.x * CELL, o.y * CELL, o.w * CELL, o.h * CELL); }\n      else if (o.op === \"cells\") {\n        cx.fillStyle = o.c;\n        cx.font = (CELL - 2) + \"px monospace\";\n        cx.textBaseline = \"top\";\n        var chs = Array.from(o.s);\n        for (var j = 0; j < chs.length; j++) {\n          cx.fillText(chs[j], (o.x + j) * CELL + 1, o.y * CELL + 1);\n        }\n      }\n      else if (o.op === \"image\") {\n        var img = getImage(o.src);\n        var draw = function () { cx.drawImage(img, o.x * CELL, o.y * CELL, o.w * CELL, o.h * CELL); };\n        if (img.complete) draw(); else img.onload = draw;\n      }\n      else if (o.op === \"tone\") { tone(o.freq, o.wave, o.dur, o.gain); }\n    }\n  };\n  var MAP = {ArrowLeft: \"left\", ArrowRight: \"right\", ArrowUp: \"up\",\n             ArrowDown: \"down\", \" \": \"space\", Enter: \"enter\",\n             Escape: \"esc\", Tab: \"tab\", Backspace: \"backspace\"};\n  document.addEventListener(\"keydown\", function (ev) {\n    var k = MAP[ev.key] || (ev.key.length === 1 ? ev.key.toLowerCase() : null);\n    if (!k) return;\n    ev.preventDefault();\n    if (ws.readyState === 1) ws.send(JSON.stringify({k: k}));\n  });\n  cv.addEventListener(\"mousedown\", function (ev) {\n    var r = cv.getBoundingClientRect();\n    var mx = Math.floor((ev.clientX - r.left) / CELL);\n    var my = Math.floor((ev.clientY - r.top) / CELL);\n    if (ws.readyState === 1) ws.send(JSON.stringify({m: [mx, my]}));\n  });\n</script>\n</body>\n</html>")
 end
-
 def _canvas_dispatch(g)
   pending = g["events"]
   g["events"] = []
@@ -211,23 +131,19 @@ def _canvas_dispatch(g)
     player = ev[0]
     key = ev[1]
     h = g["handlers"][key]
-    h.(g) if h != nil
+    h.call(g) if h != nil
     ak = g["any_key"]
-    ak.(g, key) if ak != nil
+    ak.call(g, key) if ak != nil
     pk = g["player_key"]
-    pk.(g, player, key) if pk != nil
+    pk.call(g, player, key) if pk != nil
   end
   nil
 end
-
 def _canvas_broadcast(g)
   raw = json_encode({ops: g["ops"]})
-  g["players"].each do |p|
-    p["ws"].send(raw)
-  end
+  g["players"].each do |p| p["ws"].send(raw) end
   nil
 end
-
 def _canvas_loop(g)
   budget = 1000.0 / g["fps"]
   loop do
@@ -235,7 +151,7 @@ def _canvas_loop(g)
     t0 = clock_ms()
     _canvas_dispatch(g)
     handler = g["tick"]
-    handler.(g) if handler != nil
+    handler.call(g) if handler != nil
     _canvas_broadcast(g)
     g["ticks"] += 1
     stop_game(g) if g["max_ticks"] > 0 and g["ticks"] >= g["max_ticks"]
@@ -244,20 +160,15 @@ def _canvas_loop(g)
   end
   nil
 end
-
-## `run_game(g)` — serve the game and enter the loop (blocking).
-## Open http://localhost:PORT — every tab is a player.
 def run_game(g)
   app = web_app()
-  app.get("/") do |req|
-    _canvas_page(g)
-  end
+  app.get("/") do |req| _canvas_page(g) end
   app.websocket("/ws") do |ws|
     player = {ws: ws, n: g["players"].length + 1}
     g["players"].push(player)
     ws.send(json_encode({hello: player["n"]}))
     loop do
-      raw = ws.recv()
+      raw = ws.recv
       break if raw == nil
       msg = json_parse(raw)
       if msg["k"] != nil
