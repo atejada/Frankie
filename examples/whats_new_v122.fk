@@ -1,0 +1,50 @@
+puts "🧮 Frankie v1.22 — More FORTRAN"
+puts ""
+puts "── 1. Matrix math: real element-wise arithmetic ──"
+m1 = [[1, 2], [3, 4]]
+m2 = [[5, 6], [7, 8]]
+puts "m1 + m2 = #{m1 + m2}"
+puts "(a matrix is just a vector of vectors — +, -, /, %, ** now recurse"
+puts " through nested vectors at every depth, so this is real element-wise"
+puts " math, not a silent row-by-row concatenation)"
+puts ""
+puts "identity(3)        = #{matrix_identity(3)}"
+puts "transpose([[1,2,3],[4,5,6]]) = #{matrix_transpose([[1, 2, 3], [4, 5, 6]])}"
+puts "scale by 3          = #{matrix_scale(m1, 3)}"
+puts "matrix_multiply     = #{matrix_multiply(m1, m2)}   (real row·column multiply)"
+puts ""
+puts "── 2. Complex numbers ──"
+c1 = complex_new(3, 4)
+c2 = complex_new(1, 2)
+puts "c1 = #{c1}, c1 + c2 = #{c1 + c2}, c1 * c2 = #{c1 * c2}"
+puts "complex_abs(c1) = #{complex_abs(c1)}   (3-4-5 triangle)"
+puts "printed as 3+4i, not Python's 3+4j — arithmetic is Python's native"
+puts "complex type underneath, so +, -, *, /, ** all work for free"
+puts ""
+puts "── 3. Math intrinsics — FORTRAN's classic built-ins ──"
+puts "sin(0)=#{sin(0)}  cos(0)=#{cos(0)}  atan2(1,1)=#{atan2(1, 1)}"
+puts "exp(1)=#{exp(1)}  log(8, 2)=#{log(8, 2)}  factorial(5)=#{factorial(5)}"
+puts "gcd(12,18)=#{gcd(12, 18)}  lcm(4,6)=#{lcm(4, 6)}  PI=#{PI}  E=#{E}"
+puts ""
+puts "── 4. Labeled loops — break/next out of nested loops by name ──"
+found = nil
+loop :outer do
+  row = 0
+  loop do
+    row = row + 1
+    if row == 2
+      found = row
+      break :outer
+    end
+  end
+end
+puts "escaped a nested loop in one step: found=#{found}"
+puts "(break :name / next :name target a specific loop from anywhere nested"
+puts " inside it — while, until, for, and loop can all carry a :name label)"
+puts ""
+puts "── 5. 🧊 The freeze moves to v1.22 ──"
+puts "This was explicitly promised as the last big addition — the freeze"
+puts "is back on. Bug fixes and doc corrections continue; new language"
+puts "and stdlib features are on hold until The Book of Frankie ships."
+puts ""
+puts "Frankie v1.22 — MORE FORTRAN 🧮🧟⚡"

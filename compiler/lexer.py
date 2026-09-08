@@ -86,6 +86,9 @@ class TT(Enum):
     RBRACE      = auto()
     COMMA       = auto()
     COLON       = auto()
+    SYMBOL      = auto()   # :name — v1.22: split off from STRING so it can
+                            # never be confused with a plain "string" value
+                            # (needed to unambiguously target loop labels)
     DOT         = auto()
     PIPE        = auto()   # | (block param delimiter / hash merge operator)
     HASH        = auto()   # #
@@ -294,7 +297,13 @@ class Lexer:
         current = []
         start_line = self.line
 
-        while self.pos < len(self.source):
+        # `while True` (not `while self.pos < len(self.source)`) — the old
+        # while-condition let this loop exit silently the moment the last
+        # source character was consumed, before the `ch is None` check below
+        # ever ran again, so a truly unterminated triple-quoted string that
+        # ran to EOF never raised this error; it just silently absorbed
+        # everything to EOF as the string's content instead.
+        while True:
             ch = self.peek()
             if ch is None:
                 raise LexError("Unterminated triple-quoted string", start_line, 1)
@@ -433,6 +442,7 @@ class Lexer:
                         self.advance()  # consume the newline
                     # Collect body lines until a line that is exactly `delimiter`
                     body_lines = []
+                    closed = False
                     while self.pos < len(self.source):
                         # Read one line
                         line_start = self.pos
@@ -442,8 +452,16 @@ class Lexer:
                         if self.pos < len(self.source):
                             self.advance()  # consume newline
                         if raw_line.strip() == delimiter:
+                            closed = True
                             break
                         body_lines.append(raw_line)
+                    if not closed:
+                        # Ran off the end of the source without ever finding a
+                        # line matching the delimiter — previously this just
+                        # silently accepted everything collected so far as the
+                        # heredoc body instead of flagging the missing closer.
+                        raise LexError(f"Unterminated heredoc <<{'~' if strip_indent else ''}{delimiter}",
+                                        line, 1)
                     # Strip common leading whitespace for <<~
                     if strip_indent and body_lines:
                         non_empty = [l for l in body_lines if l.strip()]
@@ -524,14 +542,19 @@ class Lexer:
                     self.tokens.append(Token(TT.IDENT, word, line, col))
                 continue
 
-            # Symbol literal :name → treated as a string key
+            # Symbol literal :name — v1.22: its own SYMBOL token (previously
+            # emitted as a plain STRING, which made it indistinguishable
+            # from a "quoted" string value — see parse_primary in parser.py,
+            # which still turns a SYMBOL into the exact same StringLiteral
+            # AST node, so every existing use of :name as a value keeps
+            # working identically; only label-parsing can now tell them apart)
             if ch == ':' and self.peek(1) and (self.peek(1).isalpha() or self.peek(1) == '_'):
                 self.advance()  # consume ':'
                 start = self.pos
                 while self.pos < len(self.source) and (self.peek().isalnum() or self.peek() == '_'):
                     self.advance()
                 sym = self.source[start:self.pos]
-                self.tokens.append(Token(TT.STRING, [('literal', sym)], line, col))
+                self.tokens.append(Token(TT.SYMBOL, sym, line, col))
                 continue
 
             # Operators & punctuation

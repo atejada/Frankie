@@ -1,7 +1,7 @@
 # showcase.fk — Everything Frankie can do in one program
 
 puts "╔══════════════════════════════════════╗"
-puts "║     Frankie v1.21.0 — Full Showcase     ║"
+puts "║     Frankie v1.22.0 — Full Showcase     ║"
 puts "╚══════════════════════════════════════╝"
 puts ""
 
@@ -1157,13 +1157,78 @@ puts "corrupt real image/audio/zip bytes."
 file_delete("/tmp/frankie_showcase.bin")
 puts ""
 
-# ── 78. 🧊 Language freeze (v1.21) ────────────────────────────────────────────────
+# ── 78. 🧊 Language freeze (v1.21, historical) ───────────────────────────────────
 
-puts "── 78. 🧊 Language Freeze (v1.21) ──"
-puts "v1.21 is the last feature release for a while — Blag is writing"
-puts "The Book of Frankie against this exact version. Bug fixes and doc"
+puts "── 78. 🧊 Language Freeze (v1.21, historical) ──"
+puts "v1.21 was announced as the last feature release for a while — Blag"
+puts "was writing The Book of Frankie against that exact version. The"
+puts "freeze briefly lifted for one Blag-approved exception (see below)."
+puts ""
+
+# ── 79. Matrix math — real element-wise arithmetic (v1.22) ──────────────────────
+
+puts "── 79. Matrix Math (v1.22) ──"
+m1 = [[1, 2], [3, 4]]
+m2 = [[5, 6], [7, 8]]
+puts "m1 + m2               = #{m1 + m2}"
+puts "(a matrix is just a vector of vectors — +, -, /, %, ** now recurse"
+puts " through nested vectors at every depth: real element-wise math, not"
+puts " a silent row-by-row concatenation)"
+puts "matrix_identity(3)    = #{matrix_identity(3)}"
+puts "matrix_shape(m1)      = #{matrix_shape(m1)}"
+puts "matrix_transpose      = #{matrix_transpose([[1, 2, 3], [4, 5, 6]])}"
+puts "matrix_scale(m1, 3)   = #{matrix_scale(m1, 3)}"
+puts "matrix_multiply(m1,m2) = #{matrix_multiply(m1, m2)}   (real row·column multiply)"
+puts ""
+
+# ── 80. Complex numbers (v1.22) ──────────────────────────────────────────────────
+
+puts "── 80. Complex Numbers (v1.22) ──"
+c1 = complex_new(3, 4)
+c2 = complex_new(1, 2)
+puts "c1 = #{c1}, c1 + c2 = #{c1 + c2}, c1 * c2 = #{c1 * c2}"
+puts "complex_abs(c1) = #{complex_abs(c1)}   (3-4-5 triangle)"
+puts "complex_real/imag/conj: #{complex_real(c1)}, #{complex_imag(c1)}, #{complex_conj(c1)}"
+puts "printed as 3+4i, not Python's 3+4j — arithmetic runs on Python's"
+puts "native complex type underneath, so +, -, *, /, ** all work for free"
+puts ""
+
+# ── 81. Math intrinsics — FORTRAN's classic built-ins (v1.22) ───────────────────
+
+puts "── 81. Math Intrinsics (v1.22) ──"
+puts "sin(0)=#{sin(0)}  cos(0)=#{cos(0)}  atan2(1,1)=#{atan2(1, 1)}"
+puts "exp(1)=#{exp(1)}  log(8, 2)=#{log(8, 2)}  log10(100)=#{log10(100)}  log2(8)=#{log2(8)}"
+puts "factorial(5)=#{factorial(5)}  gcd(12,18)=#{gcd(12, 18)}  lcm(4,6)=#{lcm(4, 6)}"
+puts "PI=#{PI}  E=#{E}"
+puts ""
+
+# ── 82. Labeled loops — break/next out of nested loops by name (v1.22) ──────────
+
+puts "── 82. Labeled Loops (v1.22) ──"
+found = nil
+loop :outer do
+  row = 0
+  loop do
+    row = row + 1
+    if row == 2
+      found = row
+      break :outer
+    end
+  end
+end
+puts "escaped a nested loop in one step: found=#{found}"
+puts "(break :name / next :name target a specific loop from anywhere nested"
+puts " inside it — while, until, for, and loop can all carry a :name label)"
+puts ""
+
+# ── 83. 🧊 Language freeze (v1.22) ───────────────────────────────────────────────
+
+puts "── 83. 🧊 Language Freeze (v1.22) ──"
+puts "v1.22 — 'More FORTRAN' — was explicitly promised as the last big"
+puts "addition. The freeze is back on at v1.22.0: Blag is writing The"
+puts "Book of Frankie against this exact version. Bug fixes and doc"
 puts "corrections continue; new language/stdlib features are on hold."
 puts ""
 
 puts ""
-puts "Frankie v1.21.0 is alive and kicking! 🧟⚡📖"
+puts "Frankie v1.22.0 is alive and kicking! 🧟⚡📖"

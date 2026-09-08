@@ -7,6 +7,22 @@ import math
 import sys
 
 
+# ─── Labeled Loop Control (v1.22) ─────────────────────────────────────────────
+# Python has no native labeled break/continue. `break :label` / `next :label`
+# compile to raising one of these from anywhere inside nested loops; the
+# labeled loop's own try/except catches a matching label and swallows it,
+# while a non-matching label re-raises so it keeps propagating outward to
+# whichever loop actually owns that label.
+
+class _FkLoopBreak(Exception):
+    def __init__(self, label):
+        self.label = label
+
+class _FkLoopContinue(Exception):
+    def __init__(self, label):
+        self.label = label
+
+
 # ─── Type Conversion ─────────────────────────────────────────────────────────
 
 def _fk_to_int(x):
@@ -49,6 +65,10 @@ def _fk_to_str(x):
     if isinstance(x, type):
         # A class object (FrankieDB, FrankieApp, ...) — never duck-type it
         return f"<class {x.__name__}>"
+    if isinstance(x, complex):
+        # v1.22: print in conventional math notation (3+4i), not Python's
+        # electrical-engineering-flavored (3+4j)
+        return str(x).replace('j', 'i')
     # FrankieDate duck-type check
     if hasattr(x, 'year') and hasattr(x, 'format'):
         return x.to_s()
@@ -61,8 +81,16 @@ def _fk_to_str(x):
 # ─── Arithmetic (vector-aware) ────────────────────────────────────────────────
 
 def _fk_arith(left_repr, left, right_repr, right, op):
-    """Perform arithmetic, supporting vector (list) and string operands."""
+    """Perform arithmetic, supporting vector/matrix (nested list) and string operands."""
     def scalar_op(a, b, o):
+        # v1.22: recurse when either side is itself a list — this is what
+        # makes matrix (nested-vector) arithmetic work element-wise at every
+        # depth, e.g. [[1,2],[3,4]] + [[5,6],[7,8]] → [[6,8],[10,12]].
+        # Without this, a "scalar" that happens to be a list (a matrix row)
+        # would fall through to raw Python `+`, silently concatenating rows
+        # instead of adding them.
+        if isinstance(a, list) or isinstance(b, list):
+            return _fk_arith(repr(a), a, repr(b), b, o)
         if o == '+': return a + b
         if o == '-': return a - b
         if o == '*': return a * b
@@ -133,6 +161,122 @@ def _fk_ceil(x):
 
 def _fk_length(x):
     return len(x)
+
+
+# ─── Math Intrinsics (v1.22 — FORTRAN heritage) ───────────────────────────────
+# Named and scoped after FORTRAN's built-in intrinsic functions (SIN, COS,
+# SQRT, EXP, LOG, MOD, ...) — a classic FORTRAN program leans on these
+# constantly for numerical work, so Frankie ships them the same flat,
+# no-import-needed way as its R-style stats functions.
+
+PI = math.pi
+E = math.e
+
+def sin(x):
+    return math.sin(x)
+
+def cos(x):
+    return math.cos(x)
+
+def tan(x):
+    return math.tan(x)
+
+def asin(x):
+    return math.asin(x)
+
+def acos(x):
+    return math.acos(x)
+
+def atan(x):
+    return math.atan(x)
+
+def atan2(y, x):
+    return math.atan2(y, x)
+
+def exp(x):
+    return math.exp(x)
+
+def log(x, base=None):
+    if base is None:
+        return math.log(x)
+    return math.log(x, base)
+
+def log10(x):
+    return math.log10(x)
+
+def log2(x):
+    return math.log2(x)
+
+def factorial(n):
+    if n < 0:
+        raise RuntimeError(f"[Frankie] factorial() undefined for negative numbers: {n}")
+    return math.factorial(int(n))
+
+def gcd(a, b):
+    return math.gcd(int(a), int(b))
+
+def lcm(a, b):
+    return math.lcm(int(a), int(b))
+
+
+# ─── Complex Numbers (v1.22 — FORTRAN heritage) ───────────────────────────────
+# FORTRAN has shipped a native COMPLEX type since FORTRAN 66. Python's own
+# built-in `complex` already supports +, -, *, /, ** natively, so `_fk_arith`
+# needs no changes at all — these are just a constructor and accessors.
+
+def complex_new(real, imag=0):
+    return complex(real, imag)
+
+def complex_real(c):
+    return c.real
+
+def complex_imag(c):
+    return c.imag
+
+def complex_conj(c):
+    return c.conjugate()
+
+def complex_abs(c):
+    return abs(c)
+
+
+# ─── Matrix (v1.22 — FORTRAN heritage) ────────────────────────────────────────
+# A "matrix" is just a Vector of Vectors — +, -, /, %, ** already work
+# element-wise on nested lists via the _fk_arith fix above. `*` stays as
+# vector-repeat at the top level (unchanged, matching v1.x semantics), so
+# matrix_scale() is provided for true element-wise scalar multiplication,
+# and matrix_multiply() for real (row · column) matrix multiplication.
+
+def matrix_new(rows, cols, fill=0):
+    return [[fill for _ in range(cols)] for _ in range(rows)]
+
+def matrix_identity(n):
+    return [[1 if i == j else 0 for j in range(n)] for i in range(n)]
+
+def matrix_shape(m):
+    if not m:
+        return [0, 0]
+    return [len(m), len(m[0])]
+
+def matrix_transpose(m):
+    if not m:
+        return []
+    return [list(row) for row in zip(*m)]
+
+def matrix_scale(m, n):
+    return [[cell * n for cell in row] for row in m]
+
+def matrix_multiply(m1, m2):
+    rows1, cols1 = len(m1), len(m1[0]) if m1 else 0
+    rows2, cols2 = len(m2), len(m2[0]) if m2 else 0
+    if cols1 != rows2:
+        raise RuntimeError(
+            f"[Frankie] matrix_multiply: shape mismatch {rows1}x{cols1} vs {rows2}x{cols2}")
+    result = [[0 for _ in range(cols2)] for _ in range(rows1)]
+    for i in range(rows1):
+        for j in range(cols2):
+            result[i][j] = sum(m1[i][k] * m2[k][j] for k in range(cols1))
+    return result
 
 
 # ─── Vector Construction ──────────────────────────────────────────────────────
@@ -1104,6 +1248,14 @@ def _fk_chr(n):
     """Return character for ASCII code."""
     return chr(int(n))
 
+def _fk_is_nil(x):
+    """nil? check, routed through a function call rather than inlining
+    `x is None` directly in codegen — comparing a literal (str/int/float/
+    bool) with `is` triggers a Python SyntaxWarning ("is" with a literal),
+    even though the comparison itself is safe and correct. A function call
+    isn't a literal `is` expression, so this sidesteps the warning."""
+    return x is None
+
 def _fk_hex(s):
     """Parse hex string to integer."""
     return int(s, 16)
@@ -1125,7 +1277,12 @@ class FrankieDB:
     def __init__(self, path):
         self._path = path
         # isolation_level=None = autocommit mode; we manage BEGIN/COMMIT explicitly
-        self._conn = _sqlite3.connect(path, isolation_level=None)
+        # check_same_thread=False: web_app() serves each request on its own
+        # thread (ThreadingHTTPServer), but the natural pattern is to open
+        # the db once at startup and share it across every route handler —
+        # without this, the very first request fails with "SQLite objects
+        # created in a thread can only be used in that same thread."
+        self._conn = _sqlite3.connect(path, isolation_level=None, check_same_thread=False)
         self._conn.row_factory = _sqlite3.Row
         self._conn.execute("PRAGMA foreign_keys=ON")
         self._in_tx = False  # track whether we're inside a user transaction
@@ -1274,13 +1431,13 @@ class FrankieDB:
 
 
 
-def _fk_count_dispatch(obj, arg=None):
+def _fk_count_dispatch(obj, arg=None, where=None):
     """Runtime dispatch for .count() — handles DB, str, list.
     Uses duck typing (hasattr) to avoid isinstance cross-namespace issues."""
     if hasattr(obj, 'tables') and hasattr(obj, 'query'):
-        # It's a FrankieDB — use its count method
+        # It's a FrankieDB — use its count method (where=None counts all rows)
         if arg is not None:
-            return obj.count(arg)
+            return obj.count(arg, where)
         return 0
     if isinstance(obj, str) and arg is not None:
         return _fk_str_count(obj, arg)     # "hello".count("l")
@@ -2002,8 +2159,8 @@ class FrankieApp:
     def static(self, fs_root_or_prefix, fs_root=None):
         """Serve files from a directory.
 
-        One-argument form:   app.static("./public")        → served at /
-        Two-argument form:   app.static("./assets", "/static")  → served at /static/
+        One-argument form:   app.static("./public")           → served at /
+        Two-argument form:   app.static("/static", "./assets") → served at /static/
         """
         if fs_root is None:
             # 1-arg: app.static("./public") — serve at /
@@ -2178,6 +2335,24 @@ def _fk_tmpl_lookup(data, key):
     return None
 
 
+def _fk_tmpl_partial_path(name):
+    return _os.path.join("views", "partials", f"{name}.html")
+
+
+def partial(name):
+    """Load a partial template by name from ./views/partials/<name>.html.
+
+    Returns the raw file contents as a string. Normally you use {{> name }}
+    tags inside template files rather than calling this directly.
+    Raises an error if the partial file is not found.
+    """
+    path = _fk_tmpl_partial_path(name)
+    if not _os.path.exists(path):
+        raise FileNotFoundError(f"[Frankie] Partial not found: {path}")
+    with open(path, 'r', encoding='utf-8') as _fh:
+        return _fh.read()
+
+
 def _fk_tmpl_render(tmpl, data):
     """Core Mustache-compatible renderer.
 
@@ -2186,12 +2361,28 @@ def _fk_tmpl_render(tmpl, data):
       {{{ var }}}           — raw unescaped interpolation
       {{# section }}...{{/ section }} — truthy block / vector iteration
       {{^ inverted }}...{{/ inverted }} — falsy / empty block
+      {{> partial }}        — include ./views/partials/<name>.html,
+                               rendered with the same data context
       {{! comment }}        — stripped from output
     """
     import re as _re
 
     # Strip comments
     tmpl = _re.sub(r'\{\{![^}]*\}\}', '', tmpl)
+
+    # Partials {{> name }} — included before sections so a partial referenced
+    # from inside a {{# }} block's inner content is expanded too, since that
+    # inner content is recursively passed back through this same function.
+    def render_partial(m):
+        name = m.group(1).strip()
+        path = _fk_tmpl_partial_path(name)
+        if not _os.path.exists(path):
+            return ''
+        with open(path, 'r', encoding='utf-8') as _fh:
+            content = _fh.read()
+        return _fk_tmpl_render(content, data)
+
+    tmpl = _re.sub(r'\{\{>\s*(\w+)\s*\}\}', render_partial, tmpl)
 
     # Sections {{# key }} ... {{/ key }}
     def render_section(m):
@@ -3437,7 +3628,7 @@ def _fk_breakpoint(file, line, g, l, frame=None):
     print(f"\n🧟 breakpoint — {file}:{line}")
     if src_line:
         print(f"   ──▶ {line} │ {src_line}")
-    print("   (c)ontinue · vars · where · exit · or type any Frankie expression\n")
+    print("   (c)ontinue · s(tep) · n(ext) · stack · vars · where · exit · or type any Frankie expression\n")
 
     from repl import _compile_and_run
     while True:

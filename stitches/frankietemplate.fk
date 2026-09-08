@@ -1,7 +1,7 @@
 ## frankietemplate.fk — Mustache-compatible template rendering for Frankie
 ##
 ## The template engine is implemented in frankie_stdlib.py.
-## Stitching this file makes render() and render_file() available.
+## Stitching this file makes render(), render_file(), and partial() available.
 ##
 ## Usage:
 ##   stitch "frankietemplate"
@@ -17,8 +17,9 @@
 ##   {{{ var }}}                        — raw / unescaped interpolation
 ##   {{# section }} ... {{/ section }}  — truthy block or vector iteration
 ##   {{^ inverted }} ... {{/ inverted}} — falsy / empty block
+##   {{> partial }}                     — include ./views/partials/<name>.html
 ##   {{! comment }}                     — stripped from output
 
-## render(template, data) and render_file(path, data) are built into
-## frankie_stdlib.py — no Frankie implementation needed here.
+## render(template, data), render_file(path, data), and partial(name) are all
+## built into frankie_stdlib.py — no Frankie implementation needed here.
 ## This file exists so stitch "frankietemplate" signals intent clearly.

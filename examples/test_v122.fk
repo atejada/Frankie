@@ -1,0 +1,299 @@
+# ── Matrix math ──────────────────────────────────────────────────────────────
+
+test "vector arithmetic still elementwise (regression, unchanged)" do
+  a = [1, 2, 3]
+  b = [10, 20, 30]
+  assert_eq(a + b, [11, 22, 33], "elementwise +")
+  assert_eq(a - b, [-9, -18, -27], "elementwise -")
+  assert_eq(a * 2, [1, 2, 3, 1, 2, 3], "* n still repeats (Python-list semantics, unchanged)")
+end
+
+test "matrix + and - are truly element-wise, not row concatenation" do
+  m1 = [[1, 2], [3, 4]]
+  m2 = [[5, 6], [7, 8]]
+  assert_eq(m1 + m2, [[6, 8], [10, 12]], "matrix +")
+  assert_eq(m1 - m2, [[-4, -4], [-4, -4]], "matrix -")
+end
+
+test "matrix_new builds a filled rows x cols matrix" do
+  m = matrix_new(2, 3, 0)
+  assert_eq(m, [[0, 0, 0], [0, 0, 0]], "2x3 zero matrix")
+end
+
+test "matrix_identity builds an identity matrix" do
+  assert_eq(matrix_identity(3), [[1, 0, 0], [0, 1, 0], [0, 0, 1]], "3x3 identity")
+end
+
+test "matrix_shape reports rows and cols" do
+  assert_eq(matrix_shape(matrix_new(2, 5, 0)), [2, 5], "shape")
+end
+
+test "matrix_transpose swaps rows and columns" do
+  assert_eq(matrix_transpose([[1, 2, 3], [4, 5, 6]]), [[1, 4], [2, 5], [3, 6]], "transpose")
+end
+
+test "matrix_scale multiplies every element" do
+  assert_eq(matrix_scale([[1, 2], [3, 4]], 3), [[3, 6], [9, 12]], "scale by 3")
+end
+
+test "matrix_multiply does real row-by-column multiplication" do
+  result = matrix_multiply([[1, 2], [3, 4]], [[5, 6], [7, 8]])
+  assert_eq(result, [[19, 22], [43, 50]], "2x2 multiply")
+end
+
+test "matrix_multiply raises on shape mismatch" do
+  assert_raises(->() { matrix_multiply([[1, 2]], [[1, 2]]) })
+end
+
+# ── Complex numbers ────────────────────────────────────────────────────────────
+
+test "complex_new and accessors" do
+  c = complex_new(3, 4)
+  assert_eq(complex_real(c), 3.0, "real part")
+  assert_eq(complex_imag(c), 4.0, "imag part")
+  assert_eq(complex_abs(c), 5.0, "magnitude (3-4-5 triangle)")
+end
+
+test "complex arithmetic works via native Python complex" do
+  c1 = complex_new(3, 4)
+  c2 = complex_new(1, 2)
+  assert_eq(c1 + c2, complex_new(4, 6), "complex +")
+  assert_eq(c1 * c2, complex_new(-5, 10), "complex *")
+end
+
+test "complex_conj negates the imaginary part" do
+  c = complex_new(3, 4)
+  assert_eq(complex_conj(c), complex_new(3, -4), "conjugate")
+end
+
+test "complex numbers print with i, not Python's j" do
+  c = complex_new(3, 4)
+  assert_eq(to_str(c), "(3+4i)", "conventional math notation")
+end
+
+# ── Math intrinsics ─────────────────────────────────────────────────────────────
+
+test "trig and constants" do
+  assert_eq(sin(0), 0.0, "sin(0)")
+  assert_eq(cos(0), 1.0, "cos(0)")
+  assert_true(abs(sqrt(2) ** 2 - 2) < 0.0001, "sqrt(2) ** 2 ≈ 2")
+  assert_true(abs(PI - 3.14159) < 0.001, "PI constant")
+  assert_true(abs(E - 2.71828) < 0.001, "E constant")
+end
+
+test "exp and log are inverses" do
+  assert_true(abs(log(exp(1)) - 1) < 0.0001, "log(exp(1)) ≈ 1")
+  assert_eq(log(8, 2), 3.0, "log base 2 of 8")
+  assert_eq(log10(1000), 3.0, "log10")
+  assert_eq(log2(8), 3.0, "log2")
+end
+
+test "factorial, gcd, lcm" do
+  assert_eq(factorial(5), 120, "5!")
+  assert_eq(factorial(0), 1, "0! = 1")
+  assert_eq(gcd(12, 18), 6, "gcd")
+  assert_eq(lcm(4, 6), 12, "lcm")
+end
+
+test "factorial raises on negative input" do
+  assert_raises(->() { factorial(-1) })
+end
+
+# ── Labeled loops ────────────────────────────────────────────────────────────
+
+test "break :label exits the labeled outer loop from a nested unlabeled loop" do
+  log = []
+  loop :outer do
+    i = 0
+    loop do
+      i = i + 1
+      break :outer if i > 2
+      log.push(i)
+    end
+    log.push("should not reach here")
+  end
+  assert_eq(log, [1, 2], "inner ran twice, outer body never resumed")
+end
+
+test "next :label skips to the next iteration of the labeled outer loop" do
+  log = []
+  i = 0
+  while :outer i < 3
+    i = i + 1
+    j = 0
+    while j < 3
+      j = j + 1
+      next :outer if j == 2
+      log.push([i, j])
+    end
+    log.push("unreached")
+  end
+  assert_eq(log, [[1, 1], [2, 1], [3, 1]], "next :outer skips the rest of both loops each time")
+end
+
+test "labeled for loops work the same way" do
+  log = []
+  for :outer x in [1, 2, 3]
+    for y in [1, 2, 3]
+      break :outer if x == 2 and y == 2
+      log.push([x, y])
+    end
+  end
+  assert_eq(log, [[1, 1], [1, 2], [1, 3], [2, 1]], "escapes both for loops via label")
+end
+
+test "triple nesting: innermost break can target the outermost label" do
+  hits = 0
+  loop :a do
+    loop :b do
+      loop do
+        hits = hits + 1
+        break :a
+      end
+    end
+  end
+  assert_eq(hits, 1, "only ran once — escaped all three loops immediately")
+end
+
+test "plain unlabeled break/next are completely unaffected" do
+  log = []
+  i = 0
+  while i < 5
+    i = i + 1
+    next if i == 2
+    break if i == 4
+    log.push(i)
+  end
+  assert_eq(log, [1, 3], "regression: ordinary break/next still work")
+end
+
+test "break with a plain string value is NOT mistaken for a label" do
+  log = []
+  loop do
+    log.push("before")
+    break "some return value"
+  end
+  assert_eq(log, ["before"], "loop actually exited, not swallowed by label matching")
+end
+
+test ":symbol still works as an ordinary value everywhere else" do
+  status = :pending
+  assert_eq(status, "pending", "symbol is still just a string value")
+  h = {role: :admin}
+  assert_eq(h["role"], "admin", "symbol as a hash value")
+end
+
+# ── .each as an expression (bug fix, not new in v1.22 — see reference/changelog.md) ──
+# `x = vec.each do |n| ... end` compiled to `x = ` with nothing on the right-hand
+# side — .each always emitted a bare `for` statement and returned "" as its
+# "value". This silently produced invalid Python whenever the result of .each
+# was captured, which is exactly the documented `break value` idiom in
+# language/loops.md. Fixed so .each/.each_with_index return `break value` when
+# broken out of, or the receiver itself (Ruby's convention) otherwise.
+
+test "break value from .each, assigned, matches the documented example" do
+  result = [1, 2, 3, 4, 5].each do |n|
+    break n * 10 if n == 3
+  end
+  assert_eq(result, 30, "language/loops.md's exact documented example")
+end
+
+test "plain .each with no break, assigned, returns the receiver (Ruby convention)" do
+  seen = []
+  result = [1, 2, 3].each do |n|
+    seen.push(n)
+  end
+  assert_eq(seen, [1, 2, 3], "block still ran normally")
+  assert_eq(result, [1, 2, 3], "unbroken .each returns the receiver")
+end
+
+test "bare break (no value) from .each, assigned, gives nil — not a stale value" do
+  first = [1, 2, 3, 4, 5].each do |n|
+    break 99 if n == 2
+  end
+  assert_eq(first, 99, "break value captured correctly")
+  second = [1, 2, 3, 4, 5].each do |n|
+    break if n == 2
+  end
+  assert_eq(second, nil, "bare break gives nil, not leftover state from the previous .each")
+end
+
+test ".each assigned still runs correctly when used as a bare statement (no regression)" do
+  log = []
+  [1, 2, 3].each do |n|
+    log.push(n)
+  end
+  assert_eq(log, [1, 2, 3], "statement-form .each unaffected by the expression-form fix")
+end
+
+test "hash .each with break value" do
+  config = {a: 1, b: 2, c: 3}
+  result = config.each do |k, v|
+    break "#{k}=#{v}" if v == 2
+  end
+  assert_eq(result, "b=2", "hash .each also supports break value when assigned")
+end
+
+test "each_with_index with break value, assigned" do
+  result = ["a", "b", "c"].each_with_index do |v, i|
+    break "#{i}:#{v}" if i == 1
+  end
+  assert_eq(result, "1:b", "each_with_index shares the same fix as each")
+end
+
+test "nested .each calls with break value don't collide (each gets its own temp vars)" do
+  inner_log = []
+  outer_result = [1, 2].each do |a|
+    inner_result = [10, 20, 30].each do |b|
+      break b if b == 20
+    end
+    inner_log.push(inner_result)
+    break a * 100 if a == 2
+  end
+  assert_eq(inner_log, [20, 20], "inner .each broke with the right value both times")
+  assert_eq(outer_result, 200, "outer .each broke with its own value, unaffected by inner")
+end
+
+# ── Type annotation + default value together (new — a def param can now carry both) ──
+# Previously `price: Float = 5.0` failed to parse: the parser treated a type
+# annotation and a default as mutually exclusive on the same parameter, and
+# `frankie_fmt.py` had the same either/or assumption baked in (would have
+# silently dropped the default on reformat, same class of bug as the earlier
+# labeled-loop formatter regression).
+
+def product(name: String, price: Float = 5.0, discount: Integer = 1) -> String
+  "#{name} costs $#{price}, discount #{discount}"
+end
+
+test "type annotation + default together: default is used when omitted" do
+  assert_eq(product("Eggs"), "Eggs costs $5.0, discount 1", "both defaults applied")
+end
+
+test "type annotation + default together: explicit args override the defaults" do
+  assert_eq(product("Bread", 3.0, 2), "Bread costs $3.0, discount 2", "explicit args win")
+end
+
+test "type annotation + default together: partial override" do
+  assert_eq(product("Milk", 6.0), "Milk costs $6.0, discount 1", "price overridden, discount defaulted")
+end
+
+test "annotation-only params (no default) still work — regression" do
+  def area(r: Float) -> Float
+    PI * r * r
+  end
+  assert_approx_eq(area(2.0), 12.566370614359172, 0.0000001, "annotation without default, unchanged")
+end
+
+test "default-only params (no annotation) still work — regression" do
+  def greet(name, greeting = "Hello")
+    "#{greeting}, #{name}!"
+  end
+  assert_eq(greet("Blag"), "Hello, Blag!", "default without annotation, unchanged")
+end
+
+test "keyword-style default (name: value, no type) still works — regression" do
+  def connect(host, port: 5432, ssl: true)
+    "#{host}:#{port} ssl=#{ssl}"
+  end
+  assert_eq(connect("localhost"), "localhost:5432 ssl=true", "keyword-style default, unchanged")
+end

@@ -139,7 +139,8 @@ class Formatter:
         elif isinstance(node, BreakpointStmt):
             self._emit("breakpoint")
         elif isinstance(node, LoopStmt):
-            self._emit("loop do")
+            label = self._fmt_label(getattr(node, 'label', None))
+            self._emit(f"loop{label} do")
             self._indent()
             self._fmt_body(node.body)
             self._dedent()
@@ -157,9 +158,14 @@ class Formatter:
             self._dedent()
             self._emit("end")
         elif isinstance(node, CaseStmt):      self._fmt_case(node)
-        elif isinstance(node, NextStmt):      self._emit("next")
+        elif isinstance(node, NextStmt):
+            label = getattr(node, 'label', None)
+            self._emit(f"next :{label}" if label else "next")
         elif isinstance(node, BreakStmt):
-            if node.value:
+            label = getattr(node, 'label', None)
+            if label:
+                self._emit(f"break :{label}")
+            elif node.value:
                 self._emit(f"break {self._fmt_expr(node.value)}")
             else:
                 self._emit("break")
@@ -173,9 +179,13 @@ class Formatter:
         if isinstance(stmt, ReturnStmt):
             return f"return {self._fmt_expr(stmt.value)}" if stmt.value else "return"
         if isinstance(stmt, BreakStmt):
+            label = getattr(stmt, 'label', None)
+            if label:
+                return f"break :{label}"
             return f"break {self._fmt_expr(stmt.value)}" if stmt.value else "break"
         if isinstance(stmt, NextStmt):
-            return "next"
+            label = getattr(stmt, 'label', None)
+            return f"next :{label}" if label else "next"
         if isinstance(stmt, BreakpointStmt):
             return "breakpoint"
         if isinstance(stmt, RaiseStmt):
@@ -208,9 +218,11 @@ class Formatter:
         for i, p in enumerate(node.params):
             d = node.defaults[i] if i < len(node.defaults) else None
             t = ptypes[i] if ptypes and i < len(ptypes) else None
-            if t:
+            if t and d is not None:
+                parts.append(f"{p}: {t} = {self._fmt_expr(d)}")
+            elif t:
                 parts.append(f"{p}: {t}")
-            elif d:
+            elif d is not None:
                 parts.append(f"{p} = {self._fmt_expr(d)}")
             else:
                 parts.append(p)
@@ -252,15 +264,19 @@ class Formatter:
             self._dedent()
         self._emit("end")
 
+    def _fmt_label(self, label) -> str:
+        """v1.22: render an optional loop label as ' :name', else ''."""
+        return f" :{label}" if label else ""
+
     def _fmt_while(self, node: WhileStmt):
-        self._emit(f"while {self._fmt_expr(node.condition)}")
+        self._emit(f"while{self._fmt_label(getattr(node, 'label', None))} {self._fmt_expr(node.condition)}")
         self._indent()
         self._fmt_body(node.body)
         self._dedent()
         self._emit("end")
 
     def _fmt_until(self, node: UntilStmt):
-        self._emit(f"until {self._fmt_expr(node.condition)}")
+        self._emit(f"until{self._fmt_label(getattr(node, 'label', None))} {self._fmt_expr(node.condition)}")
         self._indent()
         self._fmt_body(node.body)
         self._dedent()
@@ -274,7 +290,8 @@ class Formatter:
         self._emit(f"while {self._fmt_expr(node.condition)}")
 
     def _fmt_for_in(self, node: ForInStmt):
-        self._emit(f"for {node.var} in {self._fmt_expr(node.iterable)}")
+        label = self._fmt_label(getattr(node, 'label', None))
+        self._emit(f"for{label} {node.var} in {self._fmt_expr(node.iterable)}")
         self._indent()
         self._fmt_body(node.body)
         self._dedent()

@@ -6,15 +6,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Frankie is a programming language that compiles to Python. It has Ruby-inspired syntax and is implemented entirely in pure Python (no external dependencies). The compiler pipeline is: `.fk` source → Lexer → AST → CodeGen → Python → `exec()`.
 
-Current version: **1.21.0**
+Current version: **1.22.0**
 
 ## 🧊 Frozen for the Book
 
-Frankie is language-frozen as of v1.21.0 — Blag is writing "The Book of
+Frankie is language-frozen as of v1.22.0 — Blag is writing "The Book of
 Frankie" against this exact version. Until the freeze lifts: no new syntax,
 no stdlib/stitch signature changes, no breaking behavior changes. Bug fixes
 and doc corrections only. If asked to add a language feature during the
 freeze, propose it for the post-book backlog instead of implementing it.
+
+The freeze briefly moved from v1.21.0 to v1.22.0 for one deliberate,
+Blag-approved exception: a FORTRAN-heritage feature pass (Matrix math,
+Complex numbers, math intrinsics, labeled loops — see the v1.22.0 changelog
+entry). This was explicitly called "the last big addition" before the
+freeze — treat any further feature request the same as before: propose it
+for the post-book backlog, don't implement it.
 
 ## Commands
 

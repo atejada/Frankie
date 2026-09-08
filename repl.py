@@ -5,6 +5,7 @@ Invoked via: frankiec repl
 
 import sys
 import os
+import re
 import importlib.util
 
 FRANKIE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -266,7 +267,26 @@ def _show_help_for(name, exec_globals):
 
 def _is_incomplete(lines):
     depth = 0
+    # Tracks an open multi-line string across lines: None, or
+    # ('triple', '"'/"'") for a """.../'''... block, or ('heredoc', DELIM)
+    # for <<~DELIM/<<DELIM. Previously this function had no concept of
+    # either, so `message = """` looked like a complete statement and the
+    # REPL never switched to the "..." continuation prompt — the next line
+    # was then parsed as a brand-new (invalid) statement on its own.
+    pending_string = None
     for line in lines:
+        if pending_string is not None:
+            kind, marker = pending_string
+            if kind == 'triple':
+                if (marker * 3) in line:
+                    pending_string = None
+            else:  # heredoc — closes on a line that is exactly the delimiter
+                if line.strip() == marker:
+                    pending_string = None
+            # Content inside a multi-line string body never affects block
+            # depth, and can't itself open a *new* multi-line string.
+            continue
+
         stripped = line.strip()
         if stripped.startswith('#'):
             continue
@@ -280,16 +300,39 @@ def _is_incomplete(lines):
                 stripped.startswith('begin') or
                 stripped.startswith('case')):
             depth += 1
+        # Inline-if expression as an assignment RHS: `greet = if cond` — `if`
+        # doesn't start the line here, so the check above misses it. Only
+        # `if` (not unless/while/until/case) is valid as an expression after
+        # a plain `=` (not `==`/`!=`/`<=`/`>=`), so this is deliberately narrow.
+        elif re.search(r'(?<!=)=(?!=)\s*if\b', stripped):
+            depth += 1
         # Standalone `do` or `do |params|` on its own line
         if stripped == 'do' or stripped.startswith('do ') or stripped.startswith('do|'):
             depth += 1
         # Inline `do` after a method call: `3.times do |i|`
-        elif ' do' in stripped and not stripped.startswith('#'):
+        # (word-boundary match — a plain substring check on ' do' false-positives
+        # on any word starting with "do" after a space, e.g. `enum Status(..., done)`)
+        elif re.search(r'\bdo\b', stripped) and not stripped.startswith('#'):
             depth += 1
         # `end` closes a block — bare or trailing (e.g. `rescue RuntimeError => e`)
         if stripped == 'end' or stripped.startswith('end ') or stripped.endswith(' end'):
             depth -= 1
-    return depth > 0
+
+        # Does this line open a multi-line string that isn't also closed on
+        # the same line? An even count means it's balanced (e.g. a one-line
+        # `x = """abc"""`), so only an odd count leaves one open.
+        if line.count('"""') % 2 == 1:
+            pending_string = ('triple', '"')
+        elif line.count("'''") % 2 == 1:
+            pending_string = ('triple', "'")
+        else:
+            # Heredoc opener: <<~DELIM or <<DELIM, identifier immediately
+            # after (no space) — matches the lexer's own heredoc detection,
+            # so this won't misfire on things like `arr << item`.
+            m = re.search(r'<<~?([A-Za-z_]\w*)', line)
+            if m:
+                pending_string = ('heredoc', m.group(1))
+    return depth > 0 or pending_string is not None
 
 
 def _show_vars(exec_globals):

@@ -131,11 +131,13 @@ class UnlessStmt(Node):
 class WhileStmt(Node):
     condition: Node
     body: List[Node]
+    label: Optional[str] = None  # v1.22: while :outer cond ... end
 
 @dataclass
 class UntilStmt(Node):
     condition: Node
     body: List[Node]
+    label: Optional[str] = None  # v1.22: until :outer cond ... end
 
 @dataclass
 class DoWhileStmt(Node):
@@ -147,6 +149,7 @@ class ForInStmt(Node):
     var: str
     iterable: Node
     body: List[Node]
+    label: Optional[str] = None  # v1.22: for :outer x in xs ... end
 
 @dataclass
 class PostfixIf(Node):
@@ -330,13 +333,16 @@ class DestructAssign(Node):
 
 @dataclass
 class NextStmt(Node):
-    """next — skip to the next iteration (like Python's continue)"""
-    pass
+    """next / next :label — skip to the next iteration (like Python's continue),
+    optionally targeting a specific outer labeled loop (v1.22)"""
+    label: Optional[str] = None
 
 @dataclass
 class BreakStmt(Node):
-    """break / break value — exit a loop, optionally returning a value"""
-    value: Optional[Node]
+    """break / break value / break :label — exit a loop, optionally returning
+    a value, optionally targeting a specific outer labeled loop (v1.22)"""
+    value: Optional[Node] = None
+    label: Optional[str] = None
 
 # ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -405,6 +411,7 @@ class HashDestructAssign(Node):
 class LoopStmt(Node):
     """loop do ... end — infinite loop, exits only via break"""
     body: List[Node]
+    label: Optional[str] = None  # v1.22: loop :outer do ... end
 
 @dataclass
 class OrAssign(Node):

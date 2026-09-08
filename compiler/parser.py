@@ -298,7 +298,8 @@ class Parser:
 
     def _parse_one_param(self):
         """Parse one def parameter: name, name = default, name: default,
-        or name: Type (v1.19 annotation).
+        name: Type (v1.19 annotation), or name: Type = default (annotation
+        plus a default value together).
         Returns (param_name, default_node_or_None, type_name_or_None).
         Uses parse_or (not parse_expr) so commas don't get eaten greedily."""
         pname = self._parse_param_name()
@@ -306,11 +307,17 @@ class Parser:
             return pname, self.parse_or(), None
         if self.check(TT.COLON):
             self.advance()  # consume ':'
-            # v1.19: a bare reserved type name followed by , or ) is an
-            # annotation — everything else stays a keyword-style default.
-            if (self.check(TT.IDENT) and self.current().value in TYPE_NAMES
-                    and self.peek(1).type in (TT.COMMA, TT.RPAREN)):
-                return pname, None, self.advance().value
+            # A bare reserved type name is an annotation if followed by ','
+            # or ')' (annotation only, v1.19), or by '=' (annotation with a
+            # default value too) — everything else stays a keyword-style
+            # default (name: default_expr).
+            if self.check(TT.IDENT) and self.current().value in TYPE_NAMES:
+                if self.peek(1).type in (TT.COMMA, TT.RPAREN):
+                    return pname, None, self.advance().value
+                if self.peek(1).type == TT.ASSIGN:
+                    ptype = self.advance().value  # consume the type name
+                    self.advance()                # consume '='
+                    return pname, self.parse_or(), ptype
             return pname, self.parse_or(), None
         return pname, None, None
 
@@ -351,21 +358,32 @@ class Parser:
         self.expect(TT.END, "Expected 'end' to close 'unless'")
         return UnlessStmt(condition=cond, then_body=then_body, else_body=else_body)
 
+    def _parse_optional_label(self) -> Optional[str]:
+        """v1.22: an optional  :name  immediately after a loop keyword, or
+        after 'break'/'next', naming/targeting a specific loop. Keys off the
+        dedicated SYMBOL token, so a plain "string" value passed to
+        break/next (e.g. `break "done"`) is never mistaken for a label."""
+        if self.check(TT.SYMBOL):
+            return self.advance().value
+        return None
+
     def parse_while(self) -> WhileStmt:
         self.expect(TT.WHILE)
+        label = self._parse_optional_label()
         cond = self.parse_expr()
         self.skip_newlines()
         body = self.parse_body()
         self.expect(TT.END, "Expected 'end' to close 'while'")
-        return WhileStmt(condition=cond, body=body)
+        return WhileStmt(condition=cond, body=body, label=label)
 
     def parse_until(self) -> UntilStmt:
         self.expect(TT.UNTIL)
+        label = self._parse_optional_label()
         cond = self.parse_expr()
         self.skip_newlines()
         body = self.parse_body()
         self.expect(TT.END, "Expected 'end' to close 'until'")
-        return UntilStmt(condition=cond, body=body)
+        return UntilStmt(condition=cond, body=body, label=label)
 
     def parse_do_while(self) -> DoWhileStmt:
         self.expect(TT.DO)
@@ -564,13 +582,14 @@ class Parser:
 
     def parse_for_in(self) -> ForInStmt:
         self.expect(TT.FOR)
+        label = self._parse_optional_label()
         var = self.expect(TT.IDENT, "Expected loop variable").value
         self.expect(TT.IN, "Expected 'in'")
         iterable = self.parse_expr()
         self.skip_newlines()
         body = self.parse_body()
         self.expect(TT.END, "Expected 'end' to close 'for'")
-        return ForInStmt(var=var, iterable=iterable, body=body)
+        return ForInStmt(var=var, iterable=iterable, body=body, label=label)
 
     def parse_return(self) -> ReturnStmt:
         self.expect(TT.RETURN)
@@ -581,10 +600,16 @@ class Parser:
 
     def parse_next(self) -> 'NextStmt':
         self.expect(TT.NEXT)
-        return NextStmt()
+        label = self._parse_optional_label()
+        return NextStmt(label=label)
 
     def parse_break(self) -> 'BreakStmt':
         self.expect(TT.BREAK)
+        # v1.22: break :label — targets a specific outer labeled loop.
+        # Mutually exclusive with break value (a label carries no value).
+        label = self._parse_optional_label()
+        if label is not None:
+            return BreakStmt(value=None, label=label)
         # Optional value: break expr — but NOT if next token is a postfix if/unless
         if (self.check(TT.NEWLINE) or self.check(TT.EOF)
                 or self.check(TT.IF) or self.check(TT.UNLESS)):
@@ -613,13 +638,15 @@ class Parser:
         return TimeoutBlock(seconds=seconds, body=body)
 
     def parse_loop(self) -> 'LoopStmt':
-        """loop do ... end — infinite loop, exits only via break"""
+        """loop do ... end — infinite loop, exits only via break.
+        v1.22: loop :outer do ... end — labeled, for break :outer / next :outer."""
         self.expect(TT.LOOP)
+        label = self._parse_optional_label()
         self.match(TT.DO)   # optional 'do'
         self.skip_newlines()
         body = self.parse_body()
         self.expect(TT.END, "Expected 'end' to close 'loop'")
-        return LoopStmt(body=body)
+        return LoopStmt(body=body, label=label)
 
     def parse_print(self) -> PrintStmt:
         tok = self.advance()
@@ -812,7 +839,7 @@ class Parser:
 
     def parse_multiplication(self) -> Node:
         left = self.parse_unary()
-        while self.check(TT.STAR, TT.SLASH, TT.DOUBLESLASH, TT.PERCENT, TT.STARSTAR):
+        while self.check(TT.STAR, TT.SLASH, TT.DOUBLESLASH, TT.PERCENT):
             op = self.advance().value
             right = self.parse_unary()
             left = BinOp(op=op, left=left, right=right)
@@ -825,10 +852,10 @@ class Parser:
             return AwaitExpr(expr=expr)
         if self.check(TT.MINUS):
             self.advance()
-            operand = self.parse_postfix()   # parse primary+postfix, NOT another unary range
+            operand = self.parse_unary()   # so -2 ** 2 parses as -(2 ** 2), matching Python/Ruby/R
             node = UnaryOp(op='-', operand=operand)
         else:
-            node = self.parse_postfix()
+            node = self.parse_power()
         # Range check at unary level so -5..-1 parses as (-5)..(-1)
         if self.check(TT.RANGE_INC):
             self.advance()
@@ -839,6 +866,16 @@ class Parser:
             end_node = self.parse_unary()
             return RangeLiteral(start=node, end=end_node, inclusive=False)
         return node
+
+    def parse_power(self) -> Node:
+        """** binds tighter than */// /%, and is right-associative
+        (2 ** 3 ** 2 == 2 ** (3 ** 2)), matching Python/Ruby/R/FORTRAN."""
+        left = self.parse_postfix()
+        if self.check(TT.STARSTAR):
+            self.advance()
+            right = self.parse_unary()   # right side recurses through unary so 2 ** -3 and chained ** both work
+            return BinOp(op='**', left=left, right=right)
+        return left
 
     def parse_postfix(self) -> Node:
         node = self.parse_primary()
@@ -990,6 +1027,12 @@ class Parser:
         if t.type == TT.STRING:
             self.advance()
             return StringLiteral(parts=t.value)
+
+        if t.type == TT.SYMBOL:
+            # :name as a value reads exactly like a plain string "name" —
+            # same AST shape as before the v1.22 SYMBOL/STRING split.
+            self.advance()
+            return StringLiteral(parts=[('literal', t.value)])
 
         if t.type == TT.BOOL:
             self.advance()
