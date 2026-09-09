@@ -506,7 +506,7 @@ class CodeGen:
 
     def gen_assign(self, node: Assign):
         val = self.gen_expr(node.value)
-        py_name = node.name.replace('?', '_q').replace('!', '_bang')
+        py_name = _py_safe(node.name)
         self.emit(f"{py_name} = {val}")
 
     def gen_compound_assign(self, node):
@@ -516,8 +516,9 @@ class CodeGen:
         # twice below (once in repr(), once bare) would otherwise execute it
         # twice (with exponential blowup for recursive calls).
         tmp = self.temp_var("_ca")
+        py_name = _py_safe(node.name)
         self.emit(f"{tmp} = {val}")
-        self.emit(f"{node.name} = _fk_arith(repr({node.name}), {node.name}, repr({tmp}), {tmp}, '{node.op}')")
+        self.emit(f"{py_name} = _fk_arith(repr({py_name}), {py_name}, repr({tmp}), {tmp}, '{node.op}')")
 
     def gen_index_compound_assign(self, node):
         target = self.gen_expr(node.target)

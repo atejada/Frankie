@@ -2220,7 +2220,15 @@ class FrankieApp:
                             data = _fh.read()
                         resp = FrankieStaticResponse(data, mime)
                         return resp
-                    return FrankieResponse("404 Not Found", 404, {}, "text/plain")
+                    if url_prefix:
+                        # Explicit non-root prefix (e.g. "/static") owns this
+                        # URL space exclusively — a missing file there is a
+                        # real 404.
+                        return FrankieResponse("404 Not Found", 404, {}, "text/plain")
+                    # Root-mounted static (the 1-arg app.static("./dir") form)
+                    # shares the "/" namespace with dynamic routes — no file
+                    # here, so fall through instead of shadowing every
+                    # non-file route with a static 404.
 
         for route_method, regex, param_names, handler in self._routes:
             if route_method != method and not (method == 'HEAD' and route_method == 'GET'):
