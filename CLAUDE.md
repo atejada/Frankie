@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Frankie is a programming language that compiles to Python. It has Ruby-inspired syntax and is implemented entirely in pure Python (no external dependencies). The compiler pipeline is: `.fk` source → Lexer → AST → CodeGen → Python → `exec()`.
 
-Current version: **1.22.0**
+Current version: **1.22.2**
 
 ## 🧊 Frozen for the Book
 
