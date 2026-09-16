@@ -1,3 +1,25 @@
+## frankiegame.fk — a tiny terminal game engine (v1.20)
+## Fixed-timestep loop, double-buffered ANSI rendering, non-blocking keys.
+##
+## Usage:
+##   stitch "frankiegame"
+##
+##   g = game_new(width: 40, height: 20, fps: 15)
+##   on_key(g, "left") do |game|
+##     game["px"] -= 1
+##   end
+##   on_tick(g) do |game|
+##     clear(game)
+##     draw(game, game["px"], 10, "🧟")
+##     text(game, 0, 0, "score: #{game["score"]}", color: "green")
+##   end
+##   run_game(g)
+##
+## Keys: single characters plus "up", "down", "left", "right", "space",
+## "enter", "esc", "tab", "backspace". Press q to quit (configurable).
+## Headless (no tty): rendering and input no-op, so tests and CI stay happy —
+## pair with max_ticks to run a bounded simulation.
+
 GAME_COLORS = {
   red: 31,
   green: 32,
@@ -15,6 +37,11 @@ def _game_paint(s, color)
   return s if code == nil
   "#{_GAME_ESC}[#{code}m#{s}#{_GAME_ESC}[0m"
 end
+
+## `game_new(width:, height:, fps:, bg:, max_ticks:, quit_on_q:)` —
+## create a game state hash. max_ticks > 0 stops the loop automatically
+## (headless tests); quit_on_q defaults to true.
+## @return the game hash — stash your own state in it freely
 def game_new(width = 40, height = 20, fps = 15, bg = " ", max_ticks = 0, quit_on_q = true)
   g = {
     width: width,
@@ -33,6 +60,8 @@ def game_new(width = 40, height = 20, fps = 15, bg = " ", max_ticks = 0, quit_on
   clear(g)
   g
 end
+
+## `clear(g)` — reset the frame buffer to the background character.
 def clear(g)
   rows = []
   g["height"].times do
@@ -43,6 +72,9 @@ def clear(g)
   g["buf"] = rows
   nil
 end
+
+## `draw(g, x, y, s, color: nil)` — write a string into the buffer at cell
+## (x, y). Multi-character strings run horizontally; out-of-bounds is ignored.
 def draw(g, x, y, s, color = nil)
   return nil if y < 0 or y >= g["height"]
   chars = to_str(s).chars
@@ -56,9 +88,14 @@ def draw(g, x, y, s, color = nil)
   end
   nil
 end
+
+## `text(g, x, y, s, color: nil)` — alias of draw, reads nicely for HUDs.
 def text(g, x, y, s, color = nil)
   draw(g, x, y, s, color: color)
 end
+
+## `draw_sprite(g, x, y, sprite, color: nil)` — multi-line sprite with
+## transparency: SPACES DO NOT OVERWRITE what's already drawn beneath them.
 def draw_sprite(g, x, y, sprite, color = nil)
   rows = to_str(sprite).lines
   ry = 0
@@ -75,9 +112,18 @@ def draw_sprite(g, x, y, sprite, color = nil)
   end
   nil
 end
+
+## `load_image(path)` — v1.21: cross-engine parity with frankiecanvas.
+## There are no real pixels in a tty, so this just remembers the path;
+## draw_image renders a placeholder block instead of decoding it.
 def load_image(path)
   {src: path}
 end
+
+## `draw_image(g, x, y, image, w: 1, h: 1)` — v1.21: draws a solid ▒ block
+## over the image's w×h footprint (cells), since a terminal can't show the
+## actual bitmap. Same call signature as frankiecanvas's draw_image, so
+## game code doesn't need to branch on which engine it's running under.
 def draw_image(g, x, y, image, w = 1, h = 1)
   row = 0
   while row < h
@@ -90,36 +136,57 @@ def draw_image(g, x, y, image, w = 1, h = 1)
   end
   nil
 end
+
+## `collide?(x1, y1, w1, h1, x2, y2, w2, h2)` — axis-aligned box overlap.
 def collide?(x1, y1, w1, h1, x2, y2, w2, h2)
   x1 < x2 + w2 and x2 < x1 + w1 and y1 < y2 + h2 and y2 < y1 + h1
 end
+
+## `on_key(g, key) do |game| ... end` — handle one key.
 def on_key(g, key, handler)
   g["handlers"][key] = handler
   nil
 end
+
+## `on_any_key(g) do |game, key| ... end` — handle every key press.
 def on_any_key(g, handler)
   g["any_key"] = handler
   nil
 end
+
+## `on_tick(g) do |game| ... end` — called once per frame; draw here.
 def on_tick(g, handler)
   g["tick"] = handler
   nil
 end
+
+## `synth_play(g, freq: 440, wave: "sine", dur: 0.08, gain: 0.06)` — v1.21:
+## cross-engine parity with frankiecanvas's real WebAudio tones. A tty
+## can't play arbitrary frequencies, so every call just rings the terminal
+## bell — same call signature either engine, so game code stays portable.
 def synth_play(g, freq = 440, wave = "sine", dur = 0.08, gain = 0.06)
   beep()
 end
+
+## `game_beep(g)` — sound! Terminal bell here; a WebAudio blip in frankiecanvas.
 def game_beep(g)
   beep()
 end
+
+## `stop_game(g)` — end the loop after the current frame.
 def stop_game(g)
   g["running"] = false
   nil
 end
+
+## `render_frame(g)` — the current buffer as one string (also what the
+## engine prints; handy for headless tests).
 def render_frame(g)
   out = []
   g["buf"].each do |row| out.push(row.join("")) end
   out.join("\n")
 end
+
 def _game_pump_input(g)
   loop do
     k = term_key()
@@ -132,6 +199,7 @@ def _game_pump_input(g)
   end
   nil
 end
+
 def _game_loop(g)
   budget = 1000.0 / g["fps"]
   loop do
@@ -149,6 +217,9 @@ def _game_loop(g)
   end
   nil
 end
+
+## `run_game(g)` — enter the blocking game loop (q or stop_game to exit).
+## Restores the terminal even when a handler raises.
 def run_game(g)
   g["running"] = true
   term_raw_on()

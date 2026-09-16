@@ -202,6 +202,15 @@ class Lexer:
         self.line = 1
         self.col = 1
         self.tokens: List[Token] = []
+        # v1.22.3 bug fix: comments used to be discarded here with nothing
+        # kept anywhere, which is why frankie_fmt.py — an AST-based
+        # formatter with no other source of truth — silently deleted every
+        # comment on `fmt --write`. Comments are still not tokens (that
+        # would ripple through the parser and codegen for no benefit), but
+        # they're now recorded on the side as (line, col, raw_text) so
+        # tooling that wants them — the formatter — can look them up by
+        # source line without the grammar ever having to know they exist.
+        self.comments: List[tuple] = []
 
     def error(self, msg):
         raise LexError(msg, self.line, self.col)
@@ -237,9 +246,13 @@ class Lexer:
             if ch in (' ', '\t', '\r'):
                 self.advance()
             elif ch == '#':
-                # comment — skip to end of line
+                # comment — skip to end of line, but record it first (see
+                # self.comments above) so it isn't lost entirely
+                start_line, start_col = self.line, self.col
+                start = self.pos
                 while self.pos < len(self.source) and self.peek() != '\n':
                     self.advance()
+                self.comments.append((start_line, start_col, self.source[start:self.pos]))
             else:
                 break
 

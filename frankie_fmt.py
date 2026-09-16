@@ -23,7 +23,7 @@ INLINE_THRESHOLD = 60   # max chars before hash/vector goes multi-line
 
 
 class Formatter:
-    def __init__(self, source: str = ""):
+    def __init__(self, source: str = "", comments=None):
         self._depth = 0
         self._lines = []
         # Heredoc re-emission is only safe when the string is the whole
@@ -34,23 +34,122 @@ class Formatter:
         # Pre-compute set of line numbers that have a blank line immediately above them.
         # Line numbers are 1-based, matching Token.line.
         self._blank_before: set = set()
+        self._src_lines = source.splitlines() if source else []
         if source:
-            src_lines = source.splitlines()
+            src_lines = self._src_lines
             for i, line in enumerate(src_lines):
                 if line.strip() == "" and i + 2 <= len(src_lines):
                     # The line AFTER this blank line is (i+2) in 1-based numbering
                     self._blank_before.add(i + 2)
+
+        # ── comment preservation (v1.22.3 bug fix) ──────────────────────────
+        # The AST has no comment nodes — comments are trivia the lexer drops
+        # during tokenization (see compiler/lexer.py) — so there is nothing
+        # on the Program tree to walk here. Instead, every statement node
+        # already carries the source line it started on (`_src_line`, set by
+        # the parser), so comments are re-attached by line number: a
+        # standalone `#`/`##` line is treated as a leading comment for
+        # whatever statement follows it (skipping over blank lines), and a
+        # `#` that trails real code on the same line is kept as a trailing
+        # comment on that statement's own first emitted line.
+        self._standalone_comments = {}   # line -> raw "#..." / "##..." text
+        self._trailing_comments = {}     # line -> raw text (code precedes it)
+        for (c_line, c_col, c_text) in (comments or []):
+            line_text = self._src_lines[c_line - 1] if c_line - 1 < len(self._src_lines) else ""
+            if line_text[:c_col - 1].strip() == "":
+                self._standalone_comments[c_line] = c_text
+            else:
+                self._trailing_comments[c_line] = c_text
+        self._consumed_comments: set = set()
+        self._consumed_trailing: set = set()
 
     # ── output helpers ────────────────────────────────────────────────────────
 
     def _emit(self, text=""):
         if text:
             self._lines.append(INDENT * self._depth + text)
+        elif self._lines and self._lines[-1] == "":
+            # Never stack two blank lines — several independent rules can
+            # each decide a blank belongs here (blank-after-FuncDef, a
+            # preserved blank-before-statement, a preserved blank around a
+            # re-attached comment block); collapsing to one keeps output
+            # canonical and, importantly, keeps fmt idempotent on its own
+            # output (re-running fmt on already-formatted source used to
+            # compound these into ever-growing blank runs).
+            return
         else:
             self._lines.append("")
 
     def _indent(self):  self._depth += 1
     def _dedent(self):  self._depth -= 1
+
+    # ── comment re-attachment ────────────────────────────────────────────────
+
+    def _is_blank_or_comment_line(self, line_no) -> bool:
+        if line_no < 1 or line_no > len(self._src_lines):
+            return False
+        if line_no in self._standalone_comments:
+            return True
+        return self._src_lines[line_no - 1].strip() == ""
+
+    def _collect_leading_comment_lines(self, stmt_line):
+        """Line numbers of the standalone comment block immediately above
+        stmt_line, tolerating blank lines in between but stopping at the
+        first real line of code (or a comment already claimed by an earlier
+        statement). Does not mark them consumed — callers decide that."""
+        if stmt_line is None:
+            return []
+        collected = []
+        line = stmt_line - 1
+        while self._is_blank_or_comment_line(line):
+            if line in self._standalone_comments and line not in self._consumed_comments:
+                collected.append(line)
+            line -= 1
+        collected.reverse()
+        return collected
+
+    def _emit_stmt(self, stmt, allow_leading_blank=True):
+        """Emit one statement, re-attaching any comment(s) that sat next to
+        it in the original source. This is the single place `_fmt_stmt` gets
+        called from (format() and _fmt_body()) so every nesting level gets
+        comment support for free."""
+        stmt_line = getattr(stmt, '_src_line', None)
+        comment_lines = self._collect_leading_comment_lines(stmt_line)
+        anchor_line = comment_lines[0] if comment_lines else stmt_line
+
+        if allow_leading_blank and anchor_line is not None and anchor_line in self._blank_before:
+            self._emit()
+        for j, cl in enumerate(comment_lines):
+            # Preserve a blank line the source had *between* two comment
+            # paragraphs in this same leading block (distinct from the
+            # blank-before-the-block and blank-after-the-block checks).
+            if j > 0 and cl in self._blank_before:
+                self._emit()
+            self._emit(self._standalone_comments[cl])
+        self._consumed_comments.update(comment_lines)
+        # A blank line that separated the comment block from the code itself
+        # (e.g. a file-header doc-comment followed by one blank line, then
+        # the first real statement) is a second, independent blank-line fact.
+        if comment_lines and stmt_line is not None and stmt_line in self._blank_before:
+            self._emit()
+
+        start_idx = len(self._lines)
+        self._fmt_stmt(stmt)
+
+        if (stmt_line is not None and stmt_line in self._trailing_comments
+                and stmt_line not in self._consumed_trailing
+                and start_idx < len(self._lines)):
+            self._consumed_trailing.add(stmt_line)
+            self._lines[start_idx] += "  " + self._trailing_comments[stmt_line]
+
+    def unconsumed_comment_lines(self):
+        """Comments that couldn't be re-attached anywhere — currently just
+        a comment that's the last thing in a nested block, with nothing
+        after it before the block's `end` to hang onto. Surfaced as a
+        warning rather than silently dropped again."""
+        missed = (set(self._standalone_comments) - self._consumed_comments) | \
+                 (set(self._trailing_comments) - self._consumed_trailing)
+        return sorted(missed)
 
     def _fmt_value(self, node) -> str:
         """Format a statement-level value, where heredoc form is safe."""
@@ -64,11 +163,23 @@ class Formatter:
 
     def format(self, program: Program) -> str:
         for i, node in enumerate(program.body):
-            self._fmt_stmt(node)
+            self._emit_stmt(node, allow_leading_blank=(i > 0))
             # Blank line after top-level function definitions for readability
             if isinstance(node, FuncDef) and i < len(program.body) - 1:
                 if not isinstance(program.body[i + 1], FuncDef):
                     self._emit()
+        # A standalone comment block after the very last statement (e.g. a
+        # footer/license note) has no following statement to attach to —
+        # flush it here instead of leaving it unconsumed.
+        trailing = self._collect_leading_comment_lines(len(self._src_lines) + 1)
+        if trailing:
+            if trailing[0] in self._blank_before:
+                self._emit()
+            for j, cl in enumerate(trailing):
+                if j > 0 and cl in self._blank_before:
+                    self._emit()
+                self._emit(self._standalone_comments[cl])
+            self._consumed_comments.update(trailing)
         # Strip trailing blank lines, then add a single trailing newline
         result = "\n".join(self._lines).rstrip() + "\n"
         return result
@@ -203,14 +314,9 @@ class Formatter:
 
     def _fmt_body(self, body):
         for i, stmt in enumerate(body):
-            # Preserve intentional blank lines from the original source.
-            # If the source had a blank line before this statement, emit one here too —
-            # but never before the very first statement in a body.
-            if i > 0:
-                src_line = getattr(stmt, '_src_line', None)
-                if src_line is not None and src_line in self._blank_before:
-                    self._emit()
-            self._fmt_stmt(stmt)
+            # Blank-line and comment preservation both live in _emit_stmt now;
+            # never emit a leading blank before the very first stmt in a body.
+            self._emit_stmt(stmt, allow_leading_blank=(i > 0))
 
     def _fmt_func_def(self, node: FuncDef):
         parts = []
@@ -370,7 +476,7 @@ class Formatter:
         if isinstance(node, HashLiteral):   return self._fmt_hash(node)
         if isinstance(node, RangeLiteral):
             op = ".." if node.inclusive else "..."
-            return f"{self._fmt_expr(node.start)}{op}{self._fmt_expr(node.end)}"
+            return f"{self._fmt_range_operand(node.start)}{op}{self._fmt_range_operand(node.end)}"
         if isinstance(node, BinOp):         return self._fmt_binop(node)
         if isinstance(node, UnaryOp):
             if node.op == '-':
@@ -496,6 +602,67 @@ class Formatter:
         body   = (",\n" + indent).join(pairs_strs)
         return "{\n" + indent + body + "\n" + close + "}"
 
+    # Precedence levels, matching the parser's climb (compiler/parser.py:
+    # parse_or → parse_and → parse_hash_merge('|') → parse_comparison →
+    # parse_addition → parse_multiplication → parse_power). Higher binds
+    # tighter. Anything not listed here that can appear as an operand
+    # (ternary, if-expr, pipe, match, range, lambda, assign forms) is
+    # looser than every operator, hence the -1 floor in _node_prec.
+    _BINOP_PREC = {
+        'or': 1, 'and': 2, '|': 3,
+        '==': 4, '!=': 4, '<': 4, '<=': 4, '>': 4, '>=': 4,
+        '+': 5, '-': 5,
+        '*': 6, '/': 6, '//': 6, '%': 6,
+        '**': 8,
+    }
+
+    def _node_prec(self, node) -> int:
+        if isinstance(node, BinOp):
+            return self._BINOP_PREC.get(node.op, 4)
+        if isinstance(node, UnaryOp):
+            return 2 if node.op == 'not' else 7
+        if isinstance(node, (RangeLiteral, TernaryExpr, IfExpr, PipeOp, MatchOp,
+                             Assign, CompoundAssign, OrAssign, LambdaLiteral)):
+            return -1
+        return 99   # atoms, calls, literals — never need parens as an operand
+
+    def _fmt_range_operand(self, node) -> str:
+        """Render one end of a RangeLiteral. A range's start/end are each
+        parsed via parse_unary (compiler/parser.py) — i.e. they can only
+        naturally be a unary-minus or tighter (power, postfix, primary)
+        expression without parens; anything looser must be parenthesized
+        or it silently regroups on re-parse. Same v1.22.2 bug class as
+        _fmt_operand below, caught on stitches/frankiestring.fk's
+        `0..(n - suffix.length - 1)`, which fmt was rendering as
+        `0..n - suffix.length - 1` — parses back as `(0..n) - suffix.length
+        - 1`, an entirely different expression."""
+        text = self._fmt_expr(node)
+        if self._node_prec(node) < 7:
+            return f"({text})"
+        return text
+
+    def _fmt_operand(self, child, parent_prec: int, parent_op: str, is_right: bool) -> str:
+        """Render one side of a BinOp, parenthesizing whenever leaving them
+        out would let the operand's own operator silently re-bind to a
+        different precedence on re-parse (e.g. `(budget - elapsed) / 1000.0`
+        must never come back out as `budget - elapsed / 1000.0` — a real
+        v1.22.2 bug this fixes: fmt was dropping exactly this kind of
+        'redundant-looking' paren and quietly changing what the line did)."""
+        text = self._fmt_expr(child)
+        child_prec = self._node_prec(child)
+        if child_prec < parent_prec:
+            return f"({text})"
+        if child_prec == parent_prec:
+            # Same precedence: safe without parens only on the side that
+            # matches the group's associativity — ** is right-associative
+            # (its left side needs parens at equal precedence), every other
+            # operator here is left-associative (its right side does).
+            # `a - (b - c) != a - b - c`, `a ** (b ** c) != (a ** b) ** c`.
+            needs = (not is_right) if parent_op == '**' else is_right
+            if needs:
+                return f"({text})"
+        return text
+
     def _fmt_binop(self, node: BinOp) -> str:
         op_map = {
             'and': 'and', 'or': 'or',
@@ -505,8 +672,9 @@ class Formatter:
             '>': '>', '>=': '>=', '|': '|',
         }
         op = op_map.get(node.op, node.op)
-        left  = self._fmt_expr(node.left)
-        right = self._fmt_expr(node.right)
+        my_prec = self._BINOP_PREC.get(node.op, 4)
+        left  = self._fmt_operand(node.left, my_prec, node.op, is_right=False)
+        right = self._fmt_operand(node.right, my_prec, node.op, is_right=True)
         return f"{left} {op} {right}"
 
     def _fmt_func_call(self, node: FuncCall) -> str:
@@ -652,11 +820,24 @@ def _is_stmt_only(node) -> bool:
 
 def fmt_source(source: str) -> str:
     """Parse Frankie source and return canonically formatted source."""
+    return fmt_source_with_warnings(source)[0]
+
+
+def fmt_source_with_warnings(source: str):
+    """Same as fmt_source, but also returns the (1-based) source line
+    numbers of any comment that couldn't be re-attached to a statement —
+    currently just a comment left dangling at the end of a nested block,
+    with nothing after it before that block's `end`. Callers that don't
+    care can use fmt_source(); frankiec fmt uses this to warn instead of
+    silently dropping them the way it used to."""
     from compiler.lexer import Lexer
     from compiler.parser import Parser
-    tokens = Lexer(source).tokenize()
+    lexer = Lexer(source)
+    tokens = lexer.tokenize()
     ast = Parser(tokens).parse()
-    return Formatter(source).format(ast)
+    fmt = Formatter(source, lexer.comments)
+    formatted = fmt.format(ast)
+    return formatted, fmt.unconsumed_comment_lines()
 
 
 def fmt_file(fk_file: str, write: bool = False, check: bool = False) -> bool:
@@ -670,10 +851,16 @@ def fmt_file(fk_file: str, write: bool = False, check: bool = False) -> bool:
         original = f.read()
 
     try:
-        formatted = fmt_source(original)
+        formatted, unpreserved = fmt_source_with_warnings(original)
     except Exception as e:
         print(f"[fmt] Error formatting {fk_file}: {e}", file=sys.stderr)
         return False
+
+    if unpreserved:
+        lines = ", ".join(str(l) for l in unpreserved)
+        print(f"[fmt] warning: {fk_file}: comment(s) on line(s) {lines} "
+              f"are dangling at the end of a block and could not be "
+              f"re-attached — left out of the formatted output", file=sys.stderr)
 
     if check:
         if formatted == original:

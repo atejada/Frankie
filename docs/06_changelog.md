@@ -1,5 +1,53 @@
 # Changelog
 
+## v1.22.3 (2026)
+
+### Patch: `frankiec fmt` no longer deletes your comments
+
+- **Fixed a comment-loss bug in `frankiec fmt`** — comments were discarded
+  entirely during tokenization (trivia, never turned into a token) and the
+  formatter rebuilds source purely from the AST, so `fmt --write` silently
+  deleted every `#`/`##` comment in a file, doc comments included. Not an
+  edge case — it happened on every run, for every comment, in every file.
+  The lexer now records comments on the side as it skips them
+  (`compiler/lexer.py`, `Lexer.comments`); the formatter re-attaches each
+  one to the statement it sat next to, by source line number, using the
+  `_src_line` every statement node already carries. Handles leading
+  standalone comment blocks (blank-line-tolerant), same-line trailing
+  comments, and a trailing comment block at true end-of-file. The one
+  remaining gap — a comment left dangling at the very end of a nested
+  block, with nothing after it before that block's `end` — now prints a
+  `[fmt] warning:` with the line number instead of silently vanishing.
+- Verified against every `.fk` file under `stitches/` and `examples/`
+  (867 comment lines): zero loss, zero warnings, `fmt` output is stable
+  across repeated runs, and every affected file still passes `check` and
+  its own test suite.
+- **Restored**: `stitches/frankiegame.fk` and `stitches/frankiecanvas.fk`
+  lost their doc comments to this bug in a `fmt --write` run during the
+  v1.21.0 work, before it was caught — that damage shipped in v1.21.0
+  through v1.22.2. Comments have been restored from the last
+  comment-intact version (v1.20.1) plus new ones for what v1.21 added
+  (`load_image`, `draw_image`, `synth_play`); the code itself was not
+  touched — verified with a diff limited to comment/blank lines only.
+- **Also fixed while testing the above — a real, silent correctness bug**:
+  `frankiec fmt` could drop precedence-defining parentheses around binary
+  operators and range bounds, changing what the line actually does.
+  `sleep((budget - elapsed) / 1000.0)` (both frame loops) reformatted to
+  `sleep(budget - elapsed / 1000.0)` — a different computation, not a
+  style change. Same root cause in `stitches/frankiestring.fk`'s
+  `string[0..(n - suffix.length - 1)]`, which lost its parens and
+  re-parsed as `(0..n) - suffix.length - 1` on a second format. Fixed by
+  giving `frankie_fmt.py` an actual precedence table matching the
+  parser's, so it now parenthesizes an operand whenever leaving the
+  parens out would let it re-bind to a different operator on re-parse.
+  Verified: `fmt` output is behavior-identical to the original source on
+  every affected file (ran before/after, diffed the output), and the
+  whole `stitches/`/`examples/` tree (970 comment lines, all of it)
+  round-trips through repeated `fmt --write` with zero loss, zero
+  instability, and every test suite still green.
+
+---
+
 ## v1.21.0 (2026) — "The Book Edition" 🧊
 
 ### Image sprites, WebAudio synth, and a language freeze

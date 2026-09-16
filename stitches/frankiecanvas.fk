@@ -1,3 +1,28 @@
+## frankiecanvas.fk — the browser renderer for Frankie games (v1.20)
+##
+## Same core API as frankiegame — swap the stitch line and your game gets
+## real pixels: an HTML5 canvas served by the built-in web server, frames
+## streamed over WebSockets, keyboard + mouse events streamed back.
+## Multiplayer for free: every connected browser is a player.
+##
+##   stitch "frankiecanvas"
+##
+##   g = game_new(width: 32, height: 20, fps: 30, title: "My Game")
+##   on_key(g, "left") do |game| ... end          # same key names as terminal
+##   on_player_key(g) do |game, player, key| ... end   # canvas-only: per player
+##   on_tick(g) do |game|
+##     clear(game)
+##     rect(game, 2, 18, 3, 1, "green")           # canvas-only: colored rects
+##     draw(game, 10, 4, "🧟")                     # shared: cell glyphs
+##     text(game, 1, 0, "score 3", color: "yellow")
+##     draw_image(game, 6, 2, sprite, w: 2, h: 2)  # canvas-only: real pixels (v1.21)
+##     synth_play(game, freq: 220, wave: "sawtooth")  # canvas-only: real tones (v1.21)
+##   end
+##   run_game(g)                                   # → http://localhost:4100
+##
+## Coordinates are CELLS (like the terminal renderer), scaled up by
+## `cell:` pixels (default 22). Headless tests: max_ticks bounds the loop.
+
 CANVAS_CSS_COLORS = {
   red: "#ff5f56",
   green: "#39ff6a",
@@ -13,6 +38,8 @@ def _canvas_color(color)
   css = CANVAS_CSS_COLORS[color]
   css != nil ? css : color
 end
+
+## `game_new(width:, height:, fps:, title:, port:, cell:, bg:, max_ticks:)`
 def game_new(width = 32, height = 20, fps = 30, title = "Frankie Game", port = 4100, cell = 22, bg = "#0b0f0c", max_ticks = 0)
   {
     width: width,
@@ -34,10 +61,14 @@ def game_new(width = 32, height = 20, fps = 30, title = "Frankie Game", port = 4
     events: []
   }
 end
+
+## `clear(g)` — start the frame from the background color.
 def clear(g)
   g["ops"] = [{op: "clear"}]
   nil
 end
+
+## `draw(g, x, y, s, color: nil)` — draw a string of glyphs at cell (x, y).
 def draw(g, x, y, s, color = nil)
   g["ops"].push({
     op: "cells",
@@ -48,9 +79,13 @@ def draw(g, x, y, s, color = nil)
   })
   nil
 end
+
+## `text(g, x, y, s, color: nil)` — alias of draw (HUDs read nicely).
 def text(g, x, y, s, color = nil)
   draw(g, x, y, s, color: color)
 end
+
+## `rect(g, x, y, w, h, color)` — filled rectangle in cell units (canvas-only).
 def rect(g, x, y, w, h, color)
   g["ops"].push({
     op: "rect",
@@ -62,6 +97,9 @@ def rect(g, x, y, w, h, color)
   })
   nil
 end
+
+## `draw_sprite(g, x, y, sprite, color: nil)` — multi-line sprite; spaces
+## are transparent, same as the terminal renderer.
 def draw_sprite(g, x, y, sprite, color = nil)
   rows = to_str(sprite).lines
   ry = 0
@@ -78,52 +116,83 @@ def draw_sprite(g, x, y, sprite, color = nil)
   end
   nil
 end
+
+## `load_image(path)` — v1.21: read a PNG/JPEG/GIF off disk (via the
+## stdlib's file_read_base64) and wrap it as a data: URL the browser can
+## decode directly. MIME type is inferred from the file extension
+## (defaults to png). Load once, pass the result to draw_image every frame.
 def load_image(path)
   ext = "png"
   ext = "jpeg" if path.end_with?(".jpg") or path.end_with?(".jpeg")
   ext = "gif" if path.end_with?(".gif")
   {src: "data:image/#{ext};base64,#{file_read_base64(path)}"}
 end
+
+## `draw_image(g, x, y, image, w: 1, h: 1)` — v1.21: queue a real bitmap
+## draw at cell (x, y), image from load_image. w/h are in CELLS, same
+## units as everything else here. The browser caches the decoded image
+## after its first draw, so later frames only resend x/y/w/h.
 def draw_image(g, x, y, image, w = 1, h = 1)
   g["ops"].push({op: "image", x: x, y: y, w: w, h: h, src: image["src"]})
   nil
 end
+
+## `collide?(x1, y1, w1, h1, x2, y2, w2, h2)` — axis-aligned box overlap.
 def collide?(x1, y1, w1, h1, x2, y2, w2, h2)
   x1 < x2 + w2 and x2 < x1 + w1 and y1 < y2 + h2 and y2 < y1 + h1
 end
+
+## `synth_play(g, freq: 440, wave: "sine", dur: 0.08, gain: 0.06)` — v1.21:
+## queue a real WebAudio oscillator tone in every connected browser.
+## wave is any OscillatorNode type ("sine", "square", "sawtooth",
+## "triangle"); dur/gain are seconds / 0.0–1.0. game_beep is just this
+## with classic beep settings — see below.
 def synth_play(g, freq = 440, wave = "sine", dur = 0.08, gain = 0.06)
   g["ops"].push({op: "tone", freq: freq, wave: wave, dur: dur, gain: gain})
   nil
 end
+
+## `game_beep(g)` — a WebAudio blip in every connected browser.
 def game_beep(g)
   synth_play(g, freq: 520, wave: "square", dur: 0.07, gain: 0.06)
 end
+
 def on_key(g, key, handler)
   g["handlers"][key] = handler
   nil
 end
+
 def on_any_key(g, handler)
   g["any_key"] = handler
   nil
 end
+
+## `on_player_key(g) do |game, player, key| ... end` — canvas-only:
+## player is 1, 2, 3… in connection order. Multiplayer input lives here.
 def on_player_key(g, handler)
   g["player_key"] = handler
   nil
 end
+
 def on_tick(g, handler)
   g["tick"] = handler
   nil
 end
+
 def stop_game(g)
   g["running"] = false
   nil
 end
+
+## `players_count(g)` — how many browsers are connected right now.
 def players_count(g)
   g["players"].length
 end
+
 def _canvas_page(g)
   html_response("<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n<title>#{g["title"]}</title>\n<style>\n  body { background:#050806; margin:0; min-height:100vh; display:flex;\n         flex-direction:column; align-items:center; justify-content:center;\n         font-family:'Courier New',monospace; color:#5f7a66; }\n  h1 { color:#39ff6a; font-size:1rem; letter-spacing:.15em; }\n  canvas { border:1px solid #1e2a20; image-rendering:pixelated; }\n  #st { font-size:.75rem; margin-top:.6rem; }\n</style>\n</head>\n<body>\n<h1>#{g["title"]}</h1>\n<canvas id=\"cv\" width=\"#{g["width"] * g["cell"]}\" height=\"#{g["height"] * g["cell"]}\"></canvas>\n<div id=\"st\">connecting…</div>\n<script>\n  var CELL = #{g["cell"]};\n  var BG = \"#{g["bg"]}\";\n  var cv = document.getElementById(\"cv\");\n  var cx = cv.getContext(\"2d\");\n  var st = document.getElementById(\"st\");\n  var audio = null;\n  function tone(freq, wave, dur, gain) {\n    try {\n      if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)();\n      var o = audio.createOscillator(), gn = audio.createGain();\n      o.type = wave || \"sine\"; o.frequency.value = freq || 440; gn.gain.value = gain == null ? 0.06 : gain;\n      o.connect(gn); gn.connect(audio.destination);\n      o.start(); o.stop(audio.currentTime + (dur || 0.08));\n    } catch (e) {}\n  }\n  var imgCache = {};\n  function getImage(src) {\n    var img = imgCache[src];\n    if (!img) { img = new Image(); img.src = src; imgCache[src] = img; }\n    return img;\n  }\n  cx.fillStyle = BG; cx.fillRect(0, 0, cv.width, cv.height);\n  var ws = new WebSocket(\"ws://\" + location.host + \"/ws\");\n  ws.onopen = function () { st.textContent = \"connected — keys go to the game\"; };\n  ws.onclose = function () { st.textContent = \"disconnected\"; };\n  ws.onmessage = function (e) {\n    var msg = JSON.parse(e.data);\n    if (msg.hello) { st.textContent = \"you are player \" + msg.hello; return; }\n    var ops = msg.ops || [];\n    for (var i = 0; i < ops.length; i++) {\n      var o = ops[i];\n      if (o.op === \"clear\") { cx.fillStyle = BG; cx.fillRect(0, 0, cv.width, cv.height); }\n      else if (o.op === \"rect\") { cx.fillStyle = o.c; cx.fillRect(o.x * CELL, o.y * CELL, o.w * CELL, o.h * CELL); }\n      else if (o.op === \"cells\") {\n        cx.fillStyle = o.c;\n        cx.font = (CELL - 2) + \"px monospace\";\n        cx.textBaseline = \"top\";\n        var chs = Array.from(o.s);\n        for (var j = 0; j < chs.length; j++) {\n          cx.fillText(chs[j], (o.x + j) * CELL + 1, o.y * CELL + 1);\n        }\n      }\n      else if (o.op === \"image\") {\n        var img = getImage(o.src);\n        var draw = function () { cx.drawImage(img, o.x * CELL, o.y * CELL, o.w * CELL, o.h * CELL); };\n        if (img.complete) draw(); else img.onload = draw;\n      }\n      else if (o.op === \"tone\") { tone(o.freq, o.wave, o.dur, o.gain); }\n    }\n  };\n  var MAP = {ArrowLeft: \"left\", ArrowRight: \"right\", ArrowUp: \"up\",\n             ArrowDown: \"down\", \" \": \"space\", Enter: \"enter\",\n             Escape: \"esc\", Tab: \"tab\", Backspace: \"backspace\"};\n  document.addEventListener(\"keydown\", function (ev) {\n    var k = MAP[ev.key] || (ev.key.length === 1 ? ev.key.toLowerCase() : null);\n    if (!k) return;\n    ev.preventDefault();\n    if (ws.readyState === 1) ws.send(JSON.stringify({k: k}));\n  });\n  cv.addEventListener(\"mousedown\", function (ev) {\n    var r = cv.getBoundingClientRect();\n    var mx = Math.floor((ev.clientX - r.left) / CELL);\n    var my = Math.floor((ev.clientY - r.top) / CELL);\n    if (ws.readyState === 1) ws.send(JSON.stringify({m: [mx, my]}));\n  });\n</script>\n</body>\n</html>")
 end
+
 def _canvas_dispatch(g)
   pending = g["events"]
   g["events"] = []
@@ -139,11 +208,13 @@ def _canvas_dispatch(g)
   end
   nil
 end
+
 def _canvas_broadcast(g)
   raw = json_encode({ops: g["ops"]})
   g["players"].each do |p| p["ws"].send(raw) end
   nil
 end
+
 def _canvas_loop(g)
   budget = 1000.0 / g["fps"]
   loop do
@@ -160,6 +231,9 @@ def _canvas_loop(g)
   end
   nil
 end
+
+## `run_game(g)` — serve the game and enter the loop (blocking).
+## Open http://localhost:PORT — every tab is a player.
 def run_game(g)
   app = web_app()
   app.get("/") do |req| _canvas_page(g) end
