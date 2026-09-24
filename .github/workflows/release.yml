@@ -1,0 +1,63 @@
+name: Release tarball
+
+# Publishes a real, downloadable GitHub Release asset for every vX.Y.Z tag.
+#
+# Why this exists: GitHub tracks a download_count on uploaded release
+# assets, but NOT on the "Source code (tar.gz)" link it auto-generates for
+# every tag (archive/refs/tags/...). The Homebrew formula used to point at
+# that auto-generated link, which meant there was no way to see how many
+# people had ever run `brew install`. This workflow uploads an actual
+# asset instead, so packaging/homebrew/download_stats.sh has something to
+# count. See docs/06_changelog.md v1.22.3 entry for the background.
+
+"on":
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release-tarball:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build a deterministic source tarball
+        # Frankie is pure Python stdlib (see CLAUDE.md) — no build step,
+        # no compiled extensions, so `git archive` of the tagged tree is
+        # the whole artifact. Same content the auto-generated link would
+        # have given you; the only difference is this one is an uploaded
+        # asset GitHub will actually count.
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          TARBALL="frankie-${VERSION}.tar.gz"
+          git archive --format=tar.gz --prefix="Frankie-${VERSION}/" -o "$TARBALL" HEAD
+          shasum -a 256 "$TARBALL" | tee "${TARBALL}.sha256"
+          {
+            echo "VERSION=${VERSION}"
+            echo "TARBALL=${TARBALL}"
+          } >> "$GITHUB_ENV"
+
+      - name: Publish release with the tarball attached
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "$TARBALL" "${TARBALL}.sha256" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "$TARBALL" "${TARBALL}.sha256" \
+              --title "Frankie $GITHUB_REF_NAME" --generate-notes
+          fi
+
+      - name: Print the sha256 for the Homebrew formula
+        run: |
+          {
+            echo "### Homebrew formula values for \`v${VERSION}\`"
+            echo
+            echo '```'
+            echo "url \"https://github.com/${GITHUB_REPOSITORY}/releases/download/v${VERSION}/${TARBALL}\""
+            echo "sha256 \"$(cut -d' ' -f1 "${TARBALL}.sha256")\""
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,8 +1,14 @@
 class Frankie < Formula
   desc "Terminal-native language stitched from Ruby, Python, R, and Fortran"
   homepage "https://github.com/atejada/Frankie"
-  url "https://github.com/atejada/Frankie/archive/refs/tags/v1.22.2.tar.gz"
-  sha256 "REPLACE_WITH_TARBALL_SHA256"   # see packaging/homebrew/README.md — compute after tagging + pushing v1.22.2
+  # v1.22.3+: points at an uploaded release ASSET, not GitHub's
+  # auto-generated tag archive — the auto-generated one doesn't get a
+  # tracked download_count, so there was no way to see install activity
+  # for this tap. .github/workflows/release.yml builds + uploads this
+  # asset on every `vX.Y.Z` tag push and prints the values below in the
+  # Actions run summary; see packaging/homebrew/README.md.
+  url "https://github.com/atejada/Frankie/releases/download/v1.22.3/frankie-1.22.3.tar.gz"
+  sha256 "REPLACE_WITH_TARBALL_SHA256"   # from the workflow run's summary for v1.22.3
   license "GPL-3.0-only"
 
   depends_on "python@3.12"
