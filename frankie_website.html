@@ -104,6 +104,45 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
 .fc strong{color:var(--text)}
 .ft{font-family:'Special Elite',cursive;color:var(--green)}
 @media(max-width:820px){.code-grid,.donors{grid-template-columns:1fr}nav ul{display:none}.ascii{font-size:.46rem}}
+/* ── Playground ─────────────────────────────────────────────── */
+.pg-intro{max-width:660px;color:var(--muted);font-size:1.02rem;margin-bottom:1.6rem}
+.pg-bar{display:flex;flex-wrap:wrap;gap:.55rem;align-items:center;margin-bottom:.9rem}
+.pg-select,.pg-btn{font-family:'Share Tech Mono',monospace;font-size:.7rem;letter-spacing:.1em;border-radius:2px;border:1px solid var(--border);background:var(--dark);color:var(--text)}
+.pg-select{padding:.58rem .7rem;max-width:100%;cursor:pointer}
+.pg-btn{padding:.6rem 1.05rem;text-transform:uppercase;color:var(--muted);cursor:pointer;transition:all .2s}
+.pg-btn:hover:not(:disabled){border-color:var(--green);color:var(--green)}
+.pg-btn:disabled{opacity:.4;cursor:default}
+.pg-btn.run{background:var(--green);border-color:var(--green);color:var(--black);font-weight:700}
+.pg-btn.run:hover:not(:disabled){background:#fff;border-color:#fff;color:var(--black)}
+.pg-btn.suggest{border-color:var(--green);color:var(--green)}
+.pg-btn.stop{border-color:#ff5f57;color:#ff5f57}
+.pg-btn[hidden]{display:none}
+.pg-status{margin-left:auto;font-family:'Share Tech Mono',monospace;font-size:.62rem;letter-spacing:.08em;color:var(--muted);display:flex;align-items:center;gap:.5rem}
+.pg-status i{width:7px;height:7px;border-radius:50%;background:var(--border);display:inline-block}
+.pg-status.busy i{background:var(--amber);animation:pulse 1s infinite}
+.pg-status.ok i{background:var(--green)}
+.pg-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;align-items:start}
+.pg-grid .cp{min-width:0}
+.pg-link{background:none;border:none;color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+.pg-link:hover{color:var(--green)}
+.pg-editor{position:relative;display:flex;height:400px;background:var(--panel);font-family:'Share Tech Mono',monospace;font-size:13px;line-height:20px}
+.pg-gutter{flex:none;width:2.9rem;overflow:hidden;background:var(--dark);border-right:1px solid var(--border);color:#4a4a4a;text-align:right;user-select:none;padding:.9rem .6rem .9rem 0;white-space:pre}
+.pg-code{position:relative;flex:1;min-width:0}
+.pg-editor pre.pg-hl,.pg-editor textarea.pg-ta{position:absolute;inset:0;margin:0;padding:.9rem 1rem;border:0;font:inherit;line-height:inherit;letter-spacing:0;tab-size:2;white-space:pre;word-wrap:normal;overflow:auto}
+.pg-editor pre.pg-hl{overflow:hidden;pointer-events:none;color:var(--text)}
+.pg-editor textarea.pg-ta{background:transparent;color:transparent;caret-color:var(--green);resize:none;outline:none;-webkit-text-fill-color:transparent}
+.pg-editor textarea.pg-ta::selection{background:rgba(57,255,138,.25);-webkit-text-fill-color:transparent}
+.pg-stdin{border-top:1px solid var(--border);background:var(--dark)}
+.pg-stdin summary{cursor:pointer;padding:.5rem 1rem;font-family:'Share Tech Mono',monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.pg-stdin textarea{display:block;width:100%;background:var(--panel);color:var(--text);border:0;border-top:1px solid var(--border);padding:.6rem 1rem;font-family:'Share Tech Mono',monospace;font-size:13px;resize:vertical;outline:none}
+.pg-out{margin:0;height:400px;overflow:auto;padding:.9rem 1rem;font-size:13px;line-height:20px;background:#0d0d0d;color:var(--text);white-space:pre}
+.pg-out .a31{color:#ff5f57}.pg-out .a32{color:var(--green)}.pg-out .a33{color:var(--amber)}.pg-out .a34{color:#6cb6ff}.pg-out .a35{color:#ff79c6}.pg-out .a36{color:#8be9fd}.pg-out .a90{color:#6a6a6a}.pg-out .ab{font-weight:700}
+.pg-out .pg-err{color:#ff8a80}.pg-out .pg-sys{color:var(--muted);font-style:italic}.pg-out .pg-in{color:#8be9fd}
+.pg-note{margin-top:1rem;font-size:.82rem;color:var(--muted);max-width:760px}
+.pg-note a{color:var(--green)}
+.pg-toast{position:fixed;left:50%;bottom:1.6rem;transform:translateX(-50%);background:var(--green);color:var(--black);font-family:'Share Tech Mono',monospace;font-size:.72rem;letter-spacing:.08em;padding:.55rem 1.1rem;border-radius:2px;z-index:200;opacity:0;pointer-events:none;transition:opacity .25s}
+.pg-toast.show{opacity:1}
+@media(max-width:820px){.pg-grid{grid-template-columns:1fr}.pg-status{margin-left:0;width:100%}}
 </style>
 </head>
 <body>
@@ -111,6 +150,7 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
   <a href="#" class="nav-logo">🧟 Frankie <span>v1.22.0</span></a>
   <ul>
     <li><a href="#features">Features</a></li>
+    <li><a href="#playground">Playground</a></li>
     <li><a href="#syntax">Syntax</a></li>
     <li><a href="#web">Web</a></li>
     <li><a href="#compare">Compare</a></li>
@@ -137,6 +177,7 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
   </div>
   <div class="ctas">
     <a href="#install" class="btn btn-p">Get Started →</a>
+    <a href="#playground" class="btn btn-s">▶ Try it in your browser</a>
     <a href="https://github.com/atejada/Frankie/releases" class="btn btn-s">Download v1.22.0</a>
     <a href="https://atejada.github.io/frankielanguage/site/index.html" class="btn btn-s">Go to the Docs</a>
     <a href="https://github.com/atejada/Frankie" class="btn btn-s">★ Star on GitHub</a>
@@ -210,6 +251,40 @@ footer{border-top:1px solid var(--border);padding:2.2rem 2.5rem;display:flex;ali
   </div>
 </section>
 <div class="divider"></div>
+<section id="playground">
+  <p class="lbl">Try it now</p>
+  <h2>Run Frankie in your browser.<br>No install required.</h2>
+  <p class="pg-intro">This is the real Frankie compiler and standard library, running inside your tab through WebAssembly. Pick an example or write your own &mdash; your code never leaves your machine.</p>
+  <div class="pg-bar">
+    <select class="pg-select" id="pg-examples" aria-label="Choose an example"></select>
+    <button class="pg-btn run" id="pg-run" title="Run (Ctrl/Cmd + Enter)">&#9654; Run</button>
+    <button class="pg-btn" id="pg-test" title="Run the test blocks">Test</button>
+    <button class="pg-btn" id="pg-fmt" title="Format with frankiec fmt">Format</button>
+    <button class="pg-btn stop" id="pg-stop" hidden>&#9632; Stop</button>
+    <button class="pg-btn" id="pg-share" title="Copy a link to this code">Share link</button>
+    <span class="pg-status" id="pg-status"><i></i><span id="pg-status-text">Python loads on your first run (~7&nbsp;MB, then cached)</span></span>
+  </div>
+  <div class="pg-grid">
+    <div class="cp">
+      <div class="cp-head"><span class="cp-title">main.fk</span><div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div></div>
+      <div class="pg-editor">
+        <div class="pg-gutter" id="pg-gutter" aria-hidden="true">1</div>
+        <div class="pg-code">
+          <pre class="pg-hl" id="pg-hl" aria-hidden="true"></pre>
+          <textarea class="pg-ta" id="pg-ta" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" aria-label="Frankie code editor"></textarea>
+        </div>
+      </div>
+      <details class="pg-stdin" id="pg-stdin-box"><summary>Input (stdin) &mdash; one line per <code>input()</code> call</summary><textarea id="pg-stdin" rows="2" spellcheck="false" aria-label="Program input"></textarea></details>
+    </div>
+    <div class="cp">
+      <div class="cp-head"><span class="cp-title">Output</span><button class="pg-link" id="pg-clear">clear</button></div>
+      <pre class="pg-out" id="pg-out" aria-live="polite"></pre>
+    </div>
+  </div>
+  <p class="pg-note">Runs in a sandboxed Web Worker; a program that runs longer than 20&nbsp;s is stopped. Anything that needs the outside world &mdash; network, sockets, web servers, <code>spawn</code> threads, terminal games, files that outlive the tab &mdash; only works in a real install. <a href="#install">Install Frankie</a> for the full thing.</p>
+</section>
+<div class="divider"></div>
+<div class="pg-toast" id="pg-toast" role="status"></div>
 <section id="syntax">
   <p class="lbl">The language</p>
   <h2>Familiar. Expressive.<br>A little monstrous.</h2>
@@ -979,6 +1054,362 @@ function switchLang(lang) {
     if (on.indexOf("'" + lang + "'") !== -1) { t.classList.add('active'); }
   });
 }
+</script>
+<script type="text/plain" id="pg-worker-src">
+// Frankie Playground worker — runs the real Frankie toolchain inside Pyodide.
+// Module worker (Pyodide 314+ is an ES module, classic workers are unsupported).
+import { loadPyodide } from "https://cdn.jsdelivr.net/pyodide/v314.0.7/full/pyodide.mjs";
+
+let pyodide = null, pg = null;
+let stdinLines = [];
+const post = (m) => self.postMessage(m);
+const decoder = { stdout: new TextDecoder(), stderr: new TextDecoder() };
+
+async function init(bundleUrls) {
+  post({ type: "status", text: "Downloading Python (WebAssembly)…" });
+  pyodide = await loadPyodide({ indexURL: "https://cdn.jsdelivr.net/pyodide/v314.0.7/full/" });
+  post({ type: "status", text: "Fetching the Frankie compiler…" });
+  let bundle = null;
+  for (const url of bundleUrls) {
+    try {
+      const r = await fetch(url);
+      if (r.ok) { bundle = await r.json(); break; }
+    } catch (e) { /* try the next URL */ }
+  }
+  if (!bundle) throw new Error("Could not download the Frankie bundle (playground/frankie_bundle.json).");
+  post({ type: "status", text: "Starting Frankie…" });
+  for (const [path, src] of Object.entries(bundle.files)) {
+    const full = "/frankie/" + path;
+    pyodide.FS.mkdirTree(full.slice(0, full.lastIndexOf("/")));
+    pyodide.FS.writeFile(full, src);
+  }
+  for (const stream of ["stdout", "stderr"]) {
+    const setter = stream === "stdout" ? pyodide.setStdout : pyodide.setStderr;
+    setter.call(pyodide, {
+      write: (buf) => {
+        post({ type: "out", stream, text: decoder[stream].decode(buf, { stream: true }) });
+        return buf.length;
+      },
+    });
+  }
+  pyodide.setStdin({
+    stdin: () => {
+      if (!stdinLines.length) return null;            // EOF
+      const line = stdinLines.shift();
+      post({ type: "out", stream: "stdin", text: line + "\n" });   // echo, like a terminal would
+      return line;
+    },
+  });
+  pyodide.runPython("import sys; sys.path.insert(0, '/frankie')");
+  pg = pyodide.pyimport("playground_runtime");
+  post({ type: "ready", version: bundle.version, python: pyodide.runPython("sys.version.split()[0]") });
+}
+
+self.onmessage = async (e) => {
+  const m = e.data;
+  try {
+    if (m.type === "init") { await init(m.bundleUrls); return; }
+    stdinLines = m.stdin ? m.stdin.replace(/\n$/, "").split("\n") : [];
+    const res = JSON.parse(pg[m.type](m.code));
+    post({ type: "done", id: m.id, cmd: m.type, ...res });
+  } catch (err) {
+    post({ type: "fatal", id: m.id, text: String((err && err.message) || err) });
+  }
+};
+</script>
+<script>
+/* ── Frankie Playground ───────────────────────────────────────
+   The real Frankie compiler, run in Pyodide inside a Web Worker.
+   Bundle: playground/frankie_bundle.json (python3 playground/build_bundle.py). */
+(function () {
+  var PYODIDE_BASE = 'https://cdn.jsdelivr.net/pyodide/v314.0.7/full/';
+  var BUNDLE_URLS = [
+    'playground/frankie_bundle.json',
+    'https://raw.githubusercontent.com/atejada/Frankie/main/playground/frankie_bundle.json'
+  ];
+  var RUN_TIMEOUT_MS = 20000, OUT_LIMIT = 200000;
+  var EXAMPLES = [{"id": "hello", "title": "Hello, Frankie", "cmd": "run", "code": "# Frankie: Ruby-flavored syntax, compiled to Python, zero dependencies.\nname = \"World\"\nputs \"Hello, #{name}!\"\n\nsquares = (1..5).map do |n| n * n end\nputs \"Squares: #{squares}\"\nputs \"Sum: #{squares.sum}\"\n"}, {"id": "fizzbuzz", "title": "FizzBuzz", "cmd": "run", "code": "for i in 1..15\n  if i % 15 == 0\n    puts \"FizzBuzz\"\n  elsif i % 3 == 0\n    puts \"Fizz\"\n  elsif i % 5 == 0\n    puts \"Buzz\"\n  else\n    puts i\n  end\nend\n"}, {"id": "hashes", "title": "Hashes, blocks & stats", "cmd": "run", "code": "people = [\n  {name: \"Ada\", age: 36},\n  {name: \"Linus\", age: 28},\n  {name: \"Grace\", age: 45}\n]\n\nadults = people.select do |p| p[\"age\"] > 30 end\nadults.each do |p|\n  puts \"#{p[\"name\"]} is #{p[\"age\"]}\"\nend\n\nages = people.map do |p| p[\"age\"] end\nputs \"Mean age:   #{mean(ages)}\"\nputs \"Median age: #{median(ages)}\"\nputs \"Oldest:     #{max(ages)}\"\n"}, {"id": "errors", "title": "Custom errors & rescue", "cmd": "run", "code": "error InsufficientFunds\n\ndef withdraw(balance, amount)\n  raise InsufficientFunds, \"need #{amount - balance} more\" if amount > balance\n  balance - amount\nend\n\nbegin\n  puts \"Left: #{withdraw(100, 30)}\"\n  puts \"Left: #{withdraw(100, 250)}\"\nrescue InsufficientFunds => e\n  puts \"Caught: #{e}\"\nensure\n  puts \"Transaction closed\"\nend\n"}, {"id": "records", "title": "Records & enums", "cmd": "run", "code": "record Point(x, y)\nenum Status(pending, active, done)\n\np1 = Point(3, 4)\nputs \"x=#{p1.x}, y=#{p1.y}\"\nputs \"distance from origin: #{sqrt(p1.x ** 2 + p1.y ** 2)}\"\n\nstate = Status.active\ncase state\nwhen Status.pending\n  puts \"waiting\"\nwhen Status.active\n  puts \"in progress\"\nelse\n  puts \"finished\"\nend\n"}, {"id": "fortran", "title": "Matrix, complex & math (v1.22)", "cmd": "run", "code": "m1 = [[1, 2], [3, 4]]\nm2 = [[5, 6], [7, 8]]\nputs \"m1 + m2         = #{m1 + m2}\"\nputs \"matrix_multiply = #{matrix_multiply(m1, m2)}\"\nputs \"transpose       = #{matrix_transpose(m1)}\"\n\nc = complex_new(3, 4)\nputs \"c = #{c}, |c| = #{complex_abs(c)}\"\nputs \"c * c = #{c * c}\"\n\nputs \"factorial(10) = #{factorial(10)}\"\nputs \"gcd(48, 18)   = #{gcd(48, 18)}\"\nputs \"atan2(1, 1)   = #{atan2(1, 1)}\"\n"}, {"id": "labeled", "title": "Labeled loops (v1.22)", "cmd": "run", "code": "found = nil\nfor :rows r in 1..5\n  for c in 1..5\n    if r * c == 12\n      found = [r, c]\n      break :rows\n    end\n  end\nend\nputs \"first r*c == 12 at #{found}\"\n"}, {"id": "pipes", "title": "Pipes, ternary & ranges", "cmd": "run", "code": "data = [4, 8, 15, 16, 23, 42]\n\nputs data |> mean\nputs data |> median\n\nlabel = mean(data) > 15 ? \"high\" : \"low\"\nputs \"average is #{label}\"\n\nevens = (1..20).select do |n| n % 2 == 0 end\nputs evens.take(5)\nputs (1...4).to_vec\n"}, {"id": "tests", "title": "Tests (press Test)", "cmd": "test", "code": "def square(n)\n  n * n\nend\n\ntest \"square\" do\n  assert_eq(square(4), 16, \"4 squared\")\n  assert_eq(square(-3), 9, \"negative input\")\nend\n\ntest \"strings\" do\n  assert_eq(\"frankie\".upcase, \"FRANKIE\", \"upcase\")\n  assert_true(\"monster\".include?(\"on\"), \"include?\")\nend\n"}, {"id": "stitch", "title": "Using stitches", "cmd": "run", "code": "# Stitches are reusable library modules that ship with Frankie.\nstitch \"frankiecolor\"\nstitch \"frankiestring\"\n\nputs green(\"stitches load by name\")\nputs red(\"and are plain Frankie files\")\nputs slugify(\"Hello, Frankie World!\")\nputs truncate(\"Frankenstein's monster\", 12, \"...\")\n"}, {"id": "input", "title": "Reading input", "cmd": "run", "stdin": "Ada\n36\n", "code": "# The \"Input\" box under the editor feeds input() line by line.\nname = input(\"What is your name? \")\nage = input_int(\"How old are you? \")\nputs \"Hello, #{name}! Next year you'll be #{age + 1}.\"\n"}];
+
+  var $ = function (id) { return document.getElementById(id); };
+  var ta = $('pg-ta'), hl = $('pg-hl'), gutter = $('pg-gutter'), out = $('pg-out'),
+      sel = $('pg-examples'), stdinEl = $('pg-stdin'), statusEl = $('pg-status'),
+      statusText = $('pg-status-text');
+  var btn = { run: $('pg-run'), test: $('pg-test'), fmt: $('pg-fmt'), stop: $('pg-stop'), share: $('pg-share') };
+
+  /* ── editor: syntax highlighting overlay ── */
+  var KW = {}; ('def end if elsif else unless while until for in do return begin rescue ensure raise case when then next break loop ' +
+    'and or not stitch require import const record enum error spawn timeout await test benchmark puts print p input input_int input_float breakpoint')
+    .split(' ').forEach(function (k) { KW[k] = 1; });
+  var TOKEN = /(#.*)|("(?:\\.|#\{[^}]*\}|[^"\\\n])*"|'(?:\\.|[^'\\\n])*')|(:[A-Za-z_]\w*)|(\b\d[\d_]*(?:\.\d+)?(?:[eE][+-]?\d+)?\b)|([A-Za-z_]\w*[?!]?)(\()?/g;
+  function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function highlight(src) {
+    var html = '', last = 0, m;
+    TOKEN.lastIndex = 0;
+    while ((m = TOKEN.exec(src))) {
+      html += esc(src.slice(last, m.index));
+      var t = m[0];
+      if (m[1]) html += '<span class="cm">' + esc(t) + '</span>';
+      else if (m[2]) html += '<span class="str">' + esc(t) + '</span>';
+      else if (m[3]) html += '<span class="vr">' + esc(t) + '</span>';
+      else if (m[4]) html += '<span class="num">' + esc(t) + '</span>';
+      else {
+        var w = m[5];
+        if (KW[w]) html += '<span class="kw">' + w + '</span>' + (m[6] ? '(' : '');
+        else if (w === 'true' || w === 'false' || w === 'nil') html += '<span class="num">' + w + '</span>' + (m[6] ? '(' : '');
+        else if (m[6]) html += '<span class="fn">' + w + '</span>(';
+        else if (/^[A-Z]/.test(w)) html += '<span class="vr">' + w + '</span>';
+        else html += esc(t);
+      }
+      last = TOKEN.lastIndex;
+    }
+    return html + esc(src.slice(last)) + '\n';
+  }
+  function refresh() {
+    hl.innerHTML = highlight(ta.value);
+    var n = ta.value.split('\n').length, g = '';
+    for (var i = 1; i <= n; i++) g += i + '\n';
+    gutter.textContent = g;
+    syncScroll();
+  }
+  function syncScroll() {
+    hl.scrollTop = ta.scrollTop; hl.scrollLeft = ta.scrollLeft;
+    gutter.scrollTop = ta.scrollTop;
+  }
+  function insert(text) {   // keeps the browser's native undo stack
+    if (!document.execCommand || !document.execCommand('insertText', false, text)) {
+      var s = ta.selectionStart; ta.setRangeText(text, s, ta.selectionEnd, 'end');
+      ta.dispatchEvent(new Event('input'));
+    }
+  }
+  function setCode(code, keepUndo) {
+    if (keepUndo) {          // route through the browser so Ctrl/Cmd+Z can undo a Format
+      ta.focus({ preventScroll: true }); ta.select();
+      if (document.execCommand && document.execCommand('insertText', false, code)) { ta.setSelectionRange(0, 0); refresh(); return; }
+    }
+    ta.value = code;
+    ta.setSelectionRange(0, 0); ta.scrollTop = 0; ta.scrollLeft = 0;
+    refresh();
+  }
+  var OPENER = /^\s*(def|if|elsif|else|unless|while|until|for|loop|begin|rescue|ensure|case|when|test|spawn|timeout|benchmark)\b|\bdo(\s*\|[^|]*\|)?\s*$/;
+  ta.addEventListener('input', refresh);
+  ta.addEventListener('scroll', syncScroll);
+  ta.addEventListener('focus', function () { warm(); });
+  ta.addEventListener('keydown', function (e) {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); exec('run'); return; }
+    if (e.key === 'Tab' && !e.shiftKey && !e.metaKey && !e.ctrlKey) { e.preventDefault(); insert('  '); return; }
+    if (e.key === 'Enter' && !e.shiftKey && !e.metaKey && !e.ctrlKey && ta.selectionStart === ta.selectionEnd) {
+      var before = ta.value.slice(0, ta.selectionStart), line = before.slice(before.lastIndexOf('\n') + 1);
+      var indent = line.match(/^\s*/)[0] + (OPENER.test(line) ? '  ' : '');
+      e.preventDefault(); insert('\n' + indent);
+    }
+  });
+
+  /* ── output pane ── */
+  var outBuf = [], outScheduled = false, outLen = 0, ansiState = { c: '', b: false };
+  function ansiToHtml(text, cls) {
+    var html = '', re = /\x1b\[([0-9;]*)m/g, last = 0, m;
+    function chunk(s) {
+      if (!s) return;
+      var c = [];
+      if (cls) c.push(cls);
+      if (ansiState.c) c.push(ansiState.c);
+      if (ansiState.b) c.push('ab');
+      html += c.length ? '<span class="' + c.join(' ') + '">' + esc(s) + '</span>' : esc(s);
+    }
+    while ((m = re.exec(text))) {
+      chunk(text.slice(last, m.index)); last = re.lastIndex;
+      m[1].split(';').forEach(function (code) {
+        code = parseInt(code || '0', 10);
+        if (code === 0) { ansiState.c = ''; ansiState.b = false; }
+        else if (code === 1) ansiState.b = true;
+        else if (code === 39) ansiState.c = '';
+        else if ([31, 32, 33, 34, 35, 36, 90].indexOf(code) !== -1) ansiState.c = 'a' + code;
+        else if (code >= 91 && code <= 96) ansiState.c = 'a' + (code - 60);
+      });
+    }
+    chunk(text.slice(last));
+    return html;
+  }
+  function print(text, cls) {
+    if (outLen > OUT_LIMIT) return;
+    outLen += text.length;
+    if (outLen > OUT_LIMIT) { text += '\n… output truncated (200 KB limit)\n'; cls = 'pg-sys'; }
+    outBuf.push(ansiToHtml(text, cls));
+    if (!outScheduled) {
+      outScheduled = true;
+      requestAnimationFrame(function () {
+        outScheduled = false;
+        var atEnd = out.scrollTop + out.clientHeight >= out.scrollHeight - 30;
+        out.insertAdjacentHTML('beforeend', outBuf.join('')); outBuf = [];
+        if (atEnd) out.scrollTop = out.scrollHeight;
+      });
+    }
+  }
+  function sys(text) { print(text + '\n', 'pg-sys'); }
+  function clearOut() { out.innerHTML = ''; outBuf = []; outLen = 0; ansiState = { c: '', b: false }; }
+  $('pg-clear').addEventListener('click', clearOut);
+
+  /* ── worker lifecycle ── */
+  var versionLabel = '', worker = null, readyPromise = null, readyResolve = null, readyReject = null,
+      pendingDone = null, running = false, runTimer = null, seq = 0, runStart = 0, curCmd = '';
+  function setStatus(text, kind) {
+    statusText.textContent = text;
+    statusEl.className = 'pg-status' + (kind ? ' ' + kind : '');
+  }
+  function setButtons() {
+    btn.run.disabled = btn.test.disabled = btn.fmt.disabled = running;
+    btn.stop.hidden = !running;
+  }
+  function spawn() {
+    var src = $('pg-worker-src').textContent;
+    var url = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
+    worker = new Worker(url, { type: 'module' });
+    readyPromise = new Promise(function (res, rej) { readyResolve = res; readyReject = rej; });
+    readyPromise.catch(function () {});
+    worker.onmessage = onMessage;
+    worker.onerror = function (e) {
+      fail('The Python runtime failed to start' + (e.message ? ': ' + e.message : '') + '. Check your connection and try again.');
+    };
+    var bundles = BUNDLE_URLS.map(function (u) { return new URL(u, location.href).href; });
+    worker.postMessage({ type: 'init', bundleUrls: bundles });
+    setStatus('Starting Python…', 'busy');
+  }
+  function fail(msg) {
+    if (worker) { worker.terminate(); worker = null; }
+    if (readyReject) readyReject(new Error(msg));
+    readyResolve = readyReject = null;
+    finishRun();
+    setStatus('Runtime unavailable', '');
+    print(msg + '\n', 'pg-err');
+  }
+  function warm() { if (!worker && !readyPromise) spawn(); }
+  function ensureReady() { warm(); return readyPromise; }
+  function onMessage(e) {
+    var m = e.data;
+    if (m.type === 'status') setStatus(m.text, 'busy');
+    else if (m.type === 'ready') {
+      versionLabel = 'Frankie v' + m.version + ' · Python ' + m.python;
+      setStatus(versionLabel, 'ok');
+      if (readyResolve) readyResolve();
+    }
+    else if (m.type === 'out') print(m.text, m.stream === 'stderr' ? 'pg-err' : (m.stream === 'stdin' ? 'pg-in' : ''));
+    else if (m.type === 'done') { if (pendingDone) pendingDone(m); }
+    else if (m.type === 'fatal') {
+      if (pendingDone) pendingDone({ ok: false, error: m.text, fatal: true });
+      else fail(m.text);
+    }
+  }
+  function finishRun() {
+    running = false; clearTimeout(runTimer); runTimer = null; pendingDone = null; setButtons();
+  }
+  function stop(reason) {
+    if (!running) return;
+    if (worker) { worker.terminate(); worker = null; }
+    readyPromise = null;                       // next run boots a fresh worker (cached, so quick)
+    finishRun();
+    sys(reason === 'timeout'
+      ? '⏱ Stopped after 20 s. Long-running programs, servers and infinite loops can\'t run in the browser — install Frankie for those.'
+      : '■ Stopped.');
+    setStatus('Idle — Python restarts on the next run', '');
+  }
+
+  function exec(cmd) {
+    if (running) return;
+    curCmd = cmd;
+    var code = ta.value;
+    running = true; setButtons();
+    clearOut();
+    var first = !worker;
+    if (first) sys('Loading Python + Frankie (first run only)…');
+    ensureReady().then(function () {
+      if (!running) return;                     // user pressed Stop while loading
+      if (first) clearOut();
+      var id = ++seq;
+      runStart = performance.now();
+      setStatus(cmd === 'fmt' ? 'Formatting…' : 'Running…', 'busy');
+      new Promise(function (res) { pendingDone = res; worker.postMessage({ type: cmd, id: id, code: code, stdin: stdinEl.value }); runTimer = setTimeout(function () { stop('timeout'); }, RUN_TIMEOUT_MS); })
+        .then(function (m) { onDone(cmd, m); });
+    }).catch(function () { finishRun(); });
+  }
+  function onDone(cmd, m) {
+    var ms = Math.round(performance.now() - runStart);
+    finishRun();
+    if (m.fatal || m.error) { print('\n' + (m.error || 'Unknown error') + '\n', 'pg-err'); }
+    if (cmd === 'fmt') {
+      if (m.ok && m.result != null) {
+        if (m.result !== ta.value) setCode(m.result, true);
+        sys('✓ Formatted');
+      } else if (!m.error) sys('✗ Formatting failed');
+    } else {
+      sys((m.ok ? '✓ Finished' : '✗ Exited with code ' + m.code) + ' in ' + (ms < 1000 ? ms + ' ms' : (ms / 1000).toFixed(1) + ' s'));
+    }
+    setStatus(versionLabel || 'Ready', 'ok');
+  }
+  btn.run.addEventListener('click', function () { exec('run'); });
+  btn.test.addEventListener('click', function () { exec('test'); });
+  btn.fmt.addEventListener('click', function () { exec('fmt'); });
+  btn.stop.addEventListener('click', function () { stop('user'); });
+  btn.run.addEventListener('mouseenter', warm);
+
+  /* ── examples ── */
+  EXAMPLES.forEach(function (ex, i) {
+    var o = document.createElement('option'); o.value = ex.id; o.textContent = ex.title; sel.appendChild(o);
+  });
+  var customOpt = document.createElement('option'); customOpt.value = '__custom'; customOpt.textContent = 'Shared / custom code'; customOpt.hidden = true; sel.appendChild(customOpt);
+  function loadExample(id) {
+    var ex = EXAMPLES.filter(function (e) { return e.id === id; })[0] || EXAMPLES[0];
+    sel.value = ex.id;
+    setCode(ex.code);
+    stdinEl.value = ex.stdin || '';
+    $('pg-stdin-box').open = !!ex.stdin;
+    btn.test.classList.toggle('suggest', ex.cmd === 'test');
+    clearOut();
+  }
+  sel.addEventListener('change', function () { loadExample(sel.value); warm(); });
+
+  /* ── share links: #pg=<z|b>.<base64url> ── */
+  function b64e(bytes) { var s = ''; bytes.forEach(function (b) { s += String.fromCharCode(b); }); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+  function b64d(str) { str = str.replace(/-/g, '+').replace(/_/g, '/'); while (str.length % 4) str += '='; var s = atob(str), a = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) a[i] = s.charCodeAt(i); return a; }
+  function pipe(bytes, stream) { return new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer().then(function (b) { return new Uint8Array(b); }); }
+  function encodeShare(code) {
+    var raw = new TextEncoder().encode(code);
+    if (typeof CompressionStream === 'undefined') return Promise.resolve('b.' + b64e(raw));
+    return pipe(raw, new CompressionStream('deflate-raw')).then(function (z) { return 'z.' + b64e(z); });
+  }
+  function decodeShare(payload) {
+    var kind = payload.slice(0, 2), bytes = b64d(payload.slice(2));
+    if (kind === 'b.') return Promise.resolve(new TextDecoder().decode(bytes));
+    return pipe(bytes, new DecompressionStream('deflate-raw')).then(function (r) { return new TextDecoder().decode(r); });
+  }
+  var toastTimer;
+  function toast(msg) { var t = $('pg-toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.classList.remove('show'); }, 2200); }
+  btn.share.addEventListener('click', function () {
+    encodeShare(ta.value).then(function (p) {
+      var url = location.href.split('#')[0] + '#pg=' + p;
+      history.replaceState(null, '', '#pg=' + p);
+      if (url.length > 8000) toast('Link copied — it is long, some apps may truncate it');
+      (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(function () { if (url.length <= 8000) toast('Link copied to clipboard'); },
+        function () { window.prompt('Copy this link:', url); });
+    });
+  });
+  function fromHash() {
+    var m = location.hash.match(/^#pg=([zb]\..+)$/);
+    if (!m) return false;
+    decodeShare(m[1]).then(function (code) {
+      customOpt.hidden = false; sel.value = '__custom';
+      setCode(code); stdinEl.value = ''; btn.test.classList.remove('suggest');
+      $('playground').scrollIntoView();
+      sys('Loaded shared code — press Run to execute it.');
+    }).catch(function () { loadExample('hello'); sys('That share link could not be decoded.'); });
+    return true;
+  }
+
+  /* ── boot ── */
+  setButtons();
+  if (!fromHash()) loadExample('hello');
+  window.addEventListener('hashchange', fromHash);
+  window.frankiePlayground = { run: function () { exec('run'); } };
+})();
 </script>
 </body>
 </html>

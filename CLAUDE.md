@@ -99,4 +99,5 @@ Frankie has a built-in test harness (no external framework). Write tests in `.fk
 - Make sure that there are no missing functions in the codegen.py
 - Can you also make a small description of the changes for the release notes?
 - Showcase should be updated as well, to show examples from all versions.
+- Regenerate the browser Playground bundle whenever the compiler, stdlib, formatter or a stitch changes: `python3 playground/build_bundle.py` (and commit `playground/frankie_bundle.json`). `--check` exits 1 if it is stale. See `docs/24_playground.md`.
 - While the freeze (above) is active, this checklist still applies to bug-fix/doc patch releases — just not to new-feature releases.

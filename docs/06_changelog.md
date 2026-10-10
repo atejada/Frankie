@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+
+### Browser Playground (tooling — no language or stdlib changes)
+
+- **New: the Frankie Playground** — a section of the website
+  (`frankie_website.html`, `#playground`) that runs the real compiler, stdlib,
+  formatter, test runner and stitches in the browser through Pyodide
+  (Python 3.14 on WebAssembly) inside a Web Worker. Example picker, Run /
+  Test / Format / Stop, `input()` support, ANSI-coloured output, and
+  shareable `#pg=…` links (deflate-compressed, never auto-run). Nothing leaves
+  the user's machine. Servers, sockets, threads and terminal games don't run
+  in a browser; programs are stopped after 20 s. See `docs/24_playground.md`.
+- New `playground/` folder: `build_bundle.py` (packs the toolchain into
+  `frankie_bundle.json`; `--check` detects a stale bundle),
+  `playground_runtime.py` (glue that calls `frankiec.run_file` /
+  `run_tests` / `frankie_fmt`). **Regenerate the bundle on every release.**
+
+---
+
 ## v1.22.3 (2026)
 
 ### Patch: `frankiec fmt` no longer deletes your comments

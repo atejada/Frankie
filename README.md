@@ -33,6 +33,14 @@ Frankie is **not object-oriented**. Proudly procedural — functions, data, loop
 
 ---
 
+## Try it in your browser
+
+No install needed: the **Playground** on the Frankie website runs the real
+compiler and standard library in your browser tab (via WebAssembly) — examples,
+Run / Test / Format, and shareable links. See `docs/24_playground.md`.
+
+---
+
 ## Quick Install
 
 ```bash
@@ -877,6 +885,7 @@ Full documentation lives in the `docs/` folder:
 | `docs/21_v119_features.md` | v1.19 feature reference: gradual type annotations, stepping debugger, test coverage, TLS + UDP, stitch installs from URL |
 | `docs/22_v120_features.md` | v1.20 feature reference: frankiegame + frankiecanvas game engines, terminal primitives |
 | `docs/23_v121_features.md` | v1.21 feature reference: image sprites, WebAudio synth, file_read_base64, language freeze |
+| `docs/24_playground.md` | The browser Playground: how it works (Pyodide), limits, keeping the bundle current |
 
 The formal language grammar lives in `SPEC.md`.
 
@@ -894,6 +903,7 @@ frankie/
 │   ├── ast_nodes.py       ← AST node definitions
 │   └── codegen.py         ← Python code generator
 ├── docs/                  ← full documentation
+├── playground/            ← browser Playground glue + generated frankie_bundle.json
 ├── examples/              ← example .fk programs (incl. webapp.fk, whats_new_v16.fk … whats_new_v114.fk)
 ├── stitches/              ← official starter stitches (frankieforms, frankietable, frankiecolor, frankiepager, frankieconfig, frankiestring, frankietemplate, frankiecookie)
 ├── frankiec.py            ← compiler CLI entry point
