@@ -332,12 +332,12 @@ class CodeGen:
                 # v1.17: resolved at runtime so user-defined error types
                 # (error TimeoutError) take precedence over builtins
                 exc_class = f"_fk_exc({clause.error_type!r})"
-            tmp = clause.rescue_var or '_fk_err'
+            tmp = _py_safe(clause.rescue_var) if clause.rescue_var else '_fk_err'
             self.emit(f"except {exc_class} as {tmp}:")
             self.indent()
             if clause.body:
                 if clause.rescue_var:
-                    self.emit(f"{clause.rescue_var} = str({clause.rescue_var})")
+                    self.emit(f"{_py_safe(clause.rescue_var)} = str({_py_safe(clause.rescue_var)})")
                 self._gen_body_implicit_return(clause.body)
             else:
                 self.emit("pass")
@@ -468,7 +468,7 @@ class CodeGen:
 
     def gen_for_in(self, node: ForInStmt):
         iterable = self.gen_expr(node.iterable)
-        self._gen_loop_with_header(f"for {node.var} in {iterable}:", node.body, node.label)
+        self._gen_loop_with_header(f"for {_py_safe(node.var)} in {iterable}:", node.body, node.label)
 
     def gen_loop(self, node: 'LoopStmt'):
         self._gen_loop_with_header("while True:", node.body, node.label)
@@ -1923,12 +1923,12 @@ class CodeGen:
                 # v1.17: resolved at runtime so user-defined error types
                 # (error TimeoutError) take precedence over builtins
                 exc_class = f"_fk_exc({clause.error_type!r})"
-            tmp = clause.rescue_var or '_fk_err'
+            tmp = _py_safe(clause.rescue_var) if clause.rescue_var else '_fk_err'
             self.emit(f"except {exc_class} as {tmp}:")
             self.indent()
             if clause.body:
                 if clause.rescue_var:
-                    self.emit(f"{clause.rescue_var} = str({clause.rescue_var})")
+                    self.emit(f"{_py_safe(clause.rescue_var)} = str({_py_safe(clause.rescue_var)})")
                 self.gen_body(clause.body)
             else:
                 self.emit("pass")
@@ -2014,10 +2014,10 @@ class CodeGen:
         if node.splat_index >= 0:
             n_before = node.splat_index
             n_after  = len(node.names) - node.splat_index - 1
-            names    = ", ".join(node.names)
+            names    = ", ".join(_py_safe(n) for n in node.names)
             self.emit(f"{names} = _fk_unpack_splat({value}, {n_before}, {n_after})")
         else:
-            names = ", ".join(node.names)
+            names = ", ".join(_py_safe(n) for n in node.names)
             self.emit(f"{names} = _fk_unpack({value}, {len(node.names)})")
 
     def gen_record_def(self, node: RecordDef):
@@ -2065,7 +2065,7 @@ class CodeGen:
         value = self.gen_expr(node.value)
         self.emit(f"{val_tmp} = {value}")
         for key in node.keys:
-            self.emit(f"{key} = ({val_tmp}.get({key!r}) if isinstance({val_tmp}, dict) else None)")
+            self.emit(f"{_py_safe(key)} = ({val_tmp}.get({key!r}) if isinstance({val_tmp}, dict) else None)")
 
     def gen_lambda(self, node: 'LambdaLiteral') -> str:
         """Generate a Python lambda or named inner function for a Frankie lambda literal.
@@ -2076,9 +2076,9 @@ class CodeGen:
         for i, pname in enumerate(node.params):
             default = node.defaults[i] if i < len(node.defaults) else None
             if default is not None:
-                param_parts.append(f"{pname}={self.gen_expr(default)}")
+                param_parts.append(f"{_py_safe(pname)}={self.gen_expr(default)}")
             else:
-                param_parts.append(pname)
+                param_parts.append(_py_safe(pname))
         params_str = ", ".join(param_parts)
 
         if len(node.body) == 1 and not isinstance(node.body[0], (
