@@ -7,7 +7,7 @@ Everything needed for `brew install atejada/frankie/frankie`.
 1. **Tag a release** in the main repo:
 
    ```bash
-   git tag v1.22.3 && git push origin v1.22.3
+   git tag v1.22.4 && git push origin v1.22.4
    ```
 
    Pushing the tag triggers `.github/workflows/release.yml`, which builds
@@ -22,7 +22,7 @@ Everything needed for `brew install atejada/frankie/frankie`.
    the tag on GitHub → Summary tab, or compute it yourself:
 
    ```bash
-   curl -L https://github.com/atejada/Frankie/releases/download/v1.22.3/frankie-1.22.3.tar.gz | shasum -a 256
+   curl -L https://github.com/atejada/Frankie/releases/download/v1.22.4/frankie-1.22.4.tar.gz | shasum -a 256
    ```
 
 3. **Create the tap repository** — a GitHub repo named exactly

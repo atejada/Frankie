@@ -7,8 +7,8 @@ class Frankie < Formula
   # for this tap. .github/workflows/release.yml builds + uploads this
   # asset on every `vX.Y.Z` tag push and prints the values below in the
   # Actions run summary; see packaging/homebrew/README.md.
-  url "https://github.com/atejada/Frankie/releases/download/v1.22.3/frankie-1.22.3.tar.gz"
-  sha256 "REPLACE_WITH_TARBALL_SHA256"   # from the workflow run's summary for v1.22.3
+  url "https://github.com/atejada/Frankie/releases/download/v1.22.4/frankie-1.22.4.tar.gz"
+  sha256 "REPLACE_WITH_TARBALL_SHA256"   # from the workflow run's summary for v1.22.4
   license "GPL-3.0-only"
 
   depends_on "python@3.12"

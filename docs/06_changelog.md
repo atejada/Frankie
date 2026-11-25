@@ -19,6 +19,20 @@
 
 ---
 
+## v1.22.4 (2026)
+
+### Patch: Python-keyword names no longer crash codegen
+
+- **Fixed invalid Python for keyword-shaped names** (`pass`, `class`,
+  `global`, ...) used as a `for` loop variable, a destructuring target
+  (`a, b = ...` and `{x, y} = hash`), a lambda parameter or a `rescue`
+  variable. `compiler/codegen.py` now routes all of them through
+  `_py_safe()`, like ordinary assignments and `def` parameters already did.
+  `for pass in 1..100` previously died with a Python "invalid syntax" error.
+- Playground bundle regenerated.
+
+---
+
 ## v1.22.3 (2026)
 
 ### Patch: `frankiec fmt` no longer deletes your comments
